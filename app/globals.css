@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: 222 47% 11%;
+  --background: 220 20% 98%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 42%;
+  --border: 220 13% 90%;
+  --input: 220 13% 90%;
+  /* Brand: confident teal — clear CTAs without loud purple gradients */
+  --primary: 173 58% 36%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 173 45% 94%;
+  --accent-foreground: 173 58% 22%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 173 58% 36%;
+  --radius: 0.625rem;
+  --header-height: 3.75rem;
+}
+
+/* Manual theme: class on <html> (see ThemeProvider + THEME_INIT_SCRIPT). */
+.dark {
+  --foreground: 210 40% 98%;
+  --background: 222 47% 6%;
+  --muted: 217 33% 14%;
+  --muted-foreground: 215 16% 65%;
+  --border: 217 33% 18%;
+  --input: 217 33% 18%;
+  --primary: 172 66% 48%;
+  --primary-foreground: 222 47% 6%;
+  --accent: 173 40% 16%;
+  --accent-foreground: 172 76% 82%;
+  --card: 222 47% 9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 12%;
+  --popover-foreground: 210 40% 98%;
+  --destructive: 0 62% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 172 66% 48%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth overflow-x-clip;
+  }
+
+  body {
+    @apply min-h-screen min-w-0 bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .surface-subtle {
+    @apply bg-muted/60;
+  }
+
+  /* Dot + line grid for hero / header — reads in light and dark */
+  .pattern-hero {
+    background-image:
+      radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.16) 1px, transparent 0),
+      linear-gradient(to right, hsl(var(--foreground) / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
+    background-size: 24px 24px, 52px 52px, 52px 52px;
+  }
+
+  .dark .pattern-hero {
+    background-image:
+      radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.2) 1px, transparent 0),
+      linear-gradient(to right, hsl(var(--primary) / 0.09) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--primary) / 0.09) 1px, transparent 1px);
+    background-size: 24px 24px, 52px 52px, 52px 52px;
+  }
+
+  .pattern-header {
+    background-image:
+      radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.1) 1px, transparent 0),
+      linear-gradient(to right, hsl(var(--foreground) / 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.03) 1px, transparent 1px);
+    background-size: 20px 20px, 44px 44px, 44px 44px;
+  }
+
+  .dark .pattern-header {
+    background-image:
+      radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.14) 1px, transparent 0),
+      linear-gradient(to right, hsl(var(--primary) / 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--primary) / 0.07) 1px, transparent 1px);
+    background-size: 20px 20px, 44px 44px, 44px 44px;
+  }
+
+  /* Premium, theme-aware scrollbar for dashboard side panels. */
+  .scrollbar-delight {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.5) hsl(var(--muted) / 0.45);
+  }
+
+  .scrollbar-delight::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .scrollbar-delight::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.4);
+    border-radius: 9999px;
+    margin-block: 6px;
+  }
+
+  .scrollbar-delight::-webkit-scrollbar-thumb {
+    background:
+      linear-gradient(180deg, hsl(var(--primary) / 0.8), hsl(var(--primary) / 0.55));
+    border: 2px solid hsl(var(--card) / 0.9);
+    border-radius: 9999px;
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
+  }
+
+  .scrollbar-delight::-webkit-scrollbar-thumb:hover {
+    background:
+      linear-gradient(180deg, hsl(var(--primary) / 0.95), hsl(var(--primary) / 0.7));
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.25),
+      0 0 14px hsl(var(--primary) / 0.25);
+  }
+}
