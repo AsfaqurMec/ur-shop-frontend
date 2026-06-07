@@ -2,16 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useCloseSidebarDrawer } from '@/components/layout/DashboardSidebarShell';
-import { clearAuthToken, getAuthToken } from '@/lib/api/client';
-import { listMyTickets } from '@/lib/api/tickets';
-import { getAccessTokenUserId } from '@/lib/auth/token';
-import {
-  SUPPORT_TICKET_READ_STORAGE_PREFIX,
-  SUPPORT_TICKETS_READ_EVENT,
-  getUnreadAnsweredCount,
-} from '@/lib/utils/supportTicketReadState';
+import { clearAuthToken } from '@/lib/api/client';
 import { NavCountBadge } from '@/components/layout/NavCountBadge';
 
 const iconClass = 'h-[18px] w-[18px] shrink-0 opacity-80';
@@ -47,50 +40,26 @@ const links: { href: string; label: string; icon: React.ReactNode }[] = [
       </Icon>
     ),
   },
-  {
-    href: '/dashboard/downloads',
-    label: 'Downloads',
-    icon: (
-      <Icon>
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-      </Icon>
-    ),
-  },
-  {
-    href: '/dashboard/licenses',
-    label: 'Licenses',
-    icon: (
-      <Icon>
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-        </svg>
-      </Icon>
-    ),
-  },
-  {
-    href: '/dashboard/subscriptions',
-    label: 'Subscriptions',
-    icon: (
-      <Icon>
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </Icon>
-    ),
-  },
-  {
-    href: '/dashboard/tickets',
-    label: 'Support',
-    icon: (
-      <Icon>
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      </Icon>
-    ),
-  },
+  // {
+  //   href: '/dashboard/downloads',
+  //   label: 'Downloads',
+  //   icon: (...),
+  // },
+  // {
+  //   href: '/dashboard/licenses',
+  //   label: 'Licenses',
+  //   icon: (...),
+  // },
+  // {
+  //   href: '/dashboard/subscriptions',
+  //   label: 'Subscriptions',
+  //   icon: (...),
+  // },
+  // {
+  //   href: '/dashboard/tickets',
+  //   label: 'Support',
+  //   icon: (...),
+  // },
   {
     href: '/dashboard/profile',
     label: 'Profile',
@@ -108,38 +77,7 @@ export function DashboardNav() {
   const pathname = usePathname();
   const router = useRouter();
   const closeDrawer = useCloseSidebarDrawer();
-  const [answeredTicketCount, setAnsweredTicketCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      try {
-        const uid = getAccessTokenUserId(getAuthToken());
-        if (uid == null) {
-          if (!cancelled) setAnsweredTicketCount(null);
-          return;
-        }
-        const { tickets } = await listMyTickets({ limit: 200, offset: 0 });
-        if (!cancelled) setAnsweredTicketCount(getUnreadAnsweredCount(uid, tickets));
-      } catch {
-        if (!cancelled) setAnsweredTicketCount(null);
-      }
-    };
-    void refresh();
-    const onRead = () => {
-      void refresh();
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (e.key?.startsWith(SUPPORT_TICKET_READ_STORAGE_PREFIX)) void refresh();
-    };
-    window.addEventListener(SUPPORT_TICKETS_READ_EVENT, onRead);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(SUPPORT_TICKETS_READ_EVENT, onRead);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, [pathname]);
+  const [answeredTicketCount] = useState<number | null>(null);
 
   const handleLogout = () => {
     clearAuthToken();

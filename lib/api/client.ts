@@ -157,3 +157,18 @@ export async function apiPostFormData<T = unknown>(
   const skip401 = Boolean(skip401Redirect) || Boolean(skipAuth);
   return handleResponse<T>(res, { skip401Redirect: skip401 });
 }
+
+export async function apiPutFormData<T = unknown>(
+  path: string,
+  formData: FormData,
+  config?: Omit<RequestConfig, 'body' | 'headers'> & { headers?: HeadersInit }
+): Promise<ApiResponse<T>> {
+  const { params, skipAuth, skip401Redirect, ...init } = config ?? {};
+  const url = buildUrl(path, params);
+  const headers: HeadersInit = { ...(init.headers as Record<string, string>) };
+  const token = skipAuth ? null : getToken();
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { ...init, method: 'PUT', body: formData, headers });
+  const skip401 = Boolean(skip401Redirect) || Boolean(skipAuth);
+  return handleResponse<T>(res, { skip401Redirect: skip401 });
+}

@@ -3,11 +3,12 @@
  * Base path: admin/dashboard for dashboard, products, categories, delivery, payments, tickets, coupons, reviews as per backend routes.
  */
 
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiPostFormData } from './client';
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiPostFormData, apiPutFormData } from './client';
 import type { SocialLink } from './storeSettings';
 import type { ProductReviewAdminTableRow } from '@/types/review';
 import type { Product, ProductCatalogAttribute, ProductPurchaseVariable } from '@/types/product';
 import type { PaymentMethod } from '@/types/payment';
+import type { BannerItem, BannerButton } from './banners';
 
 function unwrap<T>(res: {
   success: boolean;
@@ -908,4 +909,62 @@ export async function createAdminAccount(body: {
 }): Promise<{ admin: import('@/types/auth').SafeUser }> {
   const res = await apiPost<{ admin: import('@/types/auth').SafeUser }>('admin/admins', body);
   return unwrap(res);
+}
+
+// ---- Banners ----
+export type AdminBannerItem = BannerItem;
+
+function bannerFormData(body: {
+  backgroundImage?: File | null;
+  title?: string | null;
+  subtitle?: string | null;
+  buttons?: BannerButton[];
+  sort_order?: number;
+  is_active?: boolean;
+}): FormData {
+  const formData = new FormData();
+  if (body.backgroundImage) formData.append('background_image', body.backgroundImage);
+  formData.append('title', body.title?.trim() ?? '');
+  formData.append('subtitle', body.subtitle?.trim() ?? '');
+  formData.append('buttons', JSON.stringify(body.buttons ?? []));
+  formData.append('sort_order', String(body.sort_order ?? 0));
+  formData.append('is_active', String(body.is_active ?? true));
+  return formData;
+}
+
+export async function getAdminBanners(): Promise<{ banners: AdminBannerItem[] }> {
+  const res = await apiGet<{ banners: AdminBannerItem[] }>('banners/admin/all');
+  return unwrap(res);
+}
+
+export async function createBanner(body: {
+  backgroundImage: File;
+  title?: string | null;
+  subtitle?: string | null;
+  buttons?: BannerButton[];
+  sort_order?: number;
+  is_active?: boolean;
+}): Promise<AdminBannerItem> {
+  const res = await apiPostFormData<{ banner: AdminBannerItem }>('banners', bannerFormData(body));
+  return unwrap(res).banner;
+}
+
+export async function updateBanner(
+  id: number,
+  body: {
+    backgroundImage?: File | null;
+    title?: string | null;
+    subtitle?: string | null;
+    buttons?: BannerButton[];
+    sort_order?: number;
+    is_active?: boolean;
+  }
+): Promise<AdminBannerItem> {
+  const res = await apiPutFormData<{ banner: AdminBannerItem }>(`banners/${id}`, bannerFormData(body));
+  return unwrap(res).banner;
+}
+
+export async function deleteBanner(id: number): Promise<void> {
+  const res = await apiDelete<Record<string, never>>(`banners/${id}`);
+  unwrap(res);
 }

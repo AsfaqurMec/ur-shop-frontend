@@ -10,12 +10,15 @@ import { useShowAddedToCartModal } from '@/components/storefront/AddedToCartModa
 import { Container } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { getPrimaryProductImagePath, getProductImageUrl } from '@/lib/imageUrl';
+import { getBannerImageUrl } from '@/lib/imageUrl';
 import { SITE_HERO_SUBTITLE } from '@/lib/seo/siteCopy';
 import { SocialSpeedDial } from '@/components/storefront/SocialSpeedDial';
 import type { SocialLink } from '@/lib/api/storeSettings';
+import type { BannerItem } from '@/lib/api/banners';
 
 interface HomeClientProps {
   featuredProducts: Product[];
+  banners: BannerItem[];
   reviews: Array<ProductReviewPublic & { product_name?: string }>;
   socialLinks: SocialLink[];
 }
@@ -60,17 +63,24 @@ const fallbackReviews = [
   },
 ];
 
-export function HomeClient({ featuredProducts, reviews, socialLinks }: HomeClientProps) {
+export function HomeClient({ featuredProducts, banners, reviews, socialLinks }: HomeClientProps) {
   const [addingProductId, setAddingProductId] = useState<number | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const showAddedToCart = useShowAddedToCartModal();
 
+  const bannerSlides = banners.map((banner) => ({
+    title: banner.title || '',
+    subtitle: banner.subtitle || '',
+    imageUrl: getBannerImageUrl(banner.background_image) || '/og-default.png',
+    buttons: banner.buttons,
+  }));
   const heroSlides = featuredProducts.slice(0, 4).map((product) => ({
     title: product.name,
     subtitle: product.description || SITE_HERO_SUBTITLE,
     imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) || '/og-default.png',
+    buttons: [],
   }));
-  const slides = heroSlides.length > 0 ? heroSlides : fallbackSlides;
+  const slides = bannerSlides.length > 0 ? bannerSlides : heroSlides.length > 0 ? heroSlides : fallbackSlides.map((s) => ({ ...s, buttons: [] }));
   const slide = slides[activeSlide] ?? slides[0];
   const reviewItems = reviews.length > 0 ? reviews : fallbackReviews;
 
@@ -90,17 +100,17 @@ export function HomeClient({ featuredProducts, reviews, socialLinks }: HomeClien
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border/50">
+      <section className="relative overflow-hidden border-b border-border/50 h-[40vh] md:h-[80vh]">
         <div className="absolute inset-0 bg-background" aria-hidden />
-        <img src={slide.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/88 to-background/35" aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/35" aria-hidden />
+        <img src={slide.imageUrl} alt="" className="absolute inset-0 h-full w-full  opacity-100" />
+        {/* <div className="absolute inset-0 bg-gradient-to-r from-background via-background/8 to-background/5" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/5" aria-hidden /> */}
 
         <Container size="lg" className="relative py-14 sm:py-20 md:py-24 lg:py-28">
           <div className="max-w-2xl">
-            <p className="inline-flex items-center rounded-full border border-primary/20 bg-background/80 px-4 py-1.5 text-[0.65rem] font-semibold uppercase text-primary shadow-sm backdrop-blur-sm sm:text-xs">
+            {/*<p className="inline-flex items-center rounded-full border border-primary/20 bg-background/80 px-4 py-1.5 text-[0.65rem] font-semibold uppercase text-primary shadow-sm backdrop-blur-sm sm:text-xs">
               Digital commerce, simplified
-            </p>
+            </p>*/}
             <h1 className="mt-6 text-balance text-3xl font-bold tracking-tight text-foreground sm:mt-7 sm:text-4xl md:text-5xl md:leading-[1.12]">
               {slide.title}
             </h1>
@@ -109,39 +119,26 @@ export function HomeClient({ featuredProducts, reviews, socialLinks }: HomeClien
                 {slide.subtitle}
               </p>
             ) : null}
-            <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-              <Link href="/shop" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full min-w-0 shadow-md shadow-primary/10 sm:min-w-[10rem]">
-                  Browse shop
-                </Button>
-              </Link>
-              <Link href="/search" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full min-w-0 border-border/80 bg-card/70 backdrop-blur-sm sm:min-w-[10rem]">
-                  Search products
-                </Button>
-              </Link>
-            </div>
-            <ul className="mt-10 flex list-none flex-wrap items-center gap-2 sm:gap-3">
-              {['Secure checkout', 'Instant delivery', 'Account & support'].map((label) => (
-                <li
-                  key={label}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm sm:text-sm"
-                >
-                  <span className="h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden />
-                  {label}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-10 text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/login" className="font-semibold text-primary hover:underline">
-                Sign in
-              </Link>{' '}
-              <span className="text-border">.</span>{' '}
-              <Link href="/dashboard" className="font-medium text-foreground hover:text-primary hover:underline">
-                Open dashboard
-              </Link>
-            </p>
+            {slide.buttons.length > 0 ? (
+              <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                {slide.buttons.map((button, index) => (
+                  <Link key={`${button.title}-${index}`} href={button.route} className="w-full sm:w-auto">
+                    <Button
+                      variant={index === 0 ? 'primary' : 'outline'}
+                      size="lg"
+                      className="w-full min-w-0 shadow-md shadow-primary/10 sm:min-w-[10rem]"
+                    >
+                      {button.title}
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                
+              </div>
+            )}
+            
           </div>
 
           {slides.length > 1 ? (

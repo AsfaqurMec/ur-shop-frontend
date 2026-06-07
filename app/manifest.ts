@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITE_NAME,
     short_name: SITE_NAME,
-    description: 'Digital products storefront — downloads, license keys, and more.',
+    description: 'Trusted for Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories.',
     start_url: '/',
     display: 'standalone',
     background_color: '#0f172a',

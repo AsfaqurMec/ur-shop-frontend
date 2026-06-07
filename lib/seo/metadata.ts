@@ -15,12 +15,21 @@ export const SEO_NO_INDEX: Pick<Metadata, 'robots'> = {
 const DEFAULT_DESCRIPTION = SITE_DEFAULT_DESCRIPTION;
 
 const DEFAULT_KEYWORDS = [
-  'digital products',
-  'software licenses',
-  'downloads',
-  'subscriptions',
-  'Parves BD',
-  'online store',
+  'Premium Panjabi Collection',
+  'Men’s Fashion',
+  'Lifestyle Accessories',
+  'Panjabi',
+  'Men’s Clothing',
+  'Fashion',
+  'Accessories',
+  'Panjabi Collection',
+  'Men’s Clothing',
+  'Fashion',
+  'Accessories',
+  'Panjabi Collection',
+  'Men’s Clothing',
+  'Fashion',
+  'Accessories',
 ];
 
 export const defaultGlobalKeywords = DEFAULT_KEYWORDS;
@@ -33,7 +42,7 @@ export function buildRootMetadata(): Metadata {
   return {
     metadataBase: base,
     title: {
-      default: `${SITE_NAME} — Digital products & licenses`,
+      default: `${SITE_NAME} — Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories`,
       template: `%s | ${SITE_NAME}`,
     },
     description: DEFAULT_DESCRIPTION,
@@ -51,20 +60,20 @@ export function buildRootMetadata(): Metadata {
       locale: 'en_US',
       url: getSiteUrl(),
       siteName: SITE_NAME,
-      title: `${SITE_NAME} — Digital products & licenses`,
+      title: `${SITE_NAME} — Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories`,
       description: DEFAULT_DESCRIPTION,
       images: [
         {
           url: '/og-default.png',
           width: 1200,
           height: 630,
-          alt: `${SITE_NAME} — storefront`,
+          alt: `${SITE_NAME} — Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${SITE_NAME} — Digital products & licenses`,
+      title: `${SITE_NAME} — Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories`,
       description: DEFAULT_DESCRIPTION,
       images: ['/og-default.png'],
     },

@@ -1,6 +1,7 @@
 import { fetchFeaturedProducts } from '@/lib/api/products';
 import { fetchProductReviews } from '@/lib/api/reviews';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
+import { fetchPublicBanners } from '@/lib/api/banners';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { websiteJsonLd } from '@/lib/seo/jsonld';
@@ -23,6 +24,7 @@ export const metadata = createPageMetadata({
 
 export default async function HomePage() {
   const featuredProducts = await fetchFeaturedProducts(8).catch(() => []);
+  const banners = await fetchPublicBanners().catch(() => []);
   const publicSettings = await getPublicStoreSettings().catch(() => null);
   const reviewGroups = await Promise.all(
     featuredProducts.slice(0, 6).map(async (product) => {
@@ -38,6 +40,7 @@ export default async function HomePage() {
       <JsonLd data={websiteJsonLd()} />
       <HomeClient
         featuredProducts={featuredProducts}
+        banners={banners}
         reviews={reviewGroups.flat().slice(0, 6)}
         socialLinks={publicSettings?.socialLinks ?? []}
       />
