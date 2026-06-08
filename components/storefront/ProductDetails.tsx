@@ -81,7 +81,7 @@ export function ProductDetails({
         </div>
         <div className="flex min-w-0 flex-col gap-0">
           <header className="space-y-4">
-            <ProductTypeBadge type={product.product_type} />
+            {/* <ProductTypeBadge type={product.product_type} /> */}
             <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-[2.125rem] md:leading-[1.15]">
               {product.name}
             </h1>
@@ -93,7 +93,7 @@ export function ProductDetails({
           </header>
 
           <div className="mt-8 space-y-3">
-            <ProductTypeDescription type={product.product_type} />
+            {/* <ProductTypeDescription type={product.product_type} /> */}
             {product.license_available_count != null && product.product_type === 'license_key' && (
               <p className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
                 <span className="font-semibold tabular-nums text-foreground">
@@ -104,7 +104,7 @@ export function ProductDetails({
             )}
           </div>
 
-          <div className="mt-10">
+          <div className="mt-5">
             <ProductPurchasePanel
               product={product}
               imageUrl={imageUrl}

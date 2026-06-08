@@ -42,7 +42,7 @@ const fallbackReviews = [
     rating: 5,
     title: 'Fast delivery',
     body: 'The checkout was clean and the product was available right away.',
-    product_name: 'Digital product',
+    product_name: 'Panjabi Collection',
     is_verified_purchase: true,
   },
   {
@@ -50,7 +50,7 @@ const fallbackReviews = [
     rating: 5,
     title: 'Professional support',
     body: 'Questions were handled quickly and the order details were easy to track.',
-    product_name: 'License order',
+    product_name: 'Panjabi Collection',
     is_verified_purchase: true,
   },
   {
@@ -58,7 +58,7 @@ const fallbackReviews = [
     rating: 4,
     title: 'Smooth experience',
     body: 'Simple store, clear product pages, and no confusion after purchase.',
-    product_name: 'Template bundle',
+    product_name: 'T-shirt Collection',
     is_verified_purchase: false,
   },
 ];

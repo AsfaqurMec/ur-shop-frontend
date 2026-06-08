@@ -41,7 +41,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           className="transition-transform duration-300 group-hover:scale-[1.03]"
         />
         <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
-          <ProductTypeBadge type={product.product_type} />
+          {/* <ProductTypeBadge type={product.product_type} /> */}
         </div>
       </Link>
       <div className="flex flex-1 flex-col p-4">

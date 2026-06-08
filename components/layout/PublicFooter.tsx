@@ -142,12 +142,12 @@ export function PublicFooter({ settings }: { settings?: PublicStoreSettings | nu
           <p className="text-base text-muted-foreground">
             Developed by{' '}
             <Link
-              href="https://www.flexsoftr.com"
+              href="https://my-portfolio-asfaqur-rahman.web.app"
               target="_blank"
               rel="noopener noreferrer"
               className=" font-semibold text-cyan-500 transition-colors hover:text-cyan-400"
             >
-              FlexSoft
+              Asfaqur Rahman
             </Link>
           </p>
         </div>

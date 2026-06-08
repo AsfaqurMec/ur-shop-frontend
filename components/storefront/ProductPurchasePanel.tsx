@@ -405,7 +405,7 @@ export function ProductPurchasePanel({
                 SKU: <span className="font-mono text-foreground/90">{displaySku}</span>
               </p>
             ) : null}
-            {productQuantity != null ? (
+            {productQuantity != null && !hasVariations && !matchedVariation?.sku?.trim() ? (
               <p>
                 Available Stock:{' '}
                 <span className="font-semibold tabular-nums text-foreground/90">{productQuantity}</span>
