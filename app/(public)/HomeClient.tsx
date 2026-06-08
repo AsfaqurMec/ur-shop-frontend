@@ -15,6 +15,7 @@ import { SITE_HERO_SUBTITLE } from '@/lib/seo/siteCopy';
 import { SocialSpeedDial } from '@/components/storefront/SocialSpeedDial';
 import type { SocialLink } from '@/lib/api/storeSettings';
 import type { BannerItem } from '@/lib/api/banners';
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface HomeClientProps {
   featuredProducts: Product[];
@@ -100,64 +101,105 @@ export function HomeClient({ featuredProducts, banners, reviews, socialLinks }: 
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border/50 h-[40vh] md:h-[80vh]">
-        <div className="absolute inset-0 bg-background" aria-hidden />
-        <img src={slide.imageUrl} alt="" className="absolute inset-0 h-full w-full  opacity-100" />
-        {/* <div className="absolute inset-0 bg-gradient-to-r from-background via-background/8 to-background/5" aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/5" aria-hidden /> */}
+    <section className="relative overflow-hidden border-b border-border/50 h-[40vh] md:h-[90vh]">
+  <div className="absolute inset-0 bg-background" aria-hidden />
+  <img
+    src={slide.imageUrl}
+    alt=""
+    className="absolute inset-0 h-full w-full opacity-100"
+  />
 
-        <Container size="lg" className="relative py-14 sm:py-20 md:py-24 lg:py-28">
-          <div className="max-w-2xl">
-            {/*<p className="inline-flex items-center rounded-full border border-primary/20 bg-background/80 px-4 py-1.5 text-[0.65rem] font-semibold uppercase text-primary shadow-sm backdrop-blur-sm sm:text-xs">
-              Digital commerce, simplified
-            </p>*/}
-            <h1 className="mt-6 text-balance text-3xl font-bold tracking-tight text-foreground sm:mt-7 sm:text-4xl md:text-5xl md:leading-[1.12]">
-              {slide.title}
-            </h1>
-            {slide.subtitle ? (
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground text-pretty sm:mt-7 sm:text-lg">
-                {slide.subtitle}
-              </p>
-            ) : null}
-            {slide.buttons.length > 0 ? (
-              <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                {slide.buttons.map((button, index) => (
-                  <Link key={`${button.title}-${index}`} href={button.route} className="w-full sm:w-auto">
-                    <Button
-                      variant={index === 0 ? 'primary' : 'outline'}
-                      size="lg"
-                      className="w-full min-w-0 shadow-md shadow-primary/10 sm:min-w-[10rem]"
-                    >
-                      {button.title}
-                    </Button>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                
-              </div>
-            )}
-            
-          </div>
+  {/* Left Arrow */}
+  {slides.length > 1 && (
+    <button
+      type="button"
+      onClick={() =>
+        setActiveSlide((prev) =>
+          prev === 0 ? slides.length - 1 : prev - 1
+        )
+      }
+      className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/80 p-3 shadow-lg backdrop-blur transition hover:bg-background"
+      aria-label="Previous slide"
+    >
+      <ChevronLeft className="h-6 w-6" />
+    </button>
+  )}
 
-          {slides.length > 1 ? (
-            <div className="mt-10 flex items-center gap-2">
-              {slides.map((item, index) => (
-                <button
-                  key={`${item.title}-${index}`}
-                  type="button"
-                  onClick={() => setActiveSlide(index)}
-                  aria-label={`Show banner ${index + 1}`}
-                  className={`h-2.5 rounded-full transition-all ${
-                    index === activeSlide ? 'w-9 bg-primary' : 'w-2.5 bg-foreground/25 hover:bg-foreground/40'
-                  }`}
-                />
-              ))}
-            </div>
-          ) : null}
-        </Container>
-      </section>
+  {/* Right Arrow */}
+  {slides.length > 1 && (
+    <button
+      type="button"
+      onClick={() =>
+        setActiveSlide((prev) =>
+          prev === slides.length - 1 ? 0 : prev + 1
+        )
+      }
+      className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/80 p-3 shadow-lg backdrop-blur transition hover:bg-background"
+      aria-label="Next slide"
+    >
+      <ChevronRight className="h-6 w-6" />
+    </button>
+  )}
+
+  <Container
+    size="lg"
+    className="relative py-14 sm:py-20 md:py-24 lg:py-28"
+  >
+    <div className="max-w-2xl">
+      <h1 className="mt-6 text-balance text-3xl font-bold tracking-tight text-foreground sm:mt-7 sm:text-4xl md:text-5xl md:leading-[1.12]">
+        {slide.title}
+      </h1>
+
+      {slide.subtitle ? (
+        <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground text-pretty sm:mt-7 sm:text-lg">
+          {slide.subtitle}
+        </p>
+      ) : null}
+
+      {slide.buttons.length > 0 ? (
+        <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          {slide.buttons.map((button, index) => (
+            <Link
+              key={`${button.title}-${index}`}
+              href={button.route}
+              className="w-full sm:w-auto"
+            >
+              <Button
+                variant={index === 0 ? "primary" : "outline"}
+                size="lg"
+                className="w-full min-w-0 shadow-md shadow-primary/10 sm:min-w-[10rem]"
+              >
+                {button.title}
+              </Button>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-9 flex w-full flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4" />
+      )}
+    </div>
+  </Container>
+
+  {/* Pagination Dots - Bottom Center */}
+  {slides.length > 1 && (
+    <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+      {slides.map((item, index) => (
+        <button
+          key={`${item.title}-${index}`}
+          type="button"
+          onClick={() => setActiveSlide(index)}
+          aria-label={`Show banner ${index + 1}`}
+          className={`h-2.5 rounded-full transition-all duration-300 ${
+            index === activeSlide
+              ? "w-8 bg-primary"
+              : "w-2.5 bg-white/50 hover:bg-white/80"
+          }`}
+        />
+      ))}
+    </div>
+  )}
+</section>
+     
 
       {featuredProducts.length > 0 && (
         <Container size="lg" className="pb-20 pt-4">
