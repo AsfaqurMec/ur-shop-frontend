@@ -113,7 +113,7 @@ export function ProductSocialContactStrip({ links, supportNumber = '' }: Product
         <PhoneHandsetIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
         <p className="text-sm md:text-base lg:text-lg font-bold tracking-tight text-foreground">Contact Us</p>
       </div>
-      <div className="mt-3 flex flex-nowrap gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+      <div className="mt-3 flex gap-3 md:gap-2 pb-1 flex-wrap ">
         {supportNumberHref ? (
           <a
             href={supportNumberHref}
