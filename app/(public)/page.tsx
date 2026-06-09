@@ -10,15 +10,18 @@ import { HomeClient } from './HomeClient';
 
 export const metadata = createPageMetadata({
   path: '/',
-  title: 'Digital products, downloads and licenses',
+  title: 'Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories',
   description: SITE_META_HOME_DESCRIPTION,
   keywords: [
-    'Parves BD',
-    'digital downloads',
-    'software licenses',
-    'apps',
-    'online courses',
-    'Bangladesh',
+    'UR Shop',
+    'Premium Panjabi Collection',
+    'Men’s Fashion',
+    'Lifestyle Accessories',
+    'Panjabi',
+    'Men’s Clothing',
+    'Fashion',
+    'Accessories',
+    'Panjabi Collection',
   ],
 });
 

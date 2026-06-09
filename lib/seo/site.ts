@@ -4,7 +4,7 @@
  */
 
 export const SITE_NAME =
-  process.env.NEXT_PUBLIC_SITE_NAME?.trim() || 'Parves BD';
+  process.env.NEXT_PUBLIC_SITE_NAME?.trim() || 'UR Shop';
 
 const DEFAULT_DEV_ORIGIN = 'http://localhost:3000';
 

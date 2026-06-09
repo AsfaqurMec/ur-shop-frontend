@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { addToCart } from '@/lib/api/cart';
 import type { Product } from '@/types/product';
@@ -82,8 +82,23 @@ export function HomeClient({ featuredProducts, banners, reviews, socialLinks }: 
     buttons: [],
   }));
   const slides = bannerSlides.length > 0 ? bannerSlides : heroSlides.length > 0 ? heroSlides : fallbackSlides.map((s) => ({ ...s, buttons: [] }));
+  // const slide = slides[activeSlide] ?? slides[0];
+  // const reviewItems = reviews.length > 0 ? reviews : fallbackReviews;
+
   const slide = slides[activeSlide] ?? slides[0];
-  const reviewItems = reviews.length > 0 ? reviews : fallbackReviews;
+const reviewItems = reviews.length > 0 ? reviews : fallbackReviews;
+
+useEffect(() => {
+  if (slides.length <= 1) return;
+
+  const interval = setInterval(() => {
+    setActiveSlide((prev) =>
+      prev === slides.length - 1 ? 0 : prev + 1
+    );
+  }, 4000);
+
+  return () => clearInterval(interval);
+}, [slides.length]);
 
   const handleAddToCart = async (product: Product) => {
     setAddingProductId(product.id);
@@ -103,11 +118,17 @@ export function HomeClient({ featuredProducts, banners, reviews, socialLinks }: 
     <>
     <section className="relative overflow-hidden border-b border-border/50 h-[40vh] md:h-[90vh]">
   <div className="absolute inset-0 bg-background" aria-hidden />
-  <img
+  {/* <img
     src={slide.imageUrl}
     alt=""
     className="absolute inset-0 h-full w-full opacity-100"
-  />
+  /> */}
+  <img
+  key={activeSlide}
+  src={slide.imageUrl}
+  alt=""
+  className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+/>
 
   {/* Left Arrow */}
   {slides.length > 1 && (
@@ -216,7 +237,7 @@ export function HomeClient({ featuredProducts, banners, reviews, socialLinks }: 
           <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase text-primary">Customer reviews</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">Trusted by digital buyers</h2>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">Trusted by our customers</h2>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
               Real feedback from orders, product pages, and support conversations.
