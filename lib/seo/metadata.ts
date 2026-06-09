@@ -64,7 +64,7 @@ export function buildRootMetadata(): Metadata {
       description: DEFAULT_DESCRIPTION,
       images: [
         {
-          url: '/og-default.png',
+          url: '/icon.png',
           width: 1200,
           height: 630,
           alt: `${SITE_NAME} — Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories`,
@@ -75,7 +75,7 @@ export function buildRootMetadata(): Metadata {
       card: 'summary_large_image',
       title: `${SITE_NAME} — Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories`,
       description: DEFAULT_DESCRIPTION,
-      images: ['/og-default.png'],
+      images: ['/icon.png'],
     },
     // Google requires a square icon (≥48×48). `/favicon.ico` is rewritten to `/icon.png` in `next.config.js`.
     icons: {
@@ -114,7 +114,7 @@ export interface PageSeoInput {
 export function createPageMetadata(input: PageSeoInput): Metadata {
   const { path, title, description, image, keywords, index = true } = input;
   const canonical = `${getSiteUrl()}${path.startsWith('/') ? path : `/${path}`}`;
-  const ogImage = toAbsoluteUrl(image) ?? `${getSiteUrl()}/og-default.png`;
+  const ogImage = toAbsoluteUrl(image) ?? `${getSiteUrl()}/icon.png`;
 
   return {
     title,

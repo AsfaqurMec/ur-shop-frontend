@@ -28,12 +28,12 @@ const fallbackSlides = [
   {
     title: 'Software, templates, and licenses delivered instantly',
     subtitle: SITE_HERO_SUBTITLE,
-    imageUrl: '/og-default.png',
+    imageUrl: '/icon.png',
   },
   {
     title: 'Digital tools for creators, students, and teams',
     subtitle: 'Browse curated products, pay securely, and keep every order in your account.',
-    imageUrl: '/og-default.png',
+    imageUrl: '/icon.png',
   },
 ];
 
@@ -72,13 +72,13 @@ export function HomeClient({ featuredProducts, banners, reviews, socialLinks }: 
   const bannerSlides = banners.map((banner) => ({
     title: banner.title || '',
     subtitle: banner.subtitle || '',
-    imageUrl: getBannerImageUrl(banner.background_image) || '/og-default.png',
+    imageUrl: getBannerImageUrl(banner.background_image) || '/icon.png',
     buttons: banner.buttons,
   }));
   const heroSlides = featuredProducts.slice(0, 4).map((product) => ({
     title: product.name,
     subtitle: product.description || SITE_HERO_SUBTITLE,
-    imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) || '/og-default.png',
+    imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) || '/icon.png',
     buttons: [],
   }));
   const slides = bannerSlides.length > 0 ? bannerSlides : heroSlides.length > 0 ? heroSlides : fallbackSlides.map((s) => ({ ...s, buttons: [] }));

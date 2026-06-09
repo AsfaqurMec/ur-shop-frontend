@@ -59,7 +59,7 @@ export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>): 
 export function productJsonLd(product: StoreProduct, canonicalPath: string): Record<string, unknown> {
   const path = getPrimaryProductImagePath(product);
   const rel = getProductImageUrl(path ?? undefined);
-  const image = toAbsoluteUrl(rel) ?? `${getSiteUrl()}/og-default.png`;
+  const image = toAbsoluteUrl(rel) ?? `${getSiteUrl()}/icon.png`;
   const currency = getDefaultCurrency();
   const url = `${getSiteUrl()}${canonicalPath.startsWith('/') ? canonicalPath : `/${canonicalPath}`}`;
 

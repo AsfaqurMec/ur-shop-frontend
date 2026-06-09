@@ -27,7 +27,7 @@ export async function generateMetadata({
   }
 
   const description = truncateForMeta(post.excerpt ?? post.title, 160);
-  const ogImage = toAbsoluteUrl(post.cover_image) ?? `${getSiteUrl()}/og-default.png`;
+  const ogImage = toAbsoluteUrl(post.cover_image) ?? `${getSiteUrl()}/icon.png`;
 
   return {
     title: post.title,

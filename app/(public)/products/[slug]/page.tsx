@@ -26,7 +26,7 @@ export async function generateMetadata({
   const description = truncateForMeta(stripHtml(product.description ?? product.name), 160);
   const primary = getPrimaryProductImagePath(product);
   const rel = getProductImageUrl(primary ?? undefined);
-  const ogImage = toAbsoluteUrl(rel) ?? `${getSiteUrl()}/og-default.png`;
+  const ogImage = toAbsoluteUrl(rel) ?? `${getSiteUrl()}/icon.png`;
   return {
     title: product.name,
     description,
