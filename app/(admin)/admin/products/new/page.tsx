@@ -226,7 +226,7 @@ export default function AdminAddProductPage() {
                 ))}
               </select>
             </div>
-            <div>
+            {/* <div>
               <label className="text-sm font-medium">Product type *</label>
               <select
                 value={productType}
@@ -247,7 +247,7 @@ export default function AdminAddProductPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </div> */}
             {(productType === 'subscription_manual' || productType === 'digital_service') && (
               <label className="flex items-center gap-2">
                 <input
@@ -338,7 +338,7 @@ export default function AdminAddProductPage() {
             </div>
           </AdminAccordionSection>
 
-          {productType === 'downloadable' && (
+          {/* {productType === 'downloadable' && (
             <AdminAccordionSection
               title="Downloadable files"
               description="Files customers receive after purchase."
@@ -389,9 +389,9 @@ export default function AdminAddProductPage() {
                 )}
               </div>
             </AdminAccordionSection>
-          )}
+          )} */}
 
-          {productType === 'license_key' && (
+          {/* {productType === 'license_key' && (
             <AdminAccordionSection
               title="License keys"
               description="Import and manage keys for this product."
@@ -402,7 +402,7 @@ export default function AdminAddProductPage() {
                 Create the product first, then open the edit page to import license keys and manage stock.
               </p>
             </AdminAccordionSection>
-          )}
+          )} */}
         </div>
       </form>
     </div>

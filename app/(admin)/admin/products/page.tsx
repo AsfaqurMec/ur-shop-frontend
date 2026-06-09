@@ -112,11 +112,11 @@ function AdminProductsContent() {
           columns={[
             { key: 'name', header: 'Name' },
             { key: 'slug', header: 'Slug' },
-            {
-              key: 'product_type',
-              header: 'Type',
-              render: (r) => <span className="capitalize">{r.product_type.replace(/_/g, ' ')}</span>,
-            },
+            // {
+            //   key: 'product_type',
+            //   header: 'Type',
+            //   render: (r) => <span className="capitalize">{r.product_type.replace(/_/g, ' ')}</span>,
+            // },
             { key: 'price', header: 'Price', render: (r) => formatCurrency(r.price) },
             { key: 'is_active', header: 'Active', render: (r) => (r.is_active ? 'Yes' : 'No') },
             {

@@ -317,7 +317,7 @@ export default function AdminEditProductPage() {
                 ))}
               </select>
             </div>
-            <div>
+            {/* <div>
               <label className="text-sm font-medium">Product type *</label>
               <select
                 value={productType}
@@ -338,7 +338,7 @@ export default function AdminEditProductPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </div> */}
             {(productType === 'subscription_manual' || productType === 'digital_service') && (
               <label className="flex items-center gap-2">
                 <input
@@ -432,7 +432,7 @@ export default function AdminEditProductPage() {
             </div>
           </AdminAccordionSection>
 
-          {productType === 'downloadable' && (
+          {/* {productType === 'downloadable' && (
             <AdminAccordionSection
               title="Downloadable files"
               description="Files customers receive after purchase."
@@ -448,9 +448,9 @@ export default function AdminEditProductPage() {
                 <ProductFilesSection productId={id} files={files} setFiles={setFiles} />
               </div>
             </AdminAccordionSection>
-          )}
+          )} */}
 
-          {productType === 'license_key' && (
+          {/* {productType === 'license_key' && (
             <AdminAccordionSection
               title="License keys"
               description="Import and manage keys for this product."
@@ -459,7 +459,7 @@ export default function AdminEditProductPage() {
             >
               <ProductLicenseKeysSection productId={id} product={catalogProduct} />
             </AdminAccordionSection>
-          )}
+          )} */}
         </div>
       )}
     </div>
