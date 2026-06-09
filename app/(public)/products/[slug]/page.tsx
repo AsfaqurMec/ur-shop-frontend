@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { fetchProductBySlug } from '@/lib/api/products';
+import { fetchProductBySlug, fetchRelatedProducts } from '@/lib/api/products';
 import { fetchProductReviews } from '@/lib/api/reviews';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { ProductDetails } from '@/components/storefront';
@@ -74,12 +74,13 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   const product = await fetchProductBySlug(slug).catch(() => null);
   if (!product) notFound();
 
-  const [reviewsData, publicSettings] = await Promise.all([
+  const [reviewsData, publicSettings, relatedProducts] = await Promise.all([
     fetchProductReviews(product.id, { limit: 50 }).catch(() => ({
       reviews: [],
       total: 0,
     })),
     getPublicStoreSettings().catch(() => null),
+    fetchRelatedProducts(product, 4).catch(() => []),
   ]);
 
   const canonicalPath = `/products/${slug}`;
@@ -114,6 +115,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
           initialReviews: reviewsData.reviews,
           initialTotal: reviewsData.total,
         }}
+        relatedProducts={relatedProducts}
       />
     </div>
     </>

@@ -46,6 +46,46 @@ export async function fetchFeaturedProducts(limit = 8): Promise<Product[]> {
   return result.products;
 }
 
+/** Products in the same category, then same type, then featured — excluding the current product. */
+export async function fetchRelatedProducts(
+  product: Pick<Product, 'id' | 'category_id' | 'product_type'>,
+  limit = 4,
+): Promise<Product[]> {
+  const related: Product[] = [];
+  const seen = new Set<number>([product.id]);
+
+  const addFromResult = (products: Product[]) => {
+    for (const p of products) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      related.push(p);
+      if (related.length >= limit) return true;
+    }
+    return related.length >= limit;
+  };
+
+  const fetchBatch = async (params: ProductListParams) => {
+    try {
+      const result = await fetchProducts({ ...params, limit: limit + 8, is_active: true });
+      addFromResult(result.products);
+    } catch {
+      // Catalog may be partially unavailable; keep partial results.
+    }
+  };
+
+  if (product.category_id != null) {
+    await fetchBatch({ category_id: product.category_id });
+  }
+  if (related.length < limit) {
+    await fetchBatch({ product_type: product.product_type });
+  }
+  if (related.length < limit) {
+    await fetchBatch({ featured: true });
+  }
+
+  return related.slice(0, limit);
+}
+
 /**
  * Paginates active products for sitemap generation. Uses short server cache to reduce API load.
  */

@@ -71,6 +71,7 @@ function PendingOrdersContent() {
       <div className={loading ? 'pointer-events-none opacity-60' : ''}>
         <DataTable<AdminRecentOrder>
           columns={[
+            { key: 'id', header: 'ID', render: (r) => `#${r.id}` },
             { key: 'order_number', header: 'Order', render: (r) => `#${r.order_number}` },
             { key: 'status', header: 'Status', render: (r) => <span className="capitalize">{r.status}</span> },
             { key: 'total', header: 'Total', render: (r) => formatCurrency(r.total, r.currency) },

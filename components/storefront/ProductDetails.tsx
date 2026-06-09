@@ -11,6 +11,7 @@ import { ProductImageSlider } from './ProductImageSlider';
 import { ProductPurchasePanel } from './ProductPurchasePanel';
 import { ProductDetailInfoTabs } from './ProductDetailInfoTabs';
 import { ProductReviewsSection } from './ProductReviewsSection';
+import { RelatedProducts } from './RelatedProducts';
 import { SocialSpeedDial } from './SocialSpeedDial';
 
 export interface ProductDetailsProps {
@@ -30,6 +31,7 @@ export interface ProductDetailsProps {
     initialReviews: ProductReviewPublic[];
     initialTotal: number;
   };
+  relatedProducts?: Product[];
 }
 
 function ProductTypeDescription({ type }: { type: Product['product_type'] }) {
@@ -57,6 +59,7 @@ export function ProductDetails({
   socialLinks = [],
   supportNumber = '',
   productReviews,
+  relatedProducts = [],
 }: ProductDetailsProps) {
   const primaryPath = getPrimaryProductImagePath(product);
   const imageUrl = getProductImageUrl(primaryPath);
@@ -162,6 +165,13 @@ export function ProductDetails({
         </div>
       ) : null}
     </Container>
+    {relatedProducts.length > 0 ? (
+      <section className="border-t border-border/60 bg-muted/25">
+        <Container size="lg">
+          <RelatedProducts products={relatedProducts} />
+        </Container>
+      </section>
+    ) : null}
     <SocialSpeedDial links={socialLinks} />
     </>
   );

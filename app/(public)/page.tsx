@@ -35,7 +35,11 @@ export default async function HomePage() {
         reviews: [],
         total: 0,
       }));
-      return result.reviews.map((review) => ({ ...review, product_name: product.name }));
+      return result.reviews.map((review) => ({
+        ...review,
+        product_name: product.name,
+        product_slug: product.slug,
+      }));
     })
   );
   return (

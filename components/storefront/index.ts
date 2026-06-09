@@ -5,6 +5,7 @@ export { CategoryFilter } from './CategoryFilter';
 export { SearchInput } from './SearchInput';
 export { ShopCollapsibleFilters } from './ShopCollapsibleFilters';
 export { FeaturedProducts } from './FeaturedProducts';
+export { RelatedProducts } from './RelatedProducts';
 export { AddToCartButton } from './AddToCartButton';
 export { AddedToCartModal, type AddedToCartSummary } from './AddedToCartModal';
 export {

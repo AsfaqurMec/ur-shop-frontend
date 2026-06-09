@@ -15,12 +15,12 @@ import { SITE_HERO_SUBTITLE } from '@/lib/seo/siteCopy';
 import { SocialSpeedDial } from '@/components/storefront/SocialSpeedDial';
 import type { SocialLink } from '@/lib/api/storeSettings';
 import type { BannerItem } from '@/lib/api/banners';
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, StarIcon } from "lucide-react";
 
 interface HomeClientProps {
   featuredProducts: Product[];
   banners: BannerItem[];
-  reviews: Array<ProductReviewPublic & { product_name?: string }>;
+  reviews: Array<ProductReviewPublic & { product_name?: string; product_slug?: string }>;
   socialLinks: SocialLink[];
 }
 
@@ -44,6 +44,7 @@ const fallbackReviews = [
     title: 'Fast delivery',
     body: 'The checkout was clean and the product was available right away.',
     product_name: 'Panjabi Collection',
+    product_slug: 'panjabi-collection',
     is_verified_purchase: true,
   },
   {
@@ -52,6 +53,7 @@ const fallbackReviews = [
     title: 'Professional support',
     body: 'Questions were handled quickly and the order details were easy to track.',
     product_name: 'Panjabi Collection',
+    product_slug: 'panjabi-collection',
     is_verified_purchase: true,
   },
   {
@@ -60,6 +62,7 @@ const fallbackReviews = [
     title: 'Smooth experience',
     body: 'Simple store, clear product pages, and no confusion after purchase.',
     product_name: 'T-shirt Collection',
+    product_slug: 't-shirt-collection',
     is_verified_purchase: false,
   },
 ];
@@ -127,7 +130,7 @@ useEffect(() => {
   key={activeSlide}
   src={slide.imageUrl}
   alt=""
-  className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+  className="absolute inset-0 h-full w-full object-cover md:object-auto transition-opacity duration-700"
 />
 
   {/* Left Arrow */}
@@ -139,10 +142,10 @@ useEffect(() => {
           prev === 0 ? slides.length - 1 : prev - 1
         )
       }
-      className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/80 p-3 shadow-lg backdrop-blur transition hover:bg-background"
+      className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/80 p-1.5 shadow-lg backdrop-blur transition hover:bg-background md:left-4 md:p-3"
       aria-label="Previous slide"
     >
-      <ChevronLeft className="h-6 w-6" />
+      <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
     </button>
   )}
 
@@ -155,10 +158,10 @@ useEffect(() => {
           prev === slides.length - 1 ? 0 : prev + 1
         )
       }
-      className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/80 p-3 shadow-lg backdrop-blur transition hover:bg-background"
+      className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/80 p-1.5 shadow-lg backdrop-blur transition hover:bg-background md:right-4 md:p-3"
       aria-label="Next slide"
     >
-      <ChevronRight className="h-6 w-6" />
+      <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
     </button>
   )}
 
@@ -247,8 +250,10 @@ useEffect(() => {
             {reviewItems.slice(0, 3).map((review) => (
               <article key={review.id} className="rounded-lg border border-border bg-card p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex text-sm font-semibold text-primary" aria-label={`${review.rating} star rating`}>
-                    {'*'.repeat(Math.max(1, Math.min(5, review.rating)))}
+                  <div className="flex text-2xl font-semibold text-primary" aria-label={`${review.rating} star rating`}>
+                    {Array.from({ length: Math.max(1, Math.min(5, review.rating)) }, (_, i) => (
+                      <StarIcon key={i} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    ))}
                   </div>
                   {review.is_verified_purchase ? (
                     <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase text-primary">
@@ -256,13 +261,19 @@ useEffect(() => {
                     </span>
                   ) : null}
                 </div>
-                <h3 className="text-base font-semibold text-foreground">{review.title || 'Great experience'}</h3>
-                <p className="mt-3 line-clamp-4 text-sm leading-6 text-muted-foreground">
+                <h3 className="text-xl font-semibold text-foreground">{review.title || 'Great experience'}</h3>
+                <p className="mt-3 line-clamp-4 text-sm leading-6 text-muted-foreground border-b border-border/50 pb-3">
                   {review.body || 'The product and checkout experience met expectations.'}
                 </p>
-                <p className="mt-5 border-t border-border/70 pt-3 text-xs font-medium text-muted-foreground">
-                  {review.product_name || 'Store customer'}
-                </p>
+                <Link
+                    href={`/products/${review.product_slug}`}
+                    className="mt-3 inline-flex items-center gap-1.5 font-medium text-sm text-primary underline-offset-4 hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {review.product_name}
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  </Link>
               </article>
             ))}
           </div>
