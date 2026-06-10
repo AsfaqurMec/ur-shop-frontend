@@ -18,6 +18,8 @@ export interface CreateOrderBody {
   transaction_id?: string | null;
   /** @deprecated use transaction_id */
   bkash_transaction_id?: string | null;
+  mobile: string;
+  address: string;
 }
 
 /** Create order from cart (requires auth). Cart is cleared on success. */

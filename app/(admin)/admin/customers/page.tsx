@@ -31,6 +31,8 @@ function AdminCustomersContent() {
   const [editing, setEditing] = useState<AdminCustomerListItem | null>(null);
   const [editEmail, setEditEmail] = useState('');
   const [editName, setEditName] = useState('');
+  const [editMobile, setEditMobile] = useState('');
+  const [editAddress, setEditAddress] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminCustomerListItem | null>(null);
@@ -96,6 +98,8 @@ function AdminCustomersContent() {
     setEditing(c);
     setEditEmail(c.email);
     setEditName(c.name ?? '');
+    setEditMobile(c.mobile ?? '');
+    setEditAddress(c.address ?? '');
     setEditError(null);
     setEditOpen(true);
   };
@@ -115,6 +119,8 @@ function AdminCustomersContent() {
       await updateAdminCustomer(editing.user_id, {
         email: editEmail.trim(),
         name: editName.trim(),
+        mobile: editMobile.trim() || null,
+        address: editAddress.trim() || null,
       });
       closeEdit();
       await refreshList();
@@ -180,6 +186,16 @@ function AdminCustomersContent() {
               header: 'Name',
               render: (r) => (r.name?.trim() ? r.name : '—'),
             },
+            {
+              key: 'mobile',
+              header: 'Mobile',
+              render: (r) => (r.mobile?.trim() ? r.mobile : '—'),
+            },
+            {
+              key: 'address',
+              header: 'Address',
+              render: (r) => (r.address?.trim() ? r.address : '—'),
+            },
             { key: 'order_count', header: 'Orders', render: (r) => r.order_count },
             {
               key: 'last_order_at',
@@ -242,6 +258,26 @@ function AdminCustomersContent() {
               onChange={(e) => setEditName(e.target.value)}
               className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               maxLength={255}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Mobile</label>
+            <input
+              type="tel"
+              value={editMobile}
+              onChange={(e) => setEditMobile(e.target.value)}
+              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              maxLength={32}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Address</label>
+            <textarea
+              value={editAddress}
+              onChange={(e) => setEditAddress(e.target.value)}
+              className="mt-1 flex min-h-[5.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              maxLength={1000}
+              rows={3}
             />
           </div>
           <div className="flex flex-wrap gap-3">

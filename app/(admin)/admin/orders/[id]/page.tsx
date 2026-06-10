@@ -147,6 +147,29 @@ export default function AdminOrderDetailPage() {
         </div>
         <div className="space-y-4">
           <div className="rounded-lg border p-4">
+            <h3 className="font-semibold mb-3">Customer</h3>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Name</dt>
+                <dd className="text-right font-medium">{order.customer_name?.trim() || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Email</dt>
+                <dd className="text-right break-all">{order.customer_email || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Mobile</dt>
+                <dd className="text-right">{order.shipping_mobile?.trim() || order.customer_mobile?.trim() || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground mb-1">Address</dt>
+                <dd className="whitespace-pre-wrap text-foreground/90">
+                  {order.shipping_address?.trim() || order.customer_address?.trim() || '—'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+          <div className="rounded-lg border p-4">
             <h3 className="font-semibold mb-3">Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">

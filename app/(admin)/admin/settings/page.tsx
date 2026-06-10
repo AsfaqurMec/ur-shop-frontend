@@ -346,7 +346,7 @@ export default function AdminSettingsPage() {
     }
     setProfileSaving(true);
     try {
-      const { user } = await updateProfile(trimmed);
+      const { user } = await updateProfile({ name: trimmed });
       const updatedName = user.name ?? '';
       setProfileName(updatedName);
       setProfileOriginalName(updatedName);

@@ -7,8 +7,10 @@ import type {
   MessageResponse,
 } from '@/types/auth';
 
-function unwrap<T>(res: { success: boolean; data?: T; error?: string }): T {
-  if (!res.success || res.data === undefined) throw new Error(res.error ?? 'Request failed');
+function unwrap<T>(res: { success: boolean; data?: T; error?: string; message?: string }): T {
+  if (!res.success || res.data === undefined) {
+    throw new Error(res.message || res.error || 'Request failed');
+  }
   return res.data;
 }
 
@@ -70,9 +72,25 @@ export async function getProfile(): Promise<{ user: import('@/types/auth').SafeU
   return unwrap(res);
 }
 
+export interface UpdateProfileBody {
+  name: string;
+  mobile?: string | null;
+  address?: string | null;
+}
+
 export async function updateProfile(
-  name: string
+  body: UpdateProfileBody
 ): Promise<{ user: import('@/types/auth').SafeUser }> {
-  const res = await apiPatch<{ user: import('@/types/auth').SafeUser }>('auth/me', { name });
+  const res = await apiPatch<{ user: import('@/types/auth').SafeUser }>('auth/me', body);
+  return unwrap(res);
+}
+
+export async function guestCheckout(body: {
+  name: string;
+  email: string;
+  mobile: string;
+  address: string;
+}): Promise<LoginResponse> {
+  const res = await apiPost<LoginResponse>('auth/guest-checkout', body, { skipAuth: true });
   return unwrap(res);
 }

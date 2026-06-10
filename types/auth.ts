@@ -2,6 +2,8 @@ export interface SafeUser {
   id: number;
   email: string;
   name: string;
+  mobile: string | null;
+  address: string | null;
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;

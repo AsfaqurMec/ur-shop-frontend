@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCart } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
+import { getProfile } from '@/lib/api/auth';
 import type { Cart } from '@/types/cart';
 import type { PaymentMethod } from '@/types/payment';
 import type { CheckoutPaymentMethod } from '@/lib/api/checkout';
 import { CheckoutPaymentMethods } from '@/components/checkout/CheckoutPaymentMethods';
 import { Container } from '@/components/ui';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { Alert, AlertDescription } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
@@ -28,6 +29,8 @@ export default function CheckoutPage() {
   const [transactionId, setTransactionId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mobile, setMobile] = useState('');
+  const [address, setAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -39,11 +42,15 @@ export default function CheckoutPage() {
     let cancelled = false;
     (async () => {
       try {
-        const cartData = await getCart();
+        const [cartData, profileRes] = await Promise.all([getCart(), getProfile().catch(() => null)]);
         if (!cancelled) {
           setCart(cartData);
           setPaymentMethods([]);
           setPaymentMethod('cash_on_delivery');
+          if (profileRes?.user) {
+            setMobile(profileRes.user.mobile ?? '');
+            setAddress(profileRes.user.address ?? '');
+          }
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load cart');
@@ -58,6 +65,14 @@ export default function CheckoutPage() {
 
   const handleCreateOrder = async () => {
     if (!cart || cart.items.length === 0) return;
+    const trimmedMobile = mobile.trim();
+    const trimmedAddress = address.trim();
+    if (!trimmedMobile || !trimmedAddress) {
+      const msg = 'Mobile number and address are required';
+      setSubmitError(msg);
+      toast.error(msg);
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -67,6 +82,8 @@ export default function CheckoutPage() {
         payment_type: 'cash_on_delivery',
         sender_number: null,
         transaction_id: null,
+        mobile: trimmedMobile,
+        address: trimmedAddress,
       });
       sessionStorage.removeItem(COUPON_STORAGE_KEY);
       router.push(`/order-success?orderId=${order.id}`);
@@ -133,6 +150,46 @@ export default function CheckoutPage() {
       )}
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-5 lg:gap-8">
         <div className="order-2 space-y-4 sm:space-y-6 lg:order-none lg:col-span-3">
+          <Card className="overflow-hidden shadow-sm">
+            <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+              <CardTitle className="text-base sm:text-lg">Delivery details</CardTitle>
+              <p className="text-sm font-normal leading-relaxed text-muted-foreground text-pretty">
+                Mobile number and address are required to place your order.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 pt-2 sm:p-6 sm:pt-2">
+              <div className="space-y-2">
+                <label htmlFor="checkout-mobile" className="text-sm font-medium">
+                  Mobile number <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="checkout-mobile"
+                  type="tel"
+                  autoComplete="tel"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  required
+                  maxLength={32}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="checkout-address" className="text-sm font-medium">
+                  Address <span className="text-destructive">*</span>
+                </label>
+                <textarea
+                  id="checkout-address"
+                  autoComplete="street-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  required
+                  maxLength={1000}
+                  rows={3}
+                  className="flex min-h-[5.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="overflow-hidden shadow-sm">
             <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
               <CardTitle className="text-base sm:text-lg">Payment</CardTitle>

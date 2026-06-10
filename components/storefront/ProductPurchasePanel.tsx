@@ -655,12 +655,14 @@ export function ProductPurchasePanel({
           variationId={cartVariationId}
           validateBeforeAdd={validateBeforeAdd}
           resumeAfterLoginRedirect="/checkout"
+          guestCheckoutOnUnauthorized
+          placeOrderAfterGuestCheckout
           disabled={maxQty < 1}
           onAdded={() => {
             router.push('/checkout');
           }}
         >
-          {maxQty < 1 ? 'Sold out' : 'Buy now'}
+          {maxQty < 1 ? 'Sold out' : 'Order now'}
         </AddToCartButton>
       </div>
         </form>

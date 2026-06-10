@@ -75,6 +75,16 @@ function PendingOrdersContent() {
             { key: 'order_number', header: 'Order', render: (r) => `#${r.order_number}` },
             { key: 'status', header: 'Status', render: (r) => <span className="capitalize">{r.status}</span> },
             { key: 'total', header: 'Total', render: (r) => formatCurrency(r.total, r.currency) },
+            {
+              key: 'customer_name',
+              header: 'Customer',
+              render: (r) => (r.customer_name?.trim() ? r.customer_name : '—'),
+            },
+            {
+              key: 'shipping_mobile',
+              header: 'Mobile',
+              render: (r) => (r.shipping_mobile?.trim() ? r.shipping_mobile : '—'),
+            },
             { key: 'user_id', header: 'User ID' },
             { key: 'created_at', header: 'Date', render: (r) => new Date(r.created_at).toLocaleString() },
             {

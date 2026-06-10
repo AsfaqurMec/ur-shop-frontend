@@ -11,8 +11,10 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@/compo
 export default function ProfileSettingsPage() {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [nameInput, setNameInput] = useState('');
+  const [mobileInput, setMobileInput] = useState('');
+  const [addressInput, setAddressInput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [savingName, setSavingName] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,32 +22,53 @@ export default function ProfileSettingsPage() {
       .then((r) => {
         setUser(r.user);
         setNameInput(r.user.name ?? '');
+        setMobileInput(r.user.mobile ?? '');
+        setAddressInput(r.user.address ?? '');
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, []);
 
-  const nameUnchanged = (user?.name ?? '').trim() === nameInput.trim();
+  const unchanged =
+    (user?.name ?? '').trim() === nameInput.trim() &&
+    (user?.mobile ?? '').trim() === mobileInput.trim() &&
+    (user?.address ?? '').trim() === addressInput.trim();
 
-  const handleSaveName = async () => {
-    const trimmed = nameInput.trim();
-    if (!trimmed) {
+  const handleSave = async () => {
+    const trimmedName = nameInput.trim();
+    const trimmedMobile = mobileInput.trim();
+    const trimmedAddress = addressInput.trim();
+    if (!trimmedName) {
       toast.error('Please enter a name');
       return;
     }
-    setSavingName(true);
+    if (!trimmedMobile) {
+      toast.error('Please enter a mobile number');
+      return;
+    }
+    if (!trimmedAddress) {
+      toast.error('Please enter an address');
+      return;
+    }
+    setSaving(true);
     try {
-      const { user: updated } = await updateProfile(trimmed);
+      const { user: updated } = await updateProfile({
+        name: trimmedName,
+        mobile: trimmedMobile,
+        address: trimmedAddress,
+      });
       setUser(updated);
       setNameInput(updated.name ?? '');
+      setMobileInput(updated.mobile ?? '');
+      setAddressInput(updated.address ?? '');
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('profile:updated'));
       }
-      toast.success('Name updated');
+      toast.success('Profile updated');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not update name');
+      toast.error(err instanceof Error ? err.message : 'Could not update profile');
     } finally {
-      setSavingName(false);
+      setSaving(false);
     }
   };
 
@@ -91,25 +114,45 @@ export default function ProfileSettingsPage() {
             <label htmlFor="profile-name" className="text-muted-foreground text-sm">
               Name
             </label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                id="profile-name"
-                type="text"
-                autoComplete="name"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                maxLength={255}
-                className="sm:max-w-xs"
-              />
-              <Button
-                type="button"
-                onClick={handleSaveName}
-                disabled={savingName || nameUnchanged}
-              >
-                {savingName ? 'Saving…' : 'Save name'}
-              </Button>
-            </div>
+            <Input
+              id="profile-name"
+              type="text"
+              autoComplete="name"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              maxLength={255}
+            />
           </div>
+          <div className="space-y-2">
+            <label htmlFor="profile-mobile" className="text-muted-foreground text-sm">
+              Mobile number
+            </label>
+            <Input
+              id="profile-mobile"
+              type="tel"
+              autoComplete="tel"
+              value={mobileInput}
+              onChange={(e) => setMobileInput(e.target.value)}
+              maxLength={32}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="profile-address" className="text-muted-foreground text-sm">
+              Address
+            </label>
+            <textarea
+              id="profile-address"
+              autoComplete="street-address"
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              maxLength={1000}
+              rows={3}
+              className="flex min-h-[5.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <Button type="button" onClick={handleSave} disabled={saving || unchanged}>
+            {saving ? 'Saving…' : 'Save profile'}
+          </Button>
         </CardContent>
       </Card>
       <div className="mt-6 flex flex-wrap gap-3">
