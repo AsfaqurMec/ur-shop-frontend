@@ -571,7 +571,7 @@ export function PublicHeader({ settings }: { settings?: PublicStoreSettings | nu
         </nav>
 
         <div className="hidden md:flex shrink-0 items-center gap-1">
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
           {!authReady ? (
             <span className="inline-flex h-9 w-32 items-center justify-end" aria-hidden />
           ) : user ? (
@@ -737,7 +737,7 @@ export function PublicHeader({ settings }: { settings?: PublicStoreSettings | nu
                       </div>
                     </details>
 
-                    <details className={mobileDrawerAccordionClass} open>
+                    {/* <details className={mobileDrawerAccordionClass} open>
                       <summary className={mobileDrawerSummaryClass}>
                         <span className={mobileDrawerAccordionLabelClass}>
                           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/35">
@@ -748,9 +748,9 @@ export function PublicHeader({ settings }: { settings?: PublicStoreSettings | nu
                         <DrawerAccordionChevron />
                       </summary>
                       <div className="border-t border-border/50 bg-muted/15 p-4 dark:bg-muted/10">
-                        <ThemeToggle variant="menu" />
+                         <ThemeToggle variant="menu" /> 
                       </div>
-                    </details>
+                    </details> */}
 
                     {!authReady ? null : user ? (
                       <details className={mobileDrawerAccordionClass} open>

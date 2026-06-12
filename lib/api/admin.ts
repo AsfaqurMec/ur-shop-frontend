@@ -135,13 +135,15 @@ export interface AdminCustomerListItem {
 
 export async function getAdminSummary(): Promise<AdminSummary> {
   const res = await apiGet<{ summary: AdminSummary }>('admin/dashboard/summary');
+ 
+  
   const d = unwrap(res);
   return d.summary;
 }
 
 export async function getAdminSalesSummary(): Promise<AdminSalesSummary> {
-  const res = await apiGet<{ summary: AdminSalesSummary }>('admin/dashboard/sales');
-  const d = unwrap(res);
+  const res = await apiGet<{ summary: AdminSalesSummary }>('admin/dashboard/sales'); 
+  const d = unwrap(res); 
   return d.summary;
 }
 
@@ -225,6 +227,9 @@ export async function getAdminCustomers(params?: {
       ...(params?.offset != null && params.offset > 0 ? { offset: params.offset } : {}),
     },
   });
+
+ 
+  
   return unwrap(res);
 }
 

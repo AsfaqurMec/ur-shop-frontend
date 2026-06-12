@@ -41,6 +41,7 @@ export default function AdminDashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+     
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -65,8 +66,8 @@ export default function AdminDashboardPage() {
         <StatCard title="Paid orders" value={summary?.orders_paid ?? 0} href="/admin/orders" />
         <StatCard title="Revenue" value={formatCurrency(sales?.total_revenue ?? 0)} />
         <StatCard title="Customers" value={summary?.customers_count ?? 0} href="/admin/customers" />
-        <StatCard title="Pending fulfillment" value={summary?.pending_fulfillment_count ?? 0} href="/admin/fulfillment" />
-        <StatCard title="Pending tickets" value={summary?.pending_tickets_count ?? 0} href="/admin/tickets" />
+        {/* <StatCard title="Pending fulfillment" value={summary?.pending_fulfillment_count ?? 0} href="/admin/fulfillment" />
+        <StatCard title="Pending tickets" value={summary?.pending_tickets_count ?? 0} href="/admin/tickets" /> */}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <section>

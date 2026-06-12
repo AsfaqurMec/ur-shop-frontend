@@ -95,7 +95,7 @@ export function DashboardSidebarShell({
             </button>
             <span className="truncate font-semibold text-foreground">{mobileBarTitle}</span>
           </div>
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
         </header>
 
         <div

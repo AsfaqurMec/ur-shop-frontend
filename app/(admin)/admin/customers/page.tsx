@@ -43,6 +43,7 @@ function AdminCustomersContent() {
     const offset = (pageFromUrl - 1) * PAGE_SIZE;
     return getAdminCustomers({ limit: PAGE_SIZE, offset });
   }, [pageFromUrl]);
+ 
 
   useEffect(() => {
     let cancelled = false;

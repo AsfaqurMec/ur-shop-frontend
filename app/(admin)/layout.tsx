@@ -26,7 +26,7 @@ export default function AdminLayout({
         sidebar={
           <>
             <div className="mb-4 hidden justify-end md:flex">
-              <ThemeToggle />
+              {/* <ThemeToggle /> */}
             </div>
             <AdminNav />
           </>
