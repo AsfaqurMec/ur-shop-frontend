@@ -110,11 +110,11 @@ export default function AdminOrderDetailPage() {
           <option value="paid">Paid</option>
           <option value="unpaid">Unpaid</option>
         </select>
-        {order.status === 'paid' && (
+        {/* {order.status === 'paid' && (
           <Button size="sm" onClick={handleProcessDelivery} isLoading={processing}>
             Process delivery
           </Button>
-        )}
+        )} */}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border">
