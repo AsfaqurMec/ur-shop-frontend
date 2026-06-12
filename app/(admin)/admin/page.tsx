@@ -104,7 +104,7 @@ export default function AdminDashboardPage() {
           </div>
         </section>
       </div>
-      <section className="mt-6">
+      {/* <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Recent payments</h2>
           <Link href="/admin/payment-reviews">
@@ -124,7 +124,7 @@ export default function AdminDashboardPage() {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
