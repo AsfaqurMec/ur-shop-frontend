@@ -3,11 +3,12 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getAdminRecentOrders } from '@/lib/api/admin';
-import { AdminPageHeader, DataTable } from '@/components/admin';
-import { Pagination } from '@/components/ui';
+import { deleteOrder, getAdminRecentOrders } from '@/lib/api/admin';
+import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
+import { Alert, AlertDescription, Button, Pagination } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
 import type { AdminRecentOrder } from '@/lib/api/admin';
+import { toast } from 'sonner';
 
 const PAGE_SIZE = 10;
 
@@ -22,6 +23,10 @@ function AdminOrdersContent() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminRecentOrder | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     const offset = (pageFromUrl - 1) * PAGE_SIZE;
@@ -50,7 +55,7 @@ function AdminOrdersContent() {
     return () => {
       cancelled = true;
     };
-  }, [pageFromUrl, pathname, router, searchParams, statusFromUrl]);
+  }, [pageFromUrl, pathname, router, searchParams, statusFromUrl, refreshToken]);
 
   const setPage = (p: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -67,6 +72,31 @@ function AdminOrdersContent() {
     else params.delete('status');
     const q = params.toString();
     router.push(q ? `${pathname}?${q}` : pathname);
+  };
+
+  const bumpRefresh = () => setRefreshToken((t) => t + 1);
+
+  const closeDeleteModal = () => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+  };
+
+ //  console.log(deleteTarget);
+   
+  const confirmDeleteCategory = async () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    setDeleteSubmitting(true);
+    try {
+      await deleteOrder(deleteTarget.id);
+      closeDeleteModal();
+      bumpRefresh();
+      toast.success('Order deleted');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete');
+    } finally {
+      setDeleteSubmitting(false);
+    }
   };
 
   if (loading && orders.length === 0) {
@@ -132,11 +162,17 @@ function AdminOrdersContent() {
               key: 'actions',
               header: '',
               render: (r) => (
-                <Link href={`/admin/orders/${r.id}`} className="text-primary hover:underline">
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                <Link href={`/admin/orders/${r.id}`} className="text-primary hover:underline border-2 px-3 py-2 rounded-md">
                   View
                 </Link>
+                <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(r)}>
+                Delete
+              </Button>
+              </div> 
               ),
             },
+            
           ]}
           data={orders}
           keyExtractor={(r) => r.id}
@@ -152,6 +188,34 @@ function AdminOrdersContent() {
           disabled={loading}
         />
       </div>
+
+      <Modal open={deleteTarget != null} onClose={closeDeleteModal} title="Delete Order">
+        <div className="space-y-4">
+          <p className="text-lg text-muted-foreground">
+            Delete <span className="font-semibold text-foreground pr-3">#{deleteTarget?.id}?</span> The order will be
+            deleted permanently.
+          </p>
+          {deleteError && (
+            <Alert variant="destructive">
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Button type="button" variant="outline" onClick={closeDeleteModal} disabled={deleteSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDeleteCategory}
+              isLoading={deleteSubmitting}
+            >
+              Delete Order
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      
     </div>
   );
 }

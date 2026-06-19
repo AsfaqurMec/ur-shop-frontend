@@ -246,6 +246,11 @@ export async function deleteAdminCustomer(userId: number): Promise<void> {
   unwrap(res);
 }
 
+export async function deleteOrder(id: number) {
+  const res = await apiDelete<{ message: string }>(`admin/dashboard/orders/${id}`);
+  return unwrap(res);
+}
+
 // ---- Products (admin uses same products API with auth) ----
 export interface ProductListResult {
   products: Array<{
@@ -602,6 +607,7 @@ export async function deleteCategory(id: number) {
   const res = await apiDelete<{ message: string }>(`categories/${id}`);
   return unwrap(res);
 }
+
 
 // ---- Delivery / Fulfillment ----
 export interface FulfillmentItem {
