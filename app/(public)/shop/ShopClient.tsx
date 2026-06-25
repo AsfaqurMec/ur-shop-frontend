@@ -33,6 +33,19 @@ export function ShopClient({
     setAddingProductId(product.id);
     try {
       await addToCart(product.id, 1);
+     
+      // Facebook Pixel
+    if (typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', 'AddToCart', {
+        content_ids: [String(product.id)],
+        content_name: product.name,
+        content_type: 'product',
+        value: Number(product.price ?? product.price ?? 0),
+        currency: 'BDT',
+      });
+    }
+
+
       window.dispatchEvent(new Event('cart:changed'));
       showAddedToCart({
         name: product.name,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Container } from '@/components/ui';
@@ -11,6 +12,18 @@ export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const paidOk = searchParams.get('paid') === '1';
+
+  useEffect(() => {
+    if (!orderId) return;
+  
+    if (typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', 'Purchase', {
+        order_id: orderId,
+        currency: 'BDT',
+      });
+    }
+  }, [orderId]);
+
 
   if (!orderId) {
     return (

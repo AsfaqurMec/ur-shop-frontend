@@ -83,6 +83,27 @@ export default function CheckoutPage() {
     typeof window !== 'undefined' ? sessionStorage.getItem(COUPON_STORAGE_KEY) : null;
   const couponToSend = couponCode?.trim() || undefined;
 
+
+  useEffect(() => {
+    if (!cart || cart.items.length === 0) return;
+  
+    if (typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', 'InitiateCheckout', {
+        value: Number(cart.subtotal),
+        currency: 'BDT',
+        num_items: cart.items.reduce((sum, item) => sum + item.quantity, 0),
+        contents: cart.items.map((item) => ({
+          id: String(item.product_id ?? item.id),
+          quantity: item.quantity,
+        })),
+        content_type: 'product',
+      });
+    }
+  }, [cart]);
+
+
+
+
   useEffect(() => {
     let cancelled = false;
     (async () => {

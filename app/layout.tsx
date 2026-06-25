@@ -14,7 +14,6 @@ const fontSans = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
-/** Global defaults: title template, OG/Twitter, robots, verification (see `lib/seo/metadata.ts`). */
 export const metadata: Metadata = buildRootMetadata();
 
 export const viewport: Viewport = {
@@ -37,20 +36,53 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const runtimeApiBase = getRuntimePublicApiBase();
+  const pixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
 
   return (
     <html lang="en" className={fontSans.variable} suppressHydrationWarning>
       <body className="min-h-screen font-sans">
-        <Script id="dp-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <Script
+          id="dp-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
+
         <Script
           id="dp-api-base"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: API_BASE_INIT(runtimeApiBase) }}
         />
+
         <ThemeProvider>
           <AddedToCartModalProvider>{children}</AddedToCartModalProvider>
           <AppToaster />
         </ThemeProvider>
+
+        {/* Facebook Pixel */}
+        {pixelId && (
+          <Script id="facebook-pixel" strategy="afterInteractive">
+            {`
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;
+              n.push=n;
+              n.loaded=!0;
+              n.version='2.0';
+              n.queue=[];
+              t=b.createElement(e);
+              t.async=!0;
+              t.src=v;
+              s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s);
+              }(window, document, 'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+
+              fbq('init', '${pixelId}');
+              fbq('track', 'PageView');
+            `}
+          </Script>
+        )}
       </body>
     </html>
   );

@@ -11,6 +11,7 @@ import { getPrimaryProductImagePath, getProductImageUrl } from '@/lib/imageUrl';
 import { getSiteUrl } from '@/lib/seo/site';
 import { toAbsoluteUrl } from '@/lib/seo/resolveOgImage';
 import { stripHtml, truncateForMeta } from '@/lib/seo/text';
+import ProductViewTracker from '@/components/analytics/ProductViewTracker';
 
 export async function generateMetadata({
   params,
@@ -103,6 +104,13 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
           </Link>
         </div>
       </div>
+
+      <ProductViewTracker
+         productId={product.id}
+         productName={product.name}
+         price={product.price || 0}
+       />
+
       <ProductDetails
         product={product}
         initialVariationId={initialVariationId}
