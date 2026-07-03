@@ -555,6 +555,8 @@ export interface CategoryItem {
   name: string;
   slug: string;
   description: string | null;
+  image: string | null;
+  banner_image: string | null;
   parent_id: number | null;
   sort_order: number;
   created_at: string;
@@ -582,23 +584,63 @@ export async function getCategories(params?: { page?: number; limit?: number }):
   return unwrap(res);
 }
 
+function categoryFormData(body: {
+  name: string;
+  slug?: string;
+  description?: string | null;
+  image?: File | null;
+  banner_image?: File | null;
+  parent_id?: number | null;
+  sort_order?: number;
+}): FormData {
+  const formData = new FormData();
+  formData.append('name', body.name.trim());
+  if (body.slug?.trim()) formData.append('slug', body.slug.trim());
+  formData.append('description', body.description?.trim() ?? '');
+  if (body.image) formData.append('image', body.image);
+  if (body.banner_image) formData.append('banner_image', body.banner_image);
+  if (body.parent_id != null) formData.append('parent_id', String(body.parent_id));
+  if (body.sort_order != null) formData.append('sort_order', String(body.sort_order));
+  return formData;
+}
+
 export async function createCategory(body: {
   name: string;
   slug?: string;
   description?: string | null;
+  image?: File | null;
+  banner_image?: File | null;
   parent_id?: number | null;
   sort_order?: number;
 }) {
-  const res = await apiPost<{ category: CategoryItem }>('categories', body);
+  const res = await apiPostFormData<{ category: CategoryItem }>('categories', categoryFormData(body));
   const d = unwrap(res);
   return d.category;
 }
 
 export async function updateCategory(
   id: number,
-  body: Partial<{ name: string; slug: string; description: string | null; parent_id: number | null; sort_order: number }>
+  body: Partial<{
+    name: string;
+    slug: string;
+    description: string | null;
+    image: File | null;
+    banner_image: File | null;
+    parent_id: number | null;
+    sort_order: number;
+  }>
 ) {
-  const res = await apiPut<{ category: CategoryItem }>(`categories/${id}`, body);
+  const formData = new FormData();
+  if (body.name !== undefined) formData.append('name', body.name.trim());
+  if (body.slug !== undefined) formData.append('slug', body.slug.trim());
+  if (body.description !== undefined) formData.append('description', body.description?.trim() ?? '');
+  if (body.image) formData.append('image', body.image);
+  if (body.banner_image) formData.append('banner_image', body.banner_image);
+  if (body.parent_id !== undefined && body.parent_id != null) {
+    formData.append('parent_id', String(body.parent_id));
+  }
+  if (body.sort_order !== undefined) formData.append('sort_order', String(body.sort_order));
+  const res = await apiPutFormData<{ category: CategoryItem }>(`categories/${id}`, formData);
   const d = unwrap(res);
   return d.category;
 }

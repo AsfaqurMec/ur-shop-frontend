@@ -17,6 +17,7 @@ export interface PublicStoreSettings {
   emailHeaderSubtitle: string;
   emailFooterSupportEmail: string;
   emailFooterSupportNumber: string;
+  contactEmail: string;
   /** Present when API supports floating social FAB (home). */
   socialLinks?: SocialLink[];
 }

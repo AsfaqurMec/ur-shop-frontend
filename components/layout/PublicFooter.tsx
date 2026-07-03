@@ -57,12 +57,12 @@ export function PublicFooter({ settings }: { settings?: PublicStoreSettings | nu
   const supportNumber = liveSettings?.emailFooterSupportNumber?.trim() || '';
   const supportNumberHref = toPhoneHref(supportNumber);
   return (
-    <footer className="mt-auto border-t border-border/80 bg-card">
+    <footer className="mt-auto border-t border-white/10 bg-black text-white">
       <div className="mx-auto max-w-7xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5 font-semibold tracking-tight">
-              <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-border">
+              <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-white/10 shadow-sm ring-1 ring-white/20">
                 <Image
                   src={brandLogo}
                   alt=""
@@ -74,72 +74,72 @@ export function PublicFooter({ settings }: { settings?: PublicStoreSettings | nu
               </span>
               {brandName}
             </div>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-gray-400">
               {SITE_FOOTER_BLURB}
             </p>
             {supportNumberHref ? (
               <a
                 href={supportNumberHref}
-                className="mt-4 inline-flex max-w-full items-center gap-2 rounded-md border border-border/80 bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-colors hover:bg-muted/50 dark:border-border/70 dark:bg-muted/30 dark:hover:bg-muted/50"
+                className="mt-4 inline-flex max-w-full items-center gap-2 rounded-md border border-white/20 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-white/20"
               >
-                <PhoneHandsetIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <PhoneHandsetIcon className="h-4 w-4 shrink-0 text-gray-400" />
                 <span className="truncate tabular-nums">{supportNumber}</span>
               </a>
             ) : null}
           </div>
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Store
             </h2>
             <ul className="mt-4 space-y-3 text-sm">
               <li>
-                <Link href="/shop" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/shop" className="text-gray-200 hover:text-cyan-400 transition-colors">
                   Browse shop
                 </Link>
               </li>
               <li>
-                <Link href="/search" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/search" className="text-gray-200 hover:text-cyan-400 transition-colors">
                   Search
                 </Link>
               </li>
               <li>
-                <Link href="/cart" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/cart" className="text-gray-200 hover:text-cyan-400 transition-colors">
                   Cart
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Account
             </h2>
             <ul className="mt-4 space-y-3 text-sm">
               <li>
-                <Link href="/login" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/login" className="text-gray-200 hover:text-cyan-400 transition-colors">
                   Sign in
                 </Link>
               </li>
               <li>
-                <Link href="/register" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/register" className="text-gray-200 hover:text-cyan-400 transition-colors">
                   Register
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/dashboard" className="text-gray-200 hover:text-cyan-400 transition-colors">
                   Dashboard
                 </Link>
               </li>
             </ul>
           </div>
         </div>
-        <div className="mt-12 flex flex-col items-center gap-4 border-t border-border/80 pt-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
-          <p className="text-sm text-muted-foreground">© {year} {brandName}. All rights reserved.</p>
-          <p className="text-xs text-muted-foreground sm:text-right">
+        <div className="mt-12 flex flex-col items-center gap-4 border-t border-white/10 pt-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+          <p className="text-sm text-gray-400">© {year} {brandName}. All rights reserved.</p>
+          <p className="text-xs text-gray-400 sm:text-right">
             Secure payments · Instant digital delivery
           </p>
         </div>
         <div className="mt-0  pt-8 text-center">
-          <p className="text-base text-muted-foreground">
+          <p className="text-base text-gray-400">
             Developed by{' '}
             <Link
               href="https://my-portfolio-asfaqur-rahman.web.app"

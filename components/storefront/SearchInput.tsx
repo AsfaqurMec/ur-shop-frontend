@@ -11,7 +11,7 @@ export interface SearchInputProps {
 }
 
 export function SearchInput({
-  placeholder = 'Search products…',
+  placeholder = 'Search categories & products…',
   basePath = '/shop',
   paramName = 'search',
   className = '',
@@ -42,7 +42,7 @@ export function SearchInput({
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
           className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label="Search products"
+          aria-label="Search categories and products"
         />
         <span
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"

@@ -8,8 +8,10 @@ import { SearchInput } from '@/components/storefront';
 import { CategoryFilter } from '@/components/storefront';
 import { ShopCollapsibleFilters } from '@/components/storefront';
 import { SocialSpeedDial } from '@/components/storefront';
+import { SearchCategoryResults } from '@/components/storefront/SearchCategoryResults';
 import { SearchClient } from './SearchClient';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { filterCategoriesByQuery } from '@/lib/search/filterCategories';
 
 export const metadata = createPageMetadata({
   path: '/search',
@@ -39,6 +41,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
     getPublicStoreSettings().catch(() => null),
   ]);
 
+  const matchedCategories = q ? filterCategoriesByQuery(categories, q) : [];
+
   return (
     <>
     <Container size="lg" className="py-8 md:py-12">
@@ -49,10 +53,10 @@ export default async function SearchPage({ searchParams }: PageProps) {
             <p className="mt-2 max-w-2xl text-muted-foreground">
               {q ? (
                 <>
-                  Results for <span className="font-semibold text-foreground">&ldquo;{q}&rdquo;</span>
+                  Results for <span className="font-semibold text-foreground">&ldquo;{q}&rdquo;</span> in categories and products
                 </>
               ) : (
-                'Browse the catalog below, or enter keywords to find products by name or description.'
+                'Enter keywords to find categories and products by name or description.'
               )}
             </p>
           </div>
@@ -60,7 +64,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
             categories={categories}
             searchBasePath="/search"
             searchParamName="q"
-            searchPlaceholder="Search products…"
+            searchPlaceholder="Search categories & products…"
             searchSectionLabel="Query"
             categoriesSectionLabel="Browse by category"
           />
@@ -74,7 +78,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 Query
               </h2>
               <Suspense fallback={<div className="h-10 w-full animate-pulse rounded-md bg-muted" aria-hidden />}>
-                <SearchInput basePath="/search" paramName="q" placeholder="Search products…" />
+                <SearchInput basePath="/search" paramName="q" placeholder="Search categories & products…" />
               </Suspense>
             </div>
             <div className="rounded-xl border border-border/80 bg-card p-4 shadow-card">
@@ -86,6 +90,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
           </div>
         </aside>
         <div className="min-w-0 flex-1">
+          {q ? <SearchCategoryResults categories={matchedCategories} query={q} /> : null}
           <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-muted" aria-hidden />}>
             <SearchClient
               initialProducts={result.products}

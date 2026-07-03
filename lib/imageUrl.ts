@@ -69,6 +69,31 @@ export function getBannerImageUrl(path: string | null | undefined): string | nul
   return `/api/media/${pathForUrl}`;
 }
 
+export function getCategoryImageUrl(path: string | null | undefined): string | null {
+  return getStoredUploadImageUrl(path, 'categories/images/');
+}
+
+export function getCategoryBannerImageUrl(path: string | null | undefined): string | null {
+  return getStoredUploadImageUrl(path, 'categories/banners/');
+}
+
+function getStoredUploadImageUrl(path: string | null | undefined, prefix: string): string | null {
+  if (!path?.trim()) return null;
+  const trimmed = path.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+
+  const p = normalizeStoredImagePath(trimmed);
+  if (!p.toLowerCase().startsWith(prefix)) return null;
+  const pathForUrl = p.split('/').map((seg) => encodeURIComponent(seg)).join('/');
+
+  if (process.env.NEXT_PUBLIC_IMAGE_DIRECT === '1') {
+    const base = getUploadBase();
+    return base ? `${base}/${pathForUrl}` : null;
+  }
+
+  return `/api/media/${pathForUrl}`;
+}
+
 /**
  * Path to show on cards / product hero: first real upload by sort_order.
  * Never falls back to `thumbnail` when it is a demo seed path if `images` lists exist.

@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '@/lib/api/admin';
 import type { CategoriesListResponse, CategoryItem } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Button, Pagination } from '@/components/ui';
 import { Alert, AlertDescription } from '@/components/ui';
+import { getCategoryBannerImageUrl, getCategoryImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 10;
@@ -32,6 +33,8 @@ function AdminCategoriesContent() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CategoryItem | null>(null);
@@ -79,11 +82,30 @@ function AdminCategoriesContent() {
 
   const bumpRefresh = () => setRefreshToken((t) => t + 1);
 
+  const previewUrl = useMemo(() => {
+    if (imageFile) return URL.createObjectURL(imageFile);
+    return editing ? getCategoryImageUrl(editing.image) : null;
+  }, [imageFile, editing]);
+
+  const bannerPreviewUrl = useMemo(() => {
+    if (bannerFile) return URL.createObjectURL(bannerFile);
+    return editing ? getCategoryBannerImageUrl(editing.banner_image) : null;
+  }, [bannerFile, editing]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+      if (bannerPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(bannerPreviewUrl);
+    };
+  }, [previewUrl, bannerPreviewUrl]);
+
   const openCreate = () => {
     setEditing(null);
     setName('');
     setSlug('');
     setDescription('');
+    setImageFile(null);
+    setBannerFile(null);
     setFormError(null);
     setModalOpen(true);
   };
@@ -93,6 +115,8 @@ function AdminCategoriesContent() {
     setName(c.name);
     setSlug(c.slug);
     setDescription(c.description ?? '');
+    setImageFile(null);
+    setBannerFile(null);
     setFormError(null);
     setModalOpen(true);
   };
@@ -111,12 +135,16 @@ function AdminCategoriesContent() {
           name: name.trim(),
           slug: slug.trim() || undefined,
           description: description.trim() || null,
+          image: imageFile,
+          banner_image: bannerFile,
         });
       } else {
         await createCategory({
           name: name.trim(),
           slug: slug.trim() || undefined,
           description: description.trim() || null,
+          image: imageFile,
+          banner_image: bannerFile,
         });
       }
       setModalOpen(false);
@@ -171,6 +199,18 @@ function AdminCategoriesContent() {
       <div className={loading ? 'pointer-events-none opacity-60' : ''}>
         <DataTable<CategoryItem>
           columns={[
+            {
+              key: 'image',
+              header: 'Image',
+              render: (r) => {
+                const url = getCategoryImageUrl(r.image);
+                return url ? (
+                  <img src={url} alt="" className="h-10 w-10 rounded-md object-cover" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                );
+              },
+            },
             { key: 'name', header: 'Name' },
             { key: 'slug', header: 'Slug' },
             { key: 'sort_order', header: 'Sort' },
@@ -236,6 +276,32 @@ function AdminCategoriesContent() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="mt-1 flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Card image</label>
+            <p className="text-xs text-muted-foreground">Shown in the homepage category slider.</p>
+            {previewUrl && (
+              <img src={previewUrl} alt="" className="mt-2 h-32 w-full rounded-md object-cover" />
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              className="mt-2 block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Section banner image</label>
+            <p className="text-xs text-muted-foreground">Shown above the product grid for this category on the homepage.</p>
+            {bannerPreviewUrl && (
+              <img src={bannerPreviewUrl} alt="" className="mt-2 h-32 w-full rounded-md object-cover" />
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
+              className="mt-2 block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
             />
           </div>
           <div className="flex flex-wrap gap-3">

@@ -39,7 +39,12 @@ export async function GET(
 
   const rel = segments.join('/');
   const lower = rel.toLowerCase();
-  if (!lower.startsWith('products/images/')) {
+  const allowed =
+    lower.startsWith('products/images/') ||
+    lower.startsWith('banners/images/') ||
+    lower.startsWith('categories/images/') ||
+    lower.startsWith('categories/banners/');
+  if (!allowed) {
     return new NextResponse('Not found', { status: 404 });
   }
 

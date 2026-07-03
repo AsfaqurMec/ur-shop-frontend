@@ -6,6 +6,9 @@ export { SearchInput } from './SearchInput';
 export { ShopCollapsibleFilters } from './ShopCollapsibleFilters';
 export { FeaturedProducts } from './FeaturedProducts';
 export { RelatedProducts } from './RelatedProducts';
+export { HorizontalSlider } from './HorizontalSlider';
+export { CategoryCardSlider } from './CategoryCardSlider';
+export { CategoryProductSection } from './CategoryProductSection';
 export { AddToCartButton } from './AddToCartButton';
 export { AddedToCartModal, type AddedToCartSummary } from './AddedToCartModal';
 export {
@@ -17,5 +20,6 @@ export { ProductDetails } from './ProductDetails';
 export { ProductPurchasePanel } from './ProductPurchasePanel';
 export { ProductReviewsSection } from './ProductReviewsSection';
 export { ProductPhoto } from './ProductPhoto';
+export { SearchCategoryResults } from './SearchCategoryResults';
 export { SocialSpeedDial } from './SocialSpeedDial';
 export { ProductSocialContactStrip } from './ProductSocialContactStrip';
