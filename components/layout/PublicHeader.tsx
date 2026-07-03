@@ -33,6 +33,10 @@ export function PublicHeader({ settings }: { settings?: PublicStoreSettings | nu
             onNavigate={() => header.setMobileOpen(false)}
           />
 
+          <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-extrabold italic uppercase tracking-[0.0em] text-red-600 md:hidden">
+            UR SHOP
+          </span>
+
           <HeaderCategoryNav pathname={header.pathname} navCategories={header.navCategories} />
 
           <HeaderDesktopActions
