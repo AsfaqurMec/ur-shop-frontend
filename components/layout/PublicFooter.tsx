@@ -145,7 +145,7 @@ export function PublicFooter({ settings }: { settings?: PublicStoreSettings | nu
               href="https://my-portfolio-asfaqur-rahman.web.app"
               target="_blank"
               rel="noopener noreferrer"
-              className=" font-semibold text-cyan-500 transition-colors hover:text-cyan-400"
+              className=" font-semibold text-red-500 transition-colors hover:text-red-300 underline"
             >
               Asfaqur Rahman
             </Link>
