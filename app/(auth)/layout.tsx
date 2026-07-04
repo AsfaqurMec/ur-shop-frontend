@@ -20,7 +20,7 @@ export default function AuthLayout({
       </div>
       <div className="relative flex min-h-dvh flex-col items-center justify-center p-4 sm:p-6">
         <div className="absolute right-3 top-3 z-10 sm:right-5 sm:top-5">
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
         </div>
         <div className="relative w-full max-w-md">{children}</div>
       </div>

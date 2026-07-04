@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button, Container } from '@/components/ui';
@@ -24,6 +24,11 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
   const slideCount = slides.length;
   const [activeSlide, setActiveSlide] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dragStartXRef = useRef(0);
+  const dragCurrentXRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const [dragOffset, setDragOffset] = useState(0);
 
   const safeActiveSlide = slideCount === 0 ? 0 : Math.min(activeSlide, slideCount - 1);
   const slide: HeroSlide | undefined = slides[safeActiveSlide];
@@ -69,6 +74,54 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
     [resetAutoplay, slideCount]
   );
 
+  const handlePointerDown = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
+      if (slideCount <= 1 || event.button !== 0) return;
+
+      const target = event.target as HTMLElement;
+      if (target.closest('a, button')) return;
+
+      stopAutoplay();
+      isDraggingRef.current = true;
+      hasDraggedRef.current = false;
+      dragStartXRef.current = event.clientX;
+      dragCurrentXRef.current = event.clientX;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [slideCount, stopAutoplay]
+  );
+
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLElement>) => {
+    if (!isDraggingRef.current) return;
+
+    dragCurrentXRef.current = event.clientX;
+    const delta = event.clientX - dragStartXRef.current;
+    if (Math.abs(delta) > 8) hasDraggedRef.current = true;
+    setDragOffset(Math.max(-120, Math.min(120, delta)));
+  }, []);
+
+  const finishDrag = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
+      if (!isDraggingRef.current) return;
+
+      const delta = dragCurrentXRef.current - dragStartXRef.current;
+      isDraggingRef.current = false;
+      setDragOffset(0);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      if (Math.abs(delta) >= 50) {
+        if (delta < 0) goToNext();
+        else goToPrevious();
+      } else {
+        resetAutoplay();
+      }
+    },
+    [goToNext, goToPrevious, resetAutoplay]
+  );
+
   useEffect(() => {
     if (activeSlide >= slideCount && slideCount > 0) {
       setActiveSlide(slideCount - 1);
@@ -83,13 +136,20 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
   if (!slide) return null;
 
   return (
-    <section className="relative isolate h-[85vh] overflow-hidden md:h-[80vh] lg:h-[95vh]">
+    <section
+      className="relative isolate h-[85vh] touch-pan-y overflow-hidden md:h-[80vh] lg:h-[95vh]"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={finishDrag}
+      onPointerCancel={finishDrag}
+    >
       <div className="pointer-events-none absolute inset-0 z-0" aria-hidden />
       <img
         key={safeActiveSlide}
         src={slide.imageUrl}
         alt=""
         className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-right-top md:object-center"
+        style={{ transform: `translateX(${dragOffset}px)` }}
       />
       <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden />
 
@@ -129,7 +189,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
 
       {slideCount > 1 ? (
         <div className="pointer-events-none absolute inset-0 z-40">
-          <div className="pointer-events-auto absolute bottom-12 md:bottom-24 left-2 md:left-6  flex items-center gap-2 rounded-full border border-white/25 bg-black/30 p-1.5 shadow-2xl shadow-black/30 backdrop-blur-md ring-1 ring-black/10 sm:left-6">
+          <div className="pointer-events-auto absolute bottom-14 md:bottom-24 left-2 md:left-6  flex items-center gap-2 rounded-full border border-white/25 bg-black/30 p-1.5 shadow-2xl shadow-black/30 backdrop-blur-md ring-1 ring-black/10 sm:left-6">
             <button
               type="button"
               onClick={goToPrevious}

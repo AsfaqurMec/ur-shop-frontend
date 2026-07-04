@@ -18,7 +18,7 @@ export function HeaderBrand({ brandName, brandLogo, onNavigate }: HeaderBrandPro
       <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-border" aria-hidden>
         <Image src={brandLogo} alt="" width={36} height={36} className="object-contain" priority unoptimized />
       </span>
-      <span className="hidden sm:inline">{brandName}</span>
+      <span className="hidden sm:inline text-xl font-extrabold italic">{brandName}</span>
     </Link>
   );
 }
@@ -33,7 +33,7 @@ export function HeaderCategoryNav({ pathname, navCategories }: HeaderCategoryNav
     <nav className="hidden md:flex flex-1 items-center justify-center gap-0.5 overflow-x-auto px-2" aria-label="Categories">
       <Link
         href="/shop"
-        className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        className={`shrink-0 rounded-lg px-3 py-2 text-md font-medium transition-colors ${
           pathname === '/shop'
             ? 'bg-accent text-accent-foreground'
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -48,7 +48,7 @@ export function HeaderCategoryNav({ pathname, navCategories }: HeaderCategoryNav
           <Link
             key={category.id}
             href={href}
-            className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 rounded-lg px-3 py-2 text-md font-medium transition-colors ${
               active
                 ? 'bg-accent text-accent-foreground'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'

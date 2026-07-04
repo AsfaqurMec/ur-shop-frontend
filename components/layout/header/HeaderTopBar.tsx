@@ -16,7 +16,7 @@ export function HeaderTopBar({ contactEmail, contactPhone, socialLinks }: Header
         {contactPhone ? (
           <a
             href={`tel:${contactPhone.replace(/\s/g, '')}`}
-            className="flex items-center gap-1.5 hover:text-amber-400 transition-colors"
+            className="flex items-center gap-1.5 hover:text-primary transition-colors"
           >
             <PhoneIcon /> <span>{contactPhone}</span>
           </a>
@@ -24,7 +24,7 @@ export function HeaderTopBar({ contactEmail, contactPhone, socialLinks }: Header
         {contactEmail ? (
           <a
             href={`mailto:${contactEmail}`}
-            className="flex items-center gap-1.5 hover:text-amber-400 transition-colors"
+            className="flex items-center gap-1.5 hover:text-primary transition-colors"
           >
             <EnvelopeIcon /> <span>{contactEmail}</span>
           </a>

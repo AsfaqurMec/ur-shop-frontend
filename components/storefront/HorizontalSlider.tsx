@@ -1,6 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface HorizontalSliderProps {
@@ -22,6 +30,13 @@ export function HorizontalSlider({
 }: HorizontalSliderProps) {
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(visibleSm);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const dragStartXRef = useRef(0);
+  const dragCurrentXRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const autoplayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -38,6 +53,13 @@ export function HorizontalSlider({
   const maxIndex = Math.max(0, count - visible);
   const slideWidth = 100 / visible;
   const showNav = count > visible;
+
+  const stopAutoplay = useCallback(() => {
+    if (autoplayRef.current) {
+      clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     setIndex((i) => Math.min(i, maxIndex));
@@ -58,10 +80,74 @@ export function HorizontalSlider({
   }, [loop, maxIndex]);
 
   useEffect(() => {
+    stopAutoplay();
     if (!showNav || autoPlayMs <= 0) return;
-    const interval = setInterval(goNext, autoPlayMs);
-    return () => clearInterval(interval);
-  }, [autoPlayMs, goNext, showNav]);
+    autoplayRef.current = setInterval(goNext, autoPlayMs);
+    return stopAutoplay;
+  }, [autoPlayMs, goNext, showNav, stopAutoplay]);
+
+  const resetAutoplay = useCallback(() => {
+    stopAutoplay();
+    if (!showNav || autoPlayMs <= 0) return;
+    autoplayRef.current = setInterval(goNext, autoPlayMs);
+  }, [autoPlayMs, goNext, showNav, stopAutoplay]);
+
+  const handlePointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!showNav || event.button !== 0) return;
+
+      stopAutoplay();
+      isDraggingRef.current = true;
+      hasDraggedRef.current = false;
+      dragStartXRef.current = event.clientX;
+      dragCurrentXRef.current = event.clientX;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [showNav, stopAutoplay]
+  );
+
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+
+    dragCurrentXRef.current = event.clientX;
+    const delta = event.clientX - dragStartXRef.current;
+    if (Math.abs(delta) > 8) hasDraggedRef.current = true;
+    setDragOffset(Math.max(-140, Math.min(140, delta)));
+  }, []);
+
+  const finishDrag = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!isDraggingRef.current) return;
+
+      const delta = dragCurrentXRef.current - dragStartXRef.current;
+      const viewportWidth = viewportRef.current?.clientWidth ?? 0;
+      const threshold = Math.max(45, viewportWidth * 0.08);
+
+      isDraggingRef.current = false;
+      setDragOffset(0);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      if (Math.abs(delta) >= threshold) {
+        if (delta < 0) goNext();
+        else goPrev();
+        resetAutoplay();
+      } else {
+        resetAutoplay();
+      }
+    },
+    [goNext, goPrev, resetAutoplay]
+  );
+
+  const preventClickAfterDrag = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (!hasDraggedRef.current) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    hasDraggedRef.current = false;
+  }, []);
 
   if (count === 0) return null;
 
@@ -90,10 +176,18 @@ export function HorizontalSlider({
             </button>
           </>
         )}
-        <div className="overflow-hidden px-1">
+        <div
+          ref={viewportRef}
+          className="cursor-grab touch-pan-y overflow-hidden px-1 active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishDrag}
+          onPointerCancel={finishDrag}
+          onClickCapture={preventClickAfterDrag}
+        >
           <div
-            className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${index * slideWidth}%)` }}
+            className={`flex ease-out ${isDraggingRef.current ? '' : 'transition-transform duration-500'}`}
+            style={{ transform: `translateX(calc(-${index * slideWidth}% + ${dragOffset}px))` }}
           >
             {children.map((child, i) => (
               <div key={i} className="flex-shrink-0 px-2" style={{ width: `${slideWidth}%` }}>
