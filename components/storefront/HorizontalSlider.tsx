@@ -1,14 +1,9 @@
+
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent,
-  type PointerEvent,
-  type ReactNode,
-} from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface HorizontalSliderProps {
@@ -17,6 +12,7 @@ export interface HorizontalSliderProps {
   visibleLg?: number;
   autoPlayMs?: number;
   loop?: boolean;
+  showDots?: boolean;
   className?: string;
 }
 
@@ -26,130 +22,77 @@ export function HorizontalSlider({
   visibleLg = 4,
   autoPlayMs = 4000,
   loop = true,
+  showDots = true,
   className = '',
 }: HorizontalSliderProps) {
-  const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(visibleSm);
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const dragStartXRef = useRef(0);
-  const dragCurrentXRef = useRef(0);
-  const isDraggingRef = useRef(false);
-  const hasDraggedRef = useRef(false);
-  const autoplayRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
 
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+
+  // Responsive slides
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width:1024px)');
+
     const update = () => {
-      setVisible(mq.matches ? visibleLg : visibleSm);
-      setIndex(0);
+      setVisible(media.matches ? visibleLg : visibleSm);
     };
+
     update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, [visibleSm, visibleLg]);
 
-  const count = children.length;
-  const maxIndex = Math.max(0, count - visible);
-  const slideWidth = 100 / visible;
-  const showNav = count > visible;
+    media.addEventListener('change', update);
 
-  const stopAutoplay = useCallback(() => {
-    if (autoplayRef.current) {
-      clearInterval(autoplayRef.current);
-      autoplayRef.current = null;
-    }
-  }, []);
+    return () => media.removeEventListener('change', update);
+  }, [visibleLg, visibleSm]);
 
-  useEffect(() => {
-    setIndex((i) => Math.min(i, maxIndex));
-  }, [maxIndex]);
+  const plugins = useMemo(() => {
+    if (autoPlayMs <= 0) return [];
 
-  const goPrev = useCallback(() => {
-    setIndex((i) => {
-      if (i <= 0) return loop ? maxIndex : 0;
-      return i - 1;
-    });
-  }, [loop, maxIndex]);
+    return [
+      Autoplay({
+        delay: autoPlayMs,
+        stopOnInteraction: false,
+        stopOnMouseEnter: true,
+      }),
+    ];
+  }, [autoPlayMs]);
 
-  const goNext = useCallback(() => {
-    setIndex((i) => {
-      if (i >= maxIndex) return loop ? 0 : maxIndex;
-      return i + 1;
-    });
-  }, [loop, maxIndex]);
-
-  useEffect(() => {
-    stopAutoplay();
-    if (!showNav || autoPlayMs <= 0) return;
-    autoplayRef.current = setInterval(goNext, autoPlayMs);
-    return stopAutoplay;
-  }, [autoPlayMs, goNext, showNav, stopAutoplay]);
-
-  const resetAutoplay = useCallback(() => {
-    stopAutoplay();
-    if (!showNav || autoPlayMs <= 0) return;
-    autoplayRef.current = setInterval(goNext, autoPlayMs);
-  }, [autoPlayMs, goNext, showNav, stopAutoplay]);
-
-  const handlePointerDown = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (!showNav || event.button !== 0) return;
-
-      stopAutoplay();
-      isDraggingRef.current = true;
-      hasDraggedRef.current = false;
-      dragStartXRef.current = event.clientX;
-      dragCurrentXRef.current = event.clientX;
-      event.currentTarget.setPointerCapture(event.pointerId);
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop,
+      align: 'start',
+      slidesToScroll: 1,
+      containScroll: 'trimSnaps',
     },
-    [showNav, stopAutoplay]
+    plugins
   );
 
-  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
+  useEffect(() => {
+    if (!emblaApi) return;
 
-    dragCurrentXRef.current = event.clientX;
-    const delta = event.clientX - dragStartXRef.current;
-    if (Math.abs(delta) > 8) hasDraggedRef.current = true;
-    setDragOffset(Math.max(-140, Math.min(140, delta)));
-  }, []);
+    const update = () => {
+      setSelectedIndex(emblaApi.selectedScrollSnap());
+      setScrollSnaps(emblaApi.scrollSnapList());
+      setCanPrev(emblaApi.canScrollPrev());
+      setCanNext(emblaApi.canScrollNext());
+    };
 
-  const finishDrag = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (!isDraggingRef.current) return;
+    update();
 
-      const delta = dragCurrentXRef.current - dragStartXRef.current;
-      const viewportWidth = viewportRef.current?.clientWidth ?? 0;
-      const threshold = Math.max(45, viewportWidth * 0.08);
+    emblaApi.on('select', update);
+    emblaApi.on('reInit', update);
 
-      isDraggingRef.current = false;
-      setDragOffset(0);
+    return () => {
+      emblaApi.off('select', update);
+      emblaApi.off('reInit', update);
+    };
+  }, [emblaApi]);
 
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
+  if (!children.length) return null;
 
-      if (Math.abs(delta) >= threshold) {
-        if (delta < 0) goNext();
-        else goPrev();
-        resetAutoplay();
-      } else {
-        resetAutoplay();
-      }
-    },
-    [goNext, goPrev, resetAutoplay]
-  );
-
-  const preventClickAfterDrag = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (!hasDraggedRef.current) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    hasDraggedRef.current = false;
-  }, []);
-
-  if (count === 0) return null;
+  const showNav = children.length > visible;
 
   return (
     <div className={className}>
@@ -158,45 +101,61 @@ export function HorizontalSlider({
           <>
             <button
               type="button"
-              onClick={goPrev}
-              disabled={!loop && index === 0}
-              className="absolute -left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-left-4"
-              aria-label="Previous"
+              onClick={() => emblaApi?.scrollPrev()}
+              disabled={!loop && !canPrev}
+              className="absolute -left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-left-4"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
+
             <button
               type="button"
-              onClick={goNext}
-              disabled={!loop && index >= maxIndex}
-              className="absolute -right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-right-4"
-              aria-label="Next"
+              onClick={() => emblaApi?.scrollNext()}
+              disabled={!loop && !canNext}
+              className="absolute -right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-right-4"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
           </>
         )}
+
         <div
-          ref={viewportRef}
-          className="cursor-grab touch-pan-y overflow-hidden px-1 active:cursor-grabbing"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={finishDrag}
-          onPointerCancel={finishDrag}
-          onClickCapture={preventClickAfterDrag}
+          className="overflow-hidden px-1"
+          ref={emblaRef}
         >
-          <div
-            className={`flex ease-out ${isDraggingRef.current ? '' : 'transition-transform duration-500'}`}
-            style={{ transform: `translateX(calc(-${index * slideWidth}% + ${dragOffset}px))` }}
-          >
-            {children.map((child, i) => (
-              <div key={i} className="flex-shrink-0 px-2" style={{ width: `${slideWidth}%` }}>
+          <div className="flex">
+            {children.map((child, index) => (
+              <div
+                key={index}
+                className="min-w-0 shrink-0 px-2"
+                style={{
+                  flex: `0 0 ${100 / visible}%`,
+                }}
+              >
                 {child}
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {showDots && scrollSnaps.length > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-2">
+          {scrollSnaps.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              aria-label={`Go to slide ${index + 1}`}
+              onClick={() => emblaApi?.scrollTo(index)}
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                selectedIndex === index
+                  ? 'w-6 bg-primary'
+                  : 'w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/60'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

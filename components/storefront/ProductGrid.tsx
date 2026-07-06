@@ -1,5 +1,7 @@
+
 import type { Product } from '@/types/product';
 import { ProductCard } from './ProductCard';
+import { HorizontalSlider } from './HorizontalSlider';
 
 export interface ProductGridProps {
   products: Product[];
@@ -7,7 +9,11 @@ export interface ProductGridProps {
   addingProductId?: number | null;
 }
 
-export function ProductGrid({ products, onAddToCart, addingProductId }: ProductGridProps) {
+export function ProductGrid({
+  products,
+  onAddToCart,
+  addingProductId,
+}: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border/80 bg-muted/30 px-6 py-16 text-center">
@@ -19,6 +25,29 @@ export function ProductGrid({ products, onAddToCart, addingProductId }: ProductG
     );
   }
 
+  // Use slider when there are more than 4 products
+  if (products.length > 4) {
+    return (
+      <HorizontalSlider
+        visibleSm={2}
+        visibleLg={4}
+        autoPlayMs={4000}
+        loop
+        showDots
+      >
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAddToCart={onAddToCart}
+            addToCartLoading={addingProductId === product.id}
+          />
+        ))}
+      </HorizontalSlider>
+    );
+  }
+
+  // Use normal grid for 4 or fewer products
   return (
     <ul className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
       {products.map((product) => (

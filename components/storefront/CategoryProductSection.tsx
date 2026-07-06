@@ -24,7 +24,7 @@ export function CategoryProductSection({
 }: CategoryProductSectionProps) {
   if (products.length === 0) return null;
 
-  const displayProducts = products.slice(0, 4);
+  const displayProducts = products.slice(0, 8);
   const bannerUrl = getCategoryBannerImageUrl(category.banner_image);
 
   return (
@@ -104,16 +104,22 @@ export function CategoryProductSection({
       </div>
 
       <div className="lg:hidden">
-        <HorizontalSlider visibleSm={1} visibleLg={1} autoPlayMs={4000}>
-          {displayProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={onAddToCart}
-              addToCartLoading={addingProductId === product.id}
-            />
-          ))}
-        </HorizontalSlider>
+      
+        <HorizontalSlider
+  visibleSm={1}
+  visibleLg={1}
+  autoPlayMs={0}
+  showDots
+>
+  {displayProducts.map((product) => (
+    <ProductCard
+      key={product.id}
+      product={product}
+      onAddToCart={onAddToCart}
+      addToCartLoading={addingProductId === product.id}
+    />
+  ))}
+</HorizontalSlider>
       </div>
     </section>
   );
