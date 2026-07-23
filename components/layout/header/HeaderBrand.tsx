@@ -12,7 +12,7 @@ export function HeaderBrand({ brandName, brandLogo, onNavigate }: HeaderBrandPro
   return (
     <Link
       href="/"
-      className="flex shrink-0 items-center gap-2.5 font-semibold tracking-tight text-foreground"
+      className="hidden sm:flex  shrink-0 items-center gap-2.5 font-semibold tracking-tight text-foreground"
       onClick={onNavigate}
     >
       <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-border" aria-hidden>

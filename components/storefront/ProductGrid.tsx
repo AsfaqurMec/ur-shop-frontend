@@ -29,7 +29,7 @@ export function ProductGrid({
   if (products.length > 4) {
     return (
       <HorizontalSlider
-        visibleSm={2}
+        visibleSm={1}
         visibleLg={4}
         autoPlayMs={4000}
         loop
@@ -49,7 +49,7 @@ export function ProductGrid({
 
   // Use normal grid for 4 or fewer products
   return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
       {products.map((product) => (
         <li key={product.id} className="h-full">
           <ProductCard

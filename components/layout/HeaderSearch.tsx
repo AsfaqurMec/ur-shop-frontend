@@ -10,8 +10,19 @@ import type { Product } from '@/types/product';
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 22 22"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
     </svg>
   );
 }
@@ -22,17 +33,24 @@ export interface HeaderSearchProps {
 
 export function HeaderSearch({ categories }: HeaderSearchProps) {
   const router = useRouter();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollPosition = useRef(0);
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
   const trimmed = query.trim();
-  const matchedCategories = trimmed ? filterCategoriesByQuery(categories, trimmed).slice(0, 5) : [];
-  const hasResults = matchedCategories.length > 0 || products.length > 0;
-  const showDropdown = open && trimmed.length > 0;
+
+  const matchedCategories = trimmed
+    ? filterCategoriesByQuery(categories, trimmed).slice(0, 5)
+    : [];
+
+  const hasResults =
+    matchedCategories.length > 0 || products.length > 0;
 
   useEffect(() => {
     if (!trimmed) {
@@ -42,15 +60,28 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
     }
 
     let cancelled = false;
+
     const timer = setTimeout(async () => {
       setLoading(true);
+
       try {
-        const result = await fetchProducts({ search: trimmed, limit: 5, is_active: true });
-        if (!cancelled) setProducts(result.products);
+        const result = await fetchProducts({
+          search: trimmed,
+          limit: 5,
+          is_active: true,
+        });
+
+        if (!cancelled) {
+          setProducts(result.products);
+        }
       } catch {
-        if (!cancelled) setProducts([]);
+        if (!cancelled) {
+          setProducts([]);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }, 300);
 
@@ -60,112 +91,187 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
     };
   }, [trimmed]);
 
+  // Focus input
   useEffect(() => {
-    if (!open) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
+    if (open) {
+      inputRef.current?.focus();
+    }
   }, [open]);
 
+  // ESC key and click outside handler
   useEffect(() => {
     if (!open) return;
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
     };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [open]);
 
+  // Body scroll lock with position preservation
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) {
+      // Save current scroll position
+      scrollPosition.current = window.scrollY;
+      
+      // Lock body scroll
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPosition.current}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflowY = 'scroll'; // Prevent layout shift
+    } else {
+      // Restore body scroll
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflowY = '';
+      
+      // Restore scroll position
+      window.scrollTo(0, scrollPosition.current);
+    }
+
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflowY = '';
+    };
   }, [open]);
 
   const goToSearch = useCallback(() => {
     setOpen(false);
-    if (trimmed) router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-    else router.push('/search');
+
+    if (trimmed) {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push('/search');
+    }
   }, [router, trimmed]);
 
   return (
-    <div ref={containerRef} className="relative">
-      {open ? (
-        <div className="flex items-center gap-1">
+    <>
+      {/* Search Button */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Open Search"
+        className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+      >
+        <SearchIcon className="h-5 w-5" />
+      </button>
+
+      {/* Background Overlay */}
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-[100] bg-black/50 transition-opacity duration-300"
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        ref={containerRef}
+        className={`fixed top-0 right-0 z-[100] flex h-screen w-full max-w-md flex-col bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
+          open ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-lg font-semibold">Search</h2>
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setQuery('');
+            }}
+            className="rounded-lg p-2 hover:bg-muted"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Search Input */}
+        <div className="border-b p-5">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               goToSearch();
             }}
-            className="relative"
           >
-            <input
-              ref={inputRef}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search categories & products…"
-              className="w-44 rounded-lg border border-input bg-background py-1.5 pl-8 pr-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-56 lg:w-64"
-              aria-label="Search categories and products"
-              aria-expanded={showDropdown}
-              aria-controls="header-search-results"
-            />
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <SearchIcon className="h-4 w-4" />
-            </span>
+            <div className="relative">
+              <SearchIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+
+              <input
+                ref={inputRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search categories & products..."
+                className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-primary"
+              />
+            </div>
           </form>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Close search"
-            onClick={() => {
-              setOpen(false);
-              setQuery('');
-            }}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
-      ) : (
-        <button
-          type="button"
-          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Open search"
-          onClick={() => setOpen(true)}
-        >
-          <SearchIcon className="h-5 w-5" />
-        </button>
-      )}
 
-      {showDropdown ? (
-        <div
-          id="header-search-results"
-          className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg ring-1 ring-black/5 dark:ring-white/10 sm:w-80"
-          role="listbox"
-        >
+        {/* Scrollable Results */}
+        <div className="flex-1 overflow-y-auto p-4">
           {loading && !hasResults ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">Searching…</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Searching...
+            </p>
           ) : null}
 
-          {!loading && !hasResults ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">No matches found.</p>
+          {!loading && trimmed && !hasResults ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              No matches found.
+            </p>
           ) : null}
 
-          {matchedCategories.length > 0 ? (
-            <div className="border-b border-border/60 px-2 py-2">
-              <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Categories</p>
-              <ul>
+          {/* Categories */}
+          {matchedCategories.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Categories
+              </p>
+
+              <ul className="space-y-1">
                 {matchedCategories.map((category) => (
                   <li key={category.id}>
                     <Link
                       href={`/shop/category/${category.slug}`}
-                      className="block rounded-lg px-2 py-2 text-sm font-medium text-foreground hover:bg-muted"
                       onClick={() => {
                         setOpen(false);
                         setQuery('');
                       }}
+                      className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
                     >
                       {category.name}
                     </Link>
@@ -173,21 +279,25 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
                 ))}
               </ul>
             </div>
-          ) : null}
+          )}
 
-          {products.length > 0 ? (
-            <div className="px-2 py-2">
-              <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Products</p>
-              <ul>
+          {/* Products */}
+          {products.length > 0 && (
+            <div>
+              <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Products
+              </p>
+
+              <ul className="space-y-1">
                 {products.map((product) => (
                   <li key={product.id}>
                     <Link
                       href={`/products/${product.slug}`}
-                      className="block rounded-lg px-2 py-2 text-sm font-medium text-foreground hover:bg-muted"
                       onClick={() => {
                         setOpen(false);
                         setQuery('');
                       }}
+                      className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
                     >
                       {product.name}
                     </Link>
@@ -195,17 +305,23 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
                 ))}
               </ul>
             </div>
-          ) : null}
+          )}
+        </div>
 
+        {/* Bottom Button */}
+        <div className="border-t bg-background p-5">
           <button
             type="button"
-            className="w-full border-t border-border/60 bg-muted/30 px-4 py-2.5 text-left text-sm font-semibold text-primary hover:bg-muted/60"
             onClick={goToSearch}
+            disabled={!trimmed}
+            className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            View all results for &ldquo;{trimmed}&rdquo;
+            {trimmed
+              ? `View all results for "${trimmed}"`
+              : 'Browse all products'}
           </button>
         </div>
-      ) : null}
-    </div>
+      </div>
+    </>
   );
 }

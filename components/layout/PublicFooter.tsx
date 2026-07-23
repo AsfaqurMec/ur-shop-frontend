@@ -7,6 +7,10 @@ import { SITE_NAME } from '@/lib/seo/site';
 import type { PublicStoreSettings } from '@/lib/api/storeSettings';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { useEffect, useState } from 'react';
+import { usePublicHeader } from './header';
+import { HeaderSocialIcons } from './HeaderSocialIcons';
+import { EnvelopeIcon, PhoneIcon } from './header/HeaderIcons';
+import { ChevronDown } from "lucide-react";
 
 function PhoneHandsetIcon({ className }: { className?: string }) {
   return (
@@ -36,6 +40,14 @@ function toPhoneHref(value: string): string {
 
 export function PublicFooter({ settings }: { settings?: PublicStoreSettings | null }) {
   const [liveSettings, setLiveSettings] = useState<PublicStoreSettings | null>(settings ?? null);
+  const header = usePublicHeader(settings);
+
+  const [open, setOpen] = useState({
+    info: false,
+    policy: false,
+  });
+
+
 
   useEffect(() => {
     let cancelled = false;
@@ -58,21 +70,22 @@ export function PublicFooter({ settings }: { settings?: PublicStoreSettings | nu
   const supportNumberHref = toPhoneHref(supportNumber);
   return (
     <footer className="mt-auto border-t border-white/10 bg-black text-white">
-      <div className="mx-auto max-w-7xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="lg:col-span-2">
+      <div className="mx-auto w-full sm:max-w-[90%] px-4 pt-12 pb-8 sm:px-6 lg:px-8">
+        <div className="grid gap-5 sm:gap-10 sm:grid-cols-4">
+          <div className="">
             <div className="flex items-center gap-2.5 font-semibold tracking-tight">
-              <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-white/10 shadow-sm ring-1 ring-white/20">
+              <span className="relative flex h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-white/10 shadow-sm ring-1 ring-white/20">
                 <Image
                   src={brandLogo}
                   alt=""
-                  width={36}
-                  height={36}
+                  width={80}
+                  height={80}
                   className="object-contain"
                   unoptimized
                 />
               </span>
-              {brandName}
+              <span className="text-4xl font-extrabold uppercase">{brandName}</span>
+              
             </div>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-gray-400">
               {SITE_FOOTER_BLURB}
@@ -86,51 +99,156 @@ export function PublicFooter({ settings }: { settings?: PublicStoreSettings | nu
                 <span className="truncate tabular-nums">{supportNumber}</span>
               </a>
             ) : null}
+            <div className="pt-4">
+              <p className="py-4 text-xl font-semibold uppercase tracking-wider">Follow us</p>
+              <HeaderSocialIcons links={header.socialLinks} footer={true}/>
+            </div>
+
           </div>
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Store
+
+          <div className='ml-0 sm:ml-10 mt-10 sm:mt-0'>
+            <h2 className="text-md font-extrabold uppercase tracking-wider text-gray-200 mb-4">
+              Need Help?
             </h2>
             <ul className="mt-4 space-y-3 text-sm">
               <li>
-                <Link href="/shop" className="text-gray-200 hover:text-cyan-400 transition-colors">
-                  Browse shop
-                </Link>
+              <a
+            href={`tel:${header.contactPhone.replace(/\s/g, '')}`}
+            className="flex items-center gap-1.5 hover:text-primary transition-colors"
+          >
+            <PhoneIcon /> <span>{header.contactPhone}</span>
+          </a>
               </li>
               <li>
-                <Link href="/search" className="text-gray-200 hover:text-cyan-400 transition-colors">
-                  Search
-                </Link>
+              <a
+            href={`mailto:${header.contactEmail}`}
+            className="flex items-center gap-1.5 hover:text-primary transition-colors"
+          >
+            <EnvelopeIcon /> <span>{header.contactEmail}</span>
+          </a>
               </li>
-              <li>
-                <Link href="/cart" className="text-gray-200 hover:text-cyan-400 transition-colors">
-                  Cart
-                </Link>
-              </li>
+              
             </ul>
           </div>
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Account
-            </h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li>
-                <Link href="/login" className="text-gray-200 hover:text-cyan-400 transition-colors">
-                  Sign in
-                </Link>
-              </li>
-              <li>
-                <Link href="/register" className="text-gray-200 hover:text-cyan-400 transition-colors">
-                  Register
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard" className="text-gray-200 hover:text-cyan-400 transition-colors">
-                  Dashboard
-                </Link>
-              </li>
-            </ul>
-          </div>
+
+ {/* Information */}
+ <div className="mt-5 sm:mt-0 border-b border-gray-700 md:border-none pb-0 md:pb-0">
+        <button
+          onClick={() =>
+            setOpen((prev) => ({ ...prev, info: !prev.info }))
+          }
+          className="w-full flex items-center justify-between md:cursor-default"
+        >
+          <h2 className="text-md font-extrabold uppercase tracking-wider text-gray-200">
+            Information
+          </h2>
+
+          <ChevronDown
+            className={`w-5 h-5 text-gray-300 transition-transform md:hidden ${
+              open.info ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        <ul
+          className={`mt-4 space-y-3 text-sm overflow-hidden transition-all duration-300 ${
+            open.info ? "max-h-96" : "max-h-0 md:max-h-96"
+          }`}
+        >
+          <li>
+            <Link
+              href="/shop"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Browse Shop
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/search"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              About UR Shop
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/cart"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Store Location
+            </Link>
+          </li>
+          <li className='pb-4'>
+            <Link
+              href="/dashboard"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Social Responsibility
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Policy */}
+      <div className="border-b border-gray-700 md:border-none pb-0 md:pb-0">
+        <button
+          onClick={() =>
+            setOpen((prev) => ({ ...prev, policy: !prev.policy }))
+          }
+          className="w-full flex items-center justify-between md:cursor-default mt-5 md:mt-0"
+        >
+          <h2 className="text-md font-extrabold uppercase tracking-wider text-gray-200">
+            Policy
+          </h2>
+
+          <ChevronDown
+            className={`w-5 h-5 text-gray-300 transition-transform md:hidden ${
+              open.policy ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        <ul
+          className={`mt-4 space-y-3 text-sm overflow-hidden transition-all duration-300 ${
+            open.policy ? "max-h-96" : "max-h-0 md:max-h-96"
+          }`}
+        >
+          <li>
+            <Link
+              href="/login"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/register"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Return and Exchange Policy
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/dashboard"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Terms and Conditions
+            </Link>
+          </li>
+          <li className='pb-4'>
+            <Link
+              href="/dashboard"
+              className="text-gray-200 hover:text-red-500 transition-colors"
+            >
+              Safety Advisory
+            </Link>
+          </li>
+        </ul>
+      </div>
+
         </div>
         <div className="mt-12 flex flex-col items-center gap-4 border-t border-white/10 pt-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p className="text-sm text-gray-400">© {year} {brandName}. All rights reserved.</p>

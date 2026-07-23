@@ -2,7 +2,7 @@
 
 import type { SocialLink } from '@/lib/api/storeSettings';
 
-export function HeaderSocialIcons({ links }: { links: SocialLink[] }) {
+export function HeaderSocialIcons({ links, footer }: { links: SocialLink[], footer?: boolean }) {
   if (!links.length) return null;
 
   return (
@@ -17,7 +17,7 @@ export function HeaderSocialIcons({ links }: { links: SocialLink[] }) {
             rel="noopener noreferrer"
             title={item.label}
             aria-label={item.label}
-            className="group flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 transition-transform hover:scale-110 hover:border-amber-400/60"
+            className={`group flex ${footer ? 'h-10 w-10' : 'h-7 w-7'} items-center justify-center overflow-hidden rounded-full border border-white/20 transition-transform hover:scale-110 hover:border-amber-400/60`}
             style={{ backgroundColor: accent }}
           >
             <img src={item.logo} alt="" className="h-full w-full object-cover object-center" />

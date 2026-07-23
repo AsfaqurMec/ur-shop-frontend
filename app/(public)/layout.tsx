@@ -13,9 +13,9 @@ export default async function PublicLayout({
   children: React.ReactNode;
 }) {
   const settings = await getPublicStoreSettings().catch(() => null);
-
+   //pb-[calc(4rem+env(safe-area-inset-bottom))]
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex min-h-screen flex-col bg-background  md:pb-0"> 
       <JsonLd data={organizationJsonLd()} />
       <PublicHeader settings={settings} />
       <main className="flex-1">{children}</main>

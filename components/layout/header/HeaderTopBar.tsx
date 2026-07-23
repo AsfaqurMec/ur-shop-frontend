@@ -30,7 +30,7 @@ export function HeaderTopBar({ contactEmail, contactPhone, socialLinks }: Header
           </a>
         ) : null}
       </div>
-      <HeaderSocialIcons links={socialLinks} />
+        <HeaderSocialIcons links={socialLinks} />
     </div>
   );
 }

@@ -72,12 +72,12 @@ export function HeaderDesktopActions({
     ) : null;
 
   return (
-    <div className="hidden md:flex shrink-0 items-center gap-0.5">
+    <div className="flex shrink-0 items-center gap-0.5">
       <HeaderSearch categories={categories} />
 
       <Link
         href="/cart"
-        className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        className="hidden sm:flex relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         aria-label="Cart"
       >
         <BagIcon />
@@ -89,13 +89,13 @@ export function HeaderDesktopActions({
       </Link>
 
       {!authReady ? (
-        <span className="inline-flex h-9 w-9 items-center justify-center" aria-hidden />
+        <span className=" inline-flex h-9 w-9 items-center justify-center" aria-hidden />
       ) : user ? (
         <>
           <button
             type="button"
             ref={accountTriggerRef}
-            className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60 text-foreground shadow-sm transition-colors hover:bg-muted dark:bg-muted/40 dark:hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="hidden sm:flex relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60 text-foreground shadow-sm transition-colors hover:bg-muted dark:bg-muted/40 dark:hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-expanded={accountMenuOpen}
             aria-haspopup="menu"
             aria-controls="header-account-menu"
@@ -109,7 +109,7 @@ export function HeaderDesktopActions({
       ) : (
         <Link
           href="/login"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="hidden sm:flex inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Sign in"
           title="Sign in"
         >

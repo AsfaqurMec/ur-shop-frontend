@@ -51,7 +51,7 @@ export function SocialSpeedDial({ links }: SocialSpeedDialProps) {
   const collapseStaggerMs = 28;
 
   return (
-    <div className="pointer-events-none fixed bottom-[calc(6.8rem+env(safe-area-inset-bottom))] right-3 z-[100] md:bottom-8 md:right-3">
+    <div className="pointer-events-none fixed bottom-[calc(3.8rem+env(safe-area-inset-bottom))] right-6 z-[20] md:bottom-8 md:right-3">
       {open ? (
         <button
           type="button"

@@ -77,12 +77,12 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
             </p>
           ) : null}
         </div>
-        <div className="mt-auto hidden flex-col gap-2 pt-4 sm:flex sm:flex-row sm:items-stretch">
+        <div className="mt-auto  gap-2 pt-4 flex flex-row w-full">
           <Button
             variant="primary"
             size="sm"
             fullWidth
-            className="sm:flex-1"
+            className="sm:flex-1 w-[60%]"
             onClick={(e) => {
               e.preventDefault();
               if (needsPdp) {
@@ -97,7 +97,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           </Button>
           <Link
             href={`/products/${product.slug}`}
-            className="inline-flex h-8 md:h-9 w-full shrink-0 items-center justify-center rounded-lg border border-input bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:w-auto"
+            className="inline-flex w-[40%]  h-9 md:h-9 shrink-0 items-center justify-center rounded-lg border border-input bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:w-auto"
           >
             View
           </Link>
