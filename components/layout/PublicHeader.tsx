@@ -5,7 +5,6 @@ import {
   HeaderBrand,
   HeaderCategoryNav,
   HeaderDesktopActions,
-  HeaderMobileBottomNav,
   HeaderMobileDrawer,
   HeaderTopBar,
   usePublicHeader,
