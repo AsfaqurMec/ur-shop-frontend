@@ -42,6 +42,7 @@
 //   const [query, setQuery] = useState('');
 //   const [products, setProducts] = useState<Product[]>([]);
 //   const [loading, setLoading] = useState(false);
+//   const [isAnimating, setIsAnimating] = useState(false);
 
 //   const trimmed = query.trim();
 
@@ -98,19 +99,35 @@
 //     }
 //   }, [open]);
 
+//   // Handle open/close with animation
+//   const handleOpen = () => {
+//     setIsAnimating(true);
+//     setOpen(true);
+//   };
+
+//   const handleClose = () => {
+//     setIsAnimating(true);
+//     setOpen(false);
+    
+//     // Wait for animation to complete before fully removing from DOM
+//     setTimeout(() => {
+//       setIsAnimating(false);
+//     }, 300);
+//   };
+
 //   // ESC key and click outside handler
 //   useEffect(() => {
 //     if (!open) return;
 
 //     const onKeyDown = (e: KeyboardEvent) => {
 //       if (e.key === 'Escape') {
-//         setOpen(false);
+//         handleClose();
 //       }
 //     };
 
 //     const handleClickOutside = (e: MouseEvent) => {
 //       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-//         setOpen(false);
+//         handleClose();
 //       }
 //     };
 
@@ -134,7 +151,7 @@
 //       document.body.style.top = `-${scrollPosition.current}px`;
 //       document.body.style.width = '100%';
 //       document.body.style.overflowY = 'scroll'; // Prevent layout shift
-//     } else {
+//     } else if (!open && !isAnimating) {
 //       // Restore body scroll
 //       document.body.style.position = '';
 //       document.body.style.top = '';
@@ -151,10 +168,10 @@
 //       document.body.style.width = '';
 //       document.body.style.overflowY = '';
 //     };
-//   }, [open]);
+//   }, [open, isAnimating]);
 
 //   const goToSearch = useCallback(() => {
-//     setOpen(false);
+//     handleClose();
 
 //     if (trimmed) {
 //       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
@@ -168,160 +185,165 @@
 //       {/* Search Button */}
 //       <button
 //         type="button"
-//         onClick={() => setOpen(true)}
+//         onClick={handleOpen}
 //         aria-label="Open Search"
 //         className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
 //       >
-//         <SearchIcon className="h-5 w-5" />
+//         <SearchIcon className="h-5 w-5 sm:h-6 sm:w-6" />
 //       </button>
 
-//       {/* Background Overlay */}
-//       {open && (
-//         <div
-//           onClick={() => setOpen(false)}
-//           className="fixed inset-0 z-[100] bg-black/50 transition-opacity duration-300"
-//         />
+//       {/* Only render when open or animating */}
+//       {(open || isAnimating) && (
+//         <>
+//           {/* Background Overlay */}
+//           <div
+//             onClick={handleClose}
+//             className={`fixed inset-0 z-[100] bg-black/50 transition-opacity duration-300 ${
+//               open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+//             }`}
+//           />
+
+//           {/* Sidebar - Original Design */}
+//           <div
+//             ref={containerRef}
+//             className={`fixed top-0 right-0 z-[100] flex h-[95vh] sm:h-[95vh] w-full max-w-md flex-col bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
+//               open ? 'translate-x-0' : 'translate-x-full'
+//             }`}
+//           >
+//             {/* Header */}
+//             <div className="flex items-center justify-between border-b px-5 py-4">
+//               <h2 className="text-lg font-semibold">Search</h2>
+
+//               <button
+//                 type="button"
+//                 onClick={() => {
+//                   handleClose();
+//                   setQuery('');
+//                 }}
+//                 className="rounded-lg p-2 hover:bg-muted"
+//               >
+//                 <svg
+//                   className="h-5 w-5"
+//                   fill="none"
+//                   viewBox="0 0 24 24"
+//                   stroke="currentColor"
+//                   strokeWidth={2}
+//                 >
+//                   <path
+//                     strokeLinecap="round"
+//                     strokeLinejoin="round"
+//                     d="M6 18L18 6M6 6l12 12"
+//                   />
+//                 </svg>
+//               </button>
+//             </div>
+
+//             {/* Search Input */}
+//             <div className="border-b p-5">
+//               <form
+//                 onSubmit={(e) => {
+//                   e.preventDefault();
+//                   goToSearch();
+//                 }}
+//               >
+//                 <div className="relative">
+//                   <SearchIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+
+//                   <input
+//                     ref={inputRef}
+//                     type="search"
+//                     value={query}
+//                     onChange={(e) => setQuery(e.target.value)}
+//                     placeholder="Search categories & products..."
+//                     className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-primary"
+//                   />
+//                 </div>
+//               </form>
+//             </div>
+
+//             {/* Scrollable Results */}
+//             <div className="flex-1 overflow-y-auto p-4">
+//               {loading && !hasResults ? (
+//                 <p className="py-4 text-center text-sm text-muted-foreground">
+//                   Searching...
+//                 </p>
+//               ) : null}
+
+//               {!loading && trimmed && !hasResults ? (
+//                 <p className="py-4 text-center text-sm text-muted-foreground">
+//                   No matches found.
+//                 </p>
+//               ) : null}
+
+//               {/* Categories */}
+//               {matchedCategories.length > 0 && (
+//                 <div className="mb-6">
+//                   <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+//                     Categories
+//                   </p>
+
+//                   <ul className="space-y-1">
+//                     {matchedCategories.map((category) => (
+//                       <li key={category.id}>
+//                         <Link
+//                           href={`/shop/category/${category.slug}`}
+//                           onClick={() => {
+//                             handleClose();
+//                             setQuery('');
+//                           }}
+//                           className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
+//                         >
+//                           {category.name}
+//                         </Link>
+//                       </li>
+//                     ))}
+//                   </ul>
+//                 </div>
+//               )}
+
+//               {/* Products */}
+//               {products.length > 0 && (
+//                 <div>
+//                   <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+//                     Products
+//                   </p>
+
+//                   <ul className="space-y-1">
+//                     {products.map((product) => (
+//                       <li key={product.id}>
+//                         <Link
+//                           href={`/products/${product.slug}`}
+//                           onClick={() => {
+//                             handleClose();
+//                             setQuery('');
+//                           }}
+//                           className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
+//                         >
+//                           {product.name}
+//                         </Link>
+//                       </li>
+//                     ))}
+//                   </ul>
+//                 </div>
+//               )}
+//             </div>
+
+//             {/* Bottom Button */}
+//             <div className="border-t bg-background p-5">
+//               <button
+//                 type="button"
+//                 onClick={goToSearch}
+//                 disabled={!trimmed}
+//                 className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+//               >
+//                 {trimmed
+//                   ? `View all results for "${trimmed}"`
+//                   : 'Browse all products'}
+//               </button>
+//             </div>
+//           </div>
+//         </>
 //       )}
-
-//       {/* Sidebar */}
-//       <div
-//         ref={containerRef}
-//         className={`fixed top-0 right-0 z-[100] flex h-screen sm:h-[95vh] w-full max-w-md flex-col bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
-//           open ? 'translate-x-0' : 'translate-x-full'
-//         }`}
-//       >
-//         {/* Header */}
-//         <div className="flex items-center justify-between border-b px-5 py-4">
-//           <h2 className="text-lg font-semibold">Search</h2>
-
-//           <button
-//             type="button"
-//             onClick={() => {
-//               setOpen(false);
-//               setQuery('');
-//             }}
-//             className="rounded-lg p-2 hover:bg-muted"
-//           >
-//             <svg
-//               className="h-5 w-5"
-//               fill="none"
-//               viewBox="0 0 24 24"
-//               stroke="currentColor"
-//               strokeWidth={2}
-//             >
-//               <path
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 d="M6 18L18 6M6 6l12 12"
-//               />
-//             </svg>
-//           </button>
-//         </div>
-
-//         {/* Search Input */}
-//         <div className="border-b p-5">
-//           <form
-//             onSubmit={(e) => {
-//               e.preventDefault();
-//               goToSearch();
-//             }}
-//           >
-//             <div className="relative">
-//               <SearchIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-
-//               <input
-//                 ref={inputRef}
-//                 type="search"
-//                 value={query}
-//                 onChange={(e) => setQuery(e.target.value)}
-//                 placeholder="Search categories & products..."
-//                 className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-primary"
-//               />
-//             </div>
-//           </form>
-//         </div>
-
-//         {/* Scrollable Results */}
-//         <div className="flex-1 overflow-y-auto p-4">
-//           {loading && !hasResults ? (
-//             <p className="py-4 text-center text-sm text-muted-foreground">
-//               Searching...
-//             </p>
-//           ) : null}
-
-//           {!loading && trimmed && !hasResults ? (
-//             <p className="py-4 text-center text-sm text-muted-foreground">
-//               No matches found.
-//             </p>
-//           ) : null}
-
-//           {/* Categories */}
-//           {matchedCategories.length > 0 && (
-//             <div className="mb-6">
-//               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-//                 Categories
-//               </p>
-
-//               <ul className="space-y-1">
-//                 {matchedCategories.map((category) => (
-//                   <li key={category.id}>
-//                     <Link
-//                       href={`/shop/category/${category.slug}`}
-//                       onClick={() => {
-//                         setOpen(false);
-//                         setQuery('');
-//                       }}
-//                       className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
-//                     >
-//                       {category.name}
-//                     </Link>
-//                   </li>
-//                 ))}
-//               </ul>
-//             </div>
-//           )}
-
-//           {/* Products */}
-//           {products.length > 0 && (
-//             <div>
-//               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-//                 Products
-//               </p>
-
-//               <ul className="space-y-1">
-//                 {products.map((product) => (
-//                   <li key={product.id}>
-//                     <Link
-//                       href={`/products/${product.slug}`}
-//                       onClick={() => {
-//                         setOpen(false);
-//                         setQuery('');
-//                       }}
-//                       className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
-//                     >
-//                       {product.name}
-//                     </Link>
-//                   </li>
-//                 ))}
-//               </ul>
-//             </div>
-//           )}
-//         </div>
-
-//         {/* Bottom Button */}
-//         <div className="border-t bg-background p-5">
-//           <button
-//             type="button"
-//             onClick={goToSearch}
-//             disabled={!trimmed}
-//             className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-//           >
-//             {trimmed
-//               ? `View all results for "${trimmed}"`
-//               : 'Browse all products'}
-//           </button>
-//         </div>
-//       </div>
 //     </>
 //   );
 // }
@@ -371,6 +393,7 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [drawerTop, setDrawerTop] = useState(0);
 
   const trimmed = query.trim();
 
@@ -423,24 +446,28 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
   // Focus input
   useEffect(() => {
     if (open) {
-      inputRef.current?.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 150);
     }
   }, [open]);
 
   // Handle open/close with animation
   const handleOpen = () => {
-    setIsAnimating(true);
+    // Save current scroll position
+    scrollPosition.current = window.scrollY;
+    setDrawerTop(window.scrollY);
     setOpen(true);
+    setIsAnimating(true);
   };
 
   const handleClose = () => {
     setIsAnimating(true);
     setOpen(false);
     
-    // Wait for animation to complete before fully removing from DOM
     setTimeout(() => {
       setIsAnimating(false);
-    }, 300);
+    }, 400);
   };
 
   // ESC key and click outside handler
@@ -478,23 +505,24 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollPosition.current}px`;
       document.body.style.width = '100%';
-      document.body.style.overflowY = 'scroll'; // Prevent layout shift
+      document.body.style.overflow = 'hidden';
     } else if (!open && !isAnimating) {
       // Restore body scroll
+      const scrollY = scrollPosition.current;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
-      document.body.style.overflowY = '';
+      document.body.style.overflow = '';
       
       // Restore scroll position
-      window.scrollTo(0, scrollPosition.current);
+      window.scrollTo(0, scrollY);
     }
 
     return () => {
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
-      document.body.style.overflowY = '';
+      document.body.style.overflow = '';
     };
   }, [open, isAnimating]);
 
@@ -517,29 +545,39 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
         aria-label="Open Search"
         className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
       >
-        <SearchIcon className="h-5 w-5" />
+        <SearchIcon className="h-5 w-5 sm:h-6 sm:w-6" />
       </button>
 
       {/* Only render when open or animating */}
       {(open || isAnimating) && (
         <>
-          {/* Background Overlay */}
+          {/* Background Overlay - Much darker with stronger blur */}
           <div
             onClick={handleClose}
-            className={`fixed inset-0 z-[100] bg-black/50 transition-opacity duration-300 ${
+            className={`fixed inset-0 z-[100] transition-opacity duration-500 ease-in-out ${
               open ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.32)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}
           />
 
-          {/* Sidebar - Original Design */}
+          {/* Sidebar - Positioned at current scroll position with smoother animation */}
           <div
             ref={containerRef}
-            className={`fixed top-0 right-0 z-[100] flex h-[95vh] sm:h-[95vh] w-full max-w-md flex-col bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
-              open ? 'translate-x-0' : 'translate-x-full'
+            className={`fixed right-0 z-[100] flex h-[95vh] w-full max-w-md flex-col bg-background shadow-2xl transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              open ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
             }`}
+            style={{
+              top: `${drawerTop}px`,
+              maxHeight: '95vh',
+              willChange: 'transform, opacity',
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b px-5 py-4">
+            <div className="flex items-center justify-between border-b px-5 py-4 flex-shrink-0">
               <h2 className="text-lg font-semibold">Search</h2>
 
               <button
@@ -548,7 +586,7 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
                   handleClose();
                   setQuery('');
                 }}
-                className="rounded-lg p-2 hover:bg-muted"
+                className="rounded-lg p-2 hover:bg-muted transition-colors duration-200"
               >
                 <svg
                   className="h-5 w-5"
@@ -567,7 +605,7 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
             </div>
 
             {/* Search Input */}
-            <div className="border-b p-5">
+            <div className="border-b p-5 flex-shrink-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -583,16 +621,16 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search categories & products..."
-                    className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-primary focus:border-primary"
                   />
                 </div>
               </form>
             </div>
 
             {/* Scrollable Results */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 min-h-0">
               {loading && !hasResults ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="py-4 text-center text-sm text-muted-foreground animate-pulse">
                   Searching...
                 </p>
               ) : null}
@@ -605,21 +643,27 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
 
               {/* Categories */}
               {matchedCategories.length > 0 && (
-                <div className="mb-6">
+                <div className="mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Categories
                   </p>
 
                   <ul className="space-y-1">
-                    {matchedCategories.map((category) => (
-                      <li key={category.id}>
+                    {matchedCategories.map((category, index) => (
+                      <li 
+                        key={category.id}
+                        style={{
+                          animationDelay: `${index * 50}ms`
+                        }}
+                        className="animate-in fade-in slide-in-from-right-4 duration-300"
+                      >
                         <Link
                           href={`/shop/category/${category.slug}`}
                           onClick={() => {
                             handleClose();
                             setQuery('');
                           }}
-                          className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
+                          className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted hover:pl-4"
                         >
                           {category.name}
                         </Link>
@@ -631,21 +675,27 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
 
               {/* Products */}
               {products.length > 0 && (
-                <div>
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 delay-100">
                   <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Products
                   </p>
 
                   <ul className="space-y-1">
-                    {products.map((product) => (
-                      <li key={product.id}>
+                    {products.map((product, index) => (
+                      <li 
+                        key={product.id}
+                        style={{
+                          animationDelay: `${index * 50 + 100}ms`
+                        }}
+                        className="animate-in fade-in slide-in-from-right-4 duration-300"
+                      >
                         <Link
                           href={`/products/${product.slug}`}
                           onClick={() => {
                             handleClose();
                             setQuery('');
                           }}
-                          className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted"
+                          className="block rounded-lg px-3 py-3 text-sm font-medium transition hover:bg-muted hover:pl-4"
                         >
                           {product.name}
                         </Link>
@@ -657,12 +707,12 @@ export function HeaderSearch({ categories }: HeaderSearchProps) {
             </div>
 
             {/* Bottom Button */}
-            <div className="border-t bg-background p-5">
+            <div className="border-t bg-background p-5 flex-shrink-0">
               <button
                 type="button"
                 onClick={goToSearch}
                 disabled={!trimmed}
-                className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               >
                 {trimmed
                   ? `View all results for "${trimmed}"`

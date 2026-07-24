@@ -24,7 +24,7 @@ export function CategoryProductSection({
 }: CategoryProductSectionProps) {
   if (products.length === 0) return null;
 
-  const displayProducts = products.slice(0, 8);
+  const displayProducts = products.slice(0, 4);
   const bannerUrl = getCategoryBannerImageUrl(category.banner_image);
 
   return (
@@ -32,7 +32,7 @@ export function CategoryProductSection({
       {bannerUrl ? (
         <Link
           href={`/shop/category/${category.slug}`}
-          className="group relative mb-8 block overflow-hidden rounded-2xl border border-border/60 shadow-md"
+          className="group relative mb-8 block overflow-hidden rounded-lg border border-border/60 shadow-md"
         >
           <img
             src={bannerUrl}
@@ -84,18 +84,9 @@ export function CategoryProductSection({
         </div>
       )}
 
-      {!bannerUrl ? null : (
-        <div className="mb-6 flex justify-end sm:hidden">
-          <Link
-            href={`/shop/category/${category.slug}`}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-card px-5 text-sm font-semibold text-foreground shadow-sm"
-          >
-            View all
-          </Link>
-        </div>
-      )}
+     
 
-      <div className="hidden lg:block">
+      <div className="block">
         <ProductGrid
           products={displayProducts}
           onAddToCart={onAddToCart}
@@ -103,7 +94,18 @@ export function CategoryProductSection({
         />
       </div>
 
-      <div className="lg:hidden">
+      {!bannerUrl ? null : (
+        <div className="my-6 flex justify-center sm:hidden">
+          <Link
+            href={`/shop/category/${category.slug}`}
+            className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-card px-10 text-lg font-semibold text-foreground shadow-sm hover:bg-red-500 hover:text-white"
+          >
+            View all
+          </Link>
+        </div>
+      )}
+
+      <div className="hidden">
       
         <HorizontalSlider
   visibleSm={1}

@@ -17,7 +17,7 @@ export function CategoryProductsSections({
   if (categoryProducts.length === 0) return null;
 
   return (
-    <Container size="lg" className="py-16 md:py-20">
+    <Container size="lg" className="py-16 md:py-5">
       {categoryProducts.map(({ category, products }) => (
         <CategoryProductSection
           key={category.id}
