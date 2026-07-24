@@ -17,8 +17,12 @@ interface HeroSectionProps {
 const AUTOPLAY_MS = 5000;
 
 export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
+  // const slides = useMemo(
+  //   () => buildHeroSlides(banners, featuredProducts),
+  //   [banners, featuredProducts]
+  // );
   const slides = useMemo(
-    () => buildHeroSlides(banners, featuredProducts),
+    () => buildHeroSlides(banners, featuredProducts).slice(0, 1),
     [banners, featuredProducts]
   );
   const slideCount = slides.length;
@@ -137,7 +141,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
 
   return (
     <section
-      className="relative isolate h-[85vh] touch-pan-y overflow-hidden md:h-[80vh] lg:h-[95vh]"
+      className="relative isolate h-[90vh] touch-pan-y overflow-hidden md:h-[80vh] lg:h-[95vh]"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={finishDrag}
@@ -148,7 +152,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
         key={safeActiveSlide}
         src={slide.imageUrl}
         alt=""
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-right-top md:object-center"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full  object-right-top md:object-center"
         style={{ transform: `translateX(${dragOffset}px)` }}
       />
       <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden />
@@ -168,7 +172,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
             </p>
           ) : null}
 
-          {slide.buttons.length > 0 ? (
+          {slide.buttons.length > 100 ? (
             <div className="mt-9 flex flex-col items-stretch gap-3 sm:mt-11 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               {slide.buttons.map((button, index) => (
                 <Link key={`${button.title}-${index}`} href={button.route} className="w-full sm:w-auto">
@@ -187,7 +191,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
         </div>
       </Container>
 
-      {slideCount > 1 ? (
+      {slideCount > 100 ? (
         <div className="pointer-events-none absolute inset-0 z-40">
           <div className="pointer-events-auto absolute bottom-14 md:bottom-24 left-2 md:left-6  flex items-center gap-2 rounded-full border border-white/25 bg-black/30 p-1.5 shadow-2xl shadow-black/30 backdrop-blur-md ring-1 ring-black/10 sm:left-6">
             <button

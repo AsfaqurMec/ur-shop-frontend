@@ -60,7 +60,7 @@ export function CategoryCardSlider({ categories }: CategoryCardSliderProps) {
     // <HorizontalSlider visibleSm={2} visibleLg={3} autoPlayMs={4000}>
     //   {cards}
     // </HorizontalSlider>
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-3">
          {cards}
     </div>
   );
