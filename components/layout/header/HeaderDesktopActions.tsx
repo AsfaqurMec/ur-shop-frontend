@@ -48,8 +48,8 @@ export function HeaderDesktopActions({
       <ul
         ref={accountMenuRef}
         id="header-account-menu"
-        className="fixed z-[100] min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg shadow-black/15 ring-1 ring-black/5 dark:shadow-black/50 dark:ring-white/10"
-        style={{ top: accountMenuPos.top, right: accountMenuPos.right, backgroundColor: 'hsl(var(--popover))' }}
+        className="hidden sm:block fixed z-[100] min-w-[11rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg shadow-black/15 ring-1 ring-black/5 dark:shadow-black/50 dark:ring-white/10"
+        style={{ top: 95, right: 30, backgroundColor: 'hsl(var(--popover))' }}
         role="menu"
         aria-label="Account"
       >
@@ -100,7 +100,10 @@ export function HeaderDesktopActions({
             aria-haspopup="menu"
             aria-controls="header-account-menu"
             title={displayName || user.email}
-            onClick={() => setAccountMenuOpen((o) => !o)}
+            onClick={() => {
+              console.log("clicked");
+              setAccountMenuOpen((o) => !o);
+            }}
           >
             <UserIcon />
           </button>
