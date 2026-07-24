@@ -152,7 +152,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
         key={safeActiveSlide}
         src={slide.imageUrl}
         alt=""
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full  object-right-top md:object-center"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain sm:object-auto object-right-top md:object-center"
         style={{ transform: `translateX(${dragOffset}px)` }}
       />
       <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden />
