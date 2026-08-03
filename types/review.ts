@@ -8,6 +8,8 @@ export interface ProductReviewPublic {
   rating: number;
   title: string | null;
   body: string | null;
+  image_path: string | null;
+  reviewer_name: string | null;
   is_verified_purchase: boolean;
   created_at: string;
   updated_at: string;
@@ -23,6 +25,8 @@ export interface ProductReviewDetail {
   rating: number;
   title: string | null;
   body: string | null;
+  image_path: string | null;
+  reviewer_name: string | null;
   status: ReviewStatus;
   is_hidden: boolean;
   is_verified_purchase: boolean;
@@ -38,6 +42,8 @@ export interface ProductReviewAdmin {
   rating: number;
   title: string | null;
   body: string | null;
+  image_path: string | null;
+  reviewer_name: string | null;
   status: ReviewStatus;
   is_hidden: boolean;
   is_verified_purchase: boolean;

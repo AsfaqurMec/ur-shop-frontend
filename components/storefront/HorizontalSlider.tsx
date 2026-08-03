@@ -10,9 +10,12 @@ export interface HorizontalSliderProps {
   children: ReactNode[];
   visibleSm?: number;
   visibleLg?: number;
+  /** Width of each mobile slide as a percentage, useful when neighbouring cards should peek in. */
+  mobileSlidePercent?: number;
   autoPlayMs?: number;
   loop?: boolean;
   showDots?: boolean;
+  hideNavOnMobile?: boolean;
   className?: string;
 }
 
@@ -20,9 +23,11 @@ export function HorizontalSlider({
   children,
   visibleSm = 1,
   visibleLg = 4,
+  mobileSlidePercent,
   autoPlayMs = 4000,
   loop = true,
   showDots = true,
+  hideNavOnMobile = false,
   className = '',
 }: HorizontalSliderProps) {
   const [visible, setVisible] = useState(visibleSm);
@@ -62,7 +67,7 @@ export function HorizontalSlider({
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop,
-      align: 'start',
+      align: mobileSlidePercent ? 'center' : 'start',
       slidesToScroll: 1,
       containScroll: 'trimSnaps',
     },
@@ -103,7 +108,7 @@ export function HorizontalSlider({
               type="button"
               onClick={() => emblaApi?.scrollPrev()}
               disabled={!loop && !canPrev}
-              className="absolute -left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-left-4"
+              className={`absolute -left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-left-4 ${hideNavOnMobile ? 'hidden lg:inline-flex' : ''}`}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -112,7 +117,7 @@ export function HorizontalSlider({
               type="button"
               onClick={() => emblaApi?.scrollNext()}
               disabled={!loop && !canNext}
-              className="absolute -right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-right-4"
+              className={`absolute -right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2 shadow-md transition hover:bg-background disabled:pointer-events-none disabled:opacity-40 lg:-right-4 ${hideNavOnMobile ? 'hidden lg:inline-flex' : ''}`}
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -129,7 +134,7 @@ export function HorizontalSlider({
                 key={index}
                 className="min-w-0 shrink-0 px-2"
                 style={{
-                  flex: `0 0 ${100 / visible}%`,
+                  flex: `0 0 ${visible === visibleSm && mobileSlidePercent ? mobileSlidePercent : 100 / visible}%`,
                 }}
               >
                 {child}

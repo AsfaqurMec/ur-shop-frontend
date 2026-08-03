@@ -69,6 +69,11 @@ export function getBannerImageUrl(path: string | null | undefined): string | nul
   return `/api/media/${pathForUrl}`;
 }
 
+/** Resolve a stored review photo through the same same-origin media proxy as catalog images. */
+export function getReviewImageUrl(path: string | null | undefined): string | null {
+  return getStoredUploadImageUrl(path, 'reviews/images/');
+}
+
 export function getCategoryImageUrl(path: string | null | undefined): string | null {
   return getStoredUploadImageUrl(path, 'categories/images/');
 }

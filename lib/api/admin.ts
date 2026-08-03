@@ -930,6 +930,25 @@ export async function setReviewHidden(reviewId: number, hidden: boolean) {
   return unwrap(res);
 }
 
+export async function createAdminReview(body: {
+  product_id: number;
+  reviewer_name: string;
+  rating: number;
+  title?: string;
+  body?: string;
+  image?: File | null;
+}) {
+  const formData = new FormData();
+  formData.append('product_id', String(body.product_id));
+  formData.append('reviewer_name', body.reviewer_name.trim());
+  formData.append('rating', String(body.rating));
+  if (body.title?.trim()) formData.append('title', body.title.trim());
+  if (body.body?.trim()) formData.append('body', body.body.trim());
+  if (body.image) formData.append('image', body.image);
+  const res = await apiPostFormData('reviews/admin', formData);
+  return unwrap(res);
+}
+
 /** Paginated reviews across products; optional category_id (omit = all, 0 = uncategorized). */
 export async function getAdminReviewsList(params: {
   limit?: number;

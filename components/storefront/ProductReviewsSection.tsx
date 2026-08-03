@@ -8,6 +8,7 @@ import type { ProductReviewPublic } from '@/types/review';
 import { Button } from '@/components/ui';
 import { Container } from '@/components/ui';
 import { toast } from 'sonner';
+import { getReviewImageUrl } from '@/lib/imageUrl';
 
 function Stars({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md' }) {
   const starClass = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
@@ -44,6 +45,7 @@ export function ProductReviewsSection({
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [image, setImage] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
@@ -80,11 +82,13 @@ export function ProductReviewsSection({
         rating,
         title: title.trim() || undefined,
         body: body.trim() || undefined,
+        image,
       });
       setFormSuccess('Thanks! Your review is live on this page.');
       toast.success('Review submitted');
       setTitle('');
       setBody('');
+      setImage(null);
       await refreshList();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not submit review';
@@ -167,6 +171,19 @@ export function ProductReviewsSection({
                 </div>
               </div>
               <div>
+                <label htmlFor="review-image" className="text-sm font-medium text-foreground">
+                  Photo <span className="font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <input
+                  id="review-image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+                  className="mt-1 block w-full max-w-lg text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:font-medium file:text-primary hover:file:bg-primary/20"
+                />
+                {image && <p className="mt-1 text-xs text-muted-foreground">Selected: {image.name}</p>}
+              </div>
+              <div>
                 <label htmlFor="review-title" className="text-sm font-medium text-foreground">
                   Title <span className="font-normal text-muted-foreground">(optional)</span>
                 </label>
@@ -240,6 +257,14 @@ export function ProductReviewsSection({
                   </div>
                   {r.title && <p className="mt-2 font-medium text-foreground">{r.title}</p>}
                   {r.body && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{r.body}</p>}
+                  {r.reviewer_name && <p className="mt-2 text-sm font-medium text-foreground">{r.reviewer_name}</p>}
+                  {getReviewImageUrl(r.image_path) && (
+                    <img
+                      src={getReviewImageUrl(r.image_path) ?? undefined}
+                      alt={`Photo shared with ${r.reviewer_name || 'this'} review`}
+                      className="mt-3 max-h-72 rounded-lg border border-border object-cover"
+                    />
+                  )}
                 </li>
               ))}
             </ul>

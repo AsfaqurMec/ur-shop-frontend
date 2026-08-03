@@ -1,5 +1,5 @@
 import { fetchFeaturedProducts } from '@/lib/api/products';
-import { fetchProductReviews } from '@/lib/api/reviews';
+import { fetchStorefrontReviews } from '@/lib/api/reviews';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { fetchPublicBanners } from '@/lib/api/banners';
 import { fetchCategories } from '@/lib/api/categories';
@@ -51,26 +51,17 @@ export default async function HomePage() {
     })
   );
 
-  const reviewGroups = await Promise.all(
-    featuredProducts.slice(0, 6).map(async (product) => {
-      const result = await fetchProductReviews(product.id, { limit: 2, offset: 0 }).catch(() => ({
-        reviews: [],
-        total: 0,
-      }));
-      return result.reviews.map((review) => ({
-        ...review,
-        product_name: product.name,
-        product_slug: product.slug,
-      }));
-    })
-  );
+  const storefrontReviews = await fetchStorefrontReviews({ limit: 12 }).catch(() => ({
+    reviews: [],
+    total: 0,
+  }));
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
       <HomeClient
         featuredProducts={featuredProducts}
         banners={banners}
-        reviews={reviewGroups.flat().slice(0, 6)}
+        reviews={storefrontReviews.reviews}
         socialLinks={publicSettings?.socialLinks ?? []}
         categories={topCategories}
         categoryProducts={categoryProducts.filter((s) => s.products.length > 0)}

@@ -42,6 +42,7 @@ export async function GET(
   const allowed =
     lower.startsWith('products/images/') ||
     lower.startsWith('banners/images/') ||
+    lower.startsWith('reviews/images/') ||
     lower.startsWith('categories/images/') ||
     lower.startsWith('categories/banners/');
   if (!allowed) {

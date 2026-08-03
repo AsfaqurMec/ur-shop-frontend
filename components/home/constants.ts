@@ -22,6 +22,8 @@ export const fallbackReviews = [
     product_name: 'Premium Collection',
     product_slug: 'premium-collection',
     is_verified_purchase: true,
+    reviewer_name: 'Verified customer',
+    image_path: null,
   },
   {
     id: -2,
@@ -31,6 +33,8 @@ export const fallbackReviews = [
     product_name: 'Digital Bundle',
     product_slug: 'digital-bundle',
     is_verified_purchase: true,
+    reviewer_name: 'Verified customer',
+    image_path: null,
   },
   {
     id: -3,
@@ -40,6 +44,8 @@ export const fallbackReviews = [
     product_name: 'Creative Suite',
     product_slug: 'creative-suite',
     is_verified_purchase: true,
+    reviewer_name: 'Verified customer',
+    image_path: null,
   },
 ];
 
