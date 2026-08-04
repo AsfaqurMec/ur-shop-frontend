@@ -30,10 +30,18 @@ export const metadata = createPageMetadata({
 });
 
 export default async function HomePage() {
-  const featuredProducts = await fetchFeaturedProducts(8).catch(() => []);
-  const banners = await fetchPublicBanners().catch(() => []);
-  const publicSettings = await getPublicStoreSettings().catch(() => null);
-  const categories = await fetchCategories(false, { serverCacheSeconds: 60 }).catch(() => [] as Category[]);
+  // These requests do not depend on one another. Starting them together avoids
+  // making visitors wait for four round-trips before the catalog can render.
+  const [featuredProducts, banners, publicSettings, categories, storefrontReviews] = await Promise.all([
+    fetchFeaturedProducts(8).catch(() => []),
+    fetchPublicBanners().catch(() => []),
+    getPublicStoreSettings().catch(() => null),
+    fetchCategories(false, { serverCacheSeconds: 60 }).catch(() => [] as Category[]),
+    fetchStorefrontReviews({ limit: 12 }).catch(() => ({
+      reviews: [],
+      total: 0,
+    })),
+  ]);
   const topCategories = categories
     .filter((c) => c.parent_id == null)
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
@@ -51,10 +59,6 @@ export default async function HomePage() {
     })
   );
 
-  const storefrontReviews = await fetchStorefrontReviews({ limit: 12 }).catch(() => ({
-    reviews: [],
-    total: 0,
-  }));
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
