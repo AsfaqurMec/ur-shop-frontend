@@ -16,7 +16,7 @@ export function CustomerReviewsSection({ reviews }: CustomerReviewsSectionProps)
 
   return (
     <section className="py-16 md:py-20">
-      <Container size="lg">
+      <Container size="lg" >
         <SectionHeading
           eyebrow="Testimonials"
           title="What Our Customers Say"

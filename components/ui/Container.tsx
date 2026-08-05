@@ -15,7 +15,7 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(
   ({ className = '', size = 'lg', ...props }, ref) => (
     <div
       ref={ref}
-      className={`mx-auto w-full px-4 sm:px-6 lg:px-8 ${maxWidths[size]} ${className}`}
+      className={`mx-auto w-full px-2 sm:px-6 lg:px-8 ${maxWidths[size]} ${className}`}
       {...props}
     />
   )
