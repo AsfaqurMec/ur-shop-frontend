@@ -5,7 +5,7 @@ import { HorizontalSlider } from './HorizontalSlider';
 
 export interface ProductGridProps {
   products: Product[];
-  onAddToCart?: (product: Product) => void;
+  onAddToCart?: (product: Product) => void | Promise<void>;
   addingProductId?: number | null;
 }
 
@@ -49,7 +49,7 @@ export function ProductGrid({
 
   // Use normal grid for 4 or fewer products
   return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
       {products.map((product) => (
         <li key={product.id} className="h-full">
           <ProductCard

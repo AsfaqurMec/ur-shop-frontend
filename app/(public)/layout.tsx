@@ -3,6 +3,7 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
+import { FloatingCartSummary } from '@/components/storefront/FloatingCartSummary';
 
 /** Storefront loads catalog from the backend; force request-time rendering so build/CI without a running API does not bake empty lists into static HTML. */
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ export default async function PublicLayout({
       <JsonLd data={organizationJsonLd()} />
       <PublicHeader settings={settings} />
       <main className="flex-1">{children}</main>
+      <FloatingCartSummary />
       <PublicFooter settings={settings} />
     </div>
   );

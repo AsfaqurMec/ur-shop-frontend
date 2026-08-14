@@ -8,6 +8,7 @@ import {
   removeCartItem,
 } from '@/lib/api/cart';
 import { getAuthToken } from '@/lib/api/client';
+import { getGuestCart, removeGuestCartItem, updateGuestCartItem } from '@/lib/storefront/guestCart';
 import { validateCoupon } from '@/lib/api/coupons';
 import type { Cart, CartItem } from '@/types/cart';
 import type { CouponValidationResult } from '@/types/coupon';
@@ -30,19 +31,13 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const [needsSignIn, setNeedsSignIn] = useState(false);
-
-  const cartReturnPath = '/cart';
-  const loginHref = `/login?redirect=${encodeURIComponent(cartReturnPath)}`;
-  const registerHref = `/register?redirect=${encodeURIComponent(cartReturnPath)}`;
+  const isGuest = !getAuthToken();
 
   const loadCart = async () => {
     setLoading(true);
     setError(null);
-    setNeedsSignIn(false);
     if (!getAuthToken()) {
-      setNeedsSignIn(true);
-      setCart(null);
+      setCart(getGuestCart());
       setLoading(false);
       return;
     }
@@ -52,8 +47,7 @@ export default function CartPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load cart';
       if (/unauthorized/i.test(msg)) {
-        setNeedsSignIn(true);
-        setCart(null);
+        setCart(getGuestCart());
       } else {
         setError(msg);
         setCart(null);
@@ -74,7 +68,9 @@ export default function CartPage() {
     setUpdatingId(item.id);
     setCouponResult(null);
     try {
-      const updated = await updateCartItem(item.id, quantity);
+      const updated = item.id < 0
+        ? updateGuestCartItem(item.id, quantity)
+        : await updateCartItem(item.id, quantity);
       setCart(updated);
       window.dispatchEvent(new Event('cart:changed'));
     } catch (err) {
@@ -90,7 +86,7 @@ export default function CartPage() {
     setUpdatingId(itemId);
     setCouponResult(null);
     try {
-      const updated = await removeCartItem(itemId);
+      const updated = itemId < 0 ? removeGuestCartItem(itemId) : await removeCartItem(itemId);
       setCart(updated);
       window.dispatchEvent(new Event('cart:changed'));
     } catch (err) {
@@ -102,7 +98,7 @@ export default function CartPage() {
 
   const handleApplyCoupon = async () => {
     const code = couponInput.trim();
-    if (!code || !cart) return;
+    if (!code || !cart || isGuest) return;
     setCouponLoading(true);
     setCouponError(null);
     setCouponResult(null);
@@ -141,44 +137,6 @@ export default function CartPage() {
         <div className="flex justify-center py-12">
           <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
-      </Container>
-    );
-  }
-
-  if (needsSignIn) {
-    return (
-      <Container className="py-12">
-        <Card className="mx-auto max-w-lg">
-          <CardHeader className="space-y-1">
-            <CardTitle>Sign in to view your cart</CardTitle>
-            <p className="text-muted-foreground text-sm font-normal leading-relaxed">
-              Your cart is tied to your account so items stay saved across devices. Sign in to see what
-              you have added, change quantities, and continue to checkout.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ul className="text-muted-foreground list-disc space-y-1.5 pl-5 text-sm">
-              <li>Access your saved cart from any device</li>
-              <li>Apply coupons and complete checkout securely</li>
-              <li>New here? Create an account in a minute</li>
-            </ul>
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Link href={loginHref} className="block w-full sm:w-auto">
-                <Button size="lg" fullWidth className="sm:w-auto">
-                  Sign in
-                </Button>
-              </Link>
-              <Link href={registerHref} className="block w-full sm:w-auto">
-                <Button variant="outline" size="lg" fullWidth className="sm:w-auto">
-                  Create account
-                </Button>
-              </Link>
-            </div>
-            <Link href="/shop" className="text-muted-foreground hover:text-foreground inline-block text-sm underline-offset-4 hover:underline">
-              Continue shopping without signing in
-            </Link>
-          </CardContent>
-        </Card>
       </Container>
     );
   }
@@ -304,7 +262,11 @@ export default function CartPage() {
                 <span className="tabular-nums">{formatCurrency(cart.subtotal)}</span>
               </div>
               {/* Coupon */}
-              <div className="space-y-2">
+              {isGuest ? (
+                <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                  Coupon codes are available after signing in.
+                </p>
+              ) : <div className="space-y-2">
                 <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
@@ -344,7 +306,7 @@ export default function CartPage() {
                     </button>
                   </p>
                 )}
-              </div>
+              </div>}
               {discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span>Discount</span>

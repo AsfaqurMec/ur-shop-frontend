@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getProductById, updateProduct, getCategories, type AdminProductImage, type AdminProductFile } from '@/lib/api/admin';
+import { getProductById, updateProduct, getCategories, uploadProductSizeChartImage, removeProductSizeChartImage, type AdminProductImage, type AdminProductFile } from '@/lib/api/admin';
 import {
   AdminPageHeader,
   ProductImagesSection,
@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui';
 import type { Product } from '@/types/product';
 import { productUsesVariations, getDefaultVariationPricing } from '@/lib/utils/product-catalog';
 import { toast } from 'sonner';
+import { getProductImageUrl } from '@/lib/imageUrl';
 
 const PRODUCT_TYPES = ['downloadable', 'license_key', 'subscription_manual', 'digital_service'];
 
@@ -56,6 +57,8 @@ export default function AdminEditProductPage() {
   const [filesBanner, setFilesBanner] = useState<string | null>(null);
   const [catalogProduct, setCatalogProduct] = useState<Product | null>(null);
   const [formHasVariationDims, setFormHasVariationDims] = useState(false);
+  const [sizeChartImage, setSizeChartImage] = useState<string | null>(null);
+  const [sizeChartBusy, setSizeChartBusy] = useState(false);
 
   useEffect(() => {
     setFormHasVariationDims(false);
@@ -102,6 +105,7 @@ export default function AdminEditProductPage() {
         setIsFeatured(p.is_featured);
         setManualFulfillmentRequired(Boolean(p.manual_fulfillment_required));
         setImages((p.images ?? []).slice(0, 1));
+        setSizeChartImage(p.size_chart_image ?? null);
         setFiles(
           (p.files ?? []).slice().sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
         );
@@ -183,6 +187,36 @@ export default function AdminEditProductPage() {
     }
   };
 
+  const handleSizeChartUpload = async (file: File | null) => {
+    if (!file || Number.isNaN(id)) return;
+    setSizeChartBusy(true);
+    try {
+      const product = await uploadProductSizeChartImage(id, file);
+      setSizeChartImage(product.size_chart_image ?? null);
+      setCatalogProduct(product);
+      toast.success('Size chart image uploaded');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload size chart image');
+    } finally {
+      setSizeChartBusy(false);
+    }
+  };
+
+  const handleSizeChartRemove = async () => {
+    if (Number.isNaN(id)) return;
+    setSizeChartBusy(true);
+    try {
+      const product = await removeProductSizeChartImage(id);
+      setSizeChartImage(null);
+      setCatalogProduct(product);
+      toast.success('Size chart image removed');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove size chart image');
+    } finally {
+      setSizeChartBusy(false);
+    }
+  };
+
   if (loadError) {
     return (
       <div>
@@ -243,7 +277,7 @@ export default function AdminEditProductPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium">Short description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -429,6 +463,32 @@ export default function AdminEditProductPage() {
                 </Alert>
               )}
               <ProductImagesSection productId={id} images={images} setImages={setImages} />
+            </div>
+          </AdminAccordionSection>
+
+          <AdminAccordionSection
+            title="Size chart image"
+            description="Optional image shown directly below the Contact Us section on the product page."
+            icon={<IconImage />}
+            defaultOpen={false}
+          >
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
+                disabled={sizeChartBusy}
+                onChange={(e) => {
+                  void handleSizeChartUpload(e.target.files?.[0] ?? null);
+                  e.currentTarget.value = '';
+                }}
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-2 file:text-sm file:font-medium"
+              />
+              {sizeChartImage && getProductImageUrl(sizeChartImage) ? (
+                <div className="space-y-2 rounded-md border border-border p-3">
+                  <img src={getProductImageUrl(sizeChartImage)!} alt="Current size chart" className="max-h-80 w-auto rounded-md border border-border object-contain" />
+                  <Button type="button" variant="outline" size="sm" disabled={sizeChartBusy} onClick={handleSizeChartRemove}>Remove size chart</Button>
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No size chart image uploaded.</p>}
             </div>
           </AdminAccordionSection>
 

@@ -63,6 +63,7 @@ export function ProductDetails({
 }: ProductDetailsProps) {
   const primaryPath = getPrimaryProductImagePath(product);
   const imageUrl = getProductImageUrl(primaryPath);
+  const sizeChartImageUrl = getProductImageUrl(product.size_chart_image);
   const fullDescription = (product.full_description ?? product.fullDescription ?? '').trim();
   const features = (product.features ?? [])
     .filter((feature): feature is string => typeof feature === 'string')
@@ -115,6 +116,7 @@ export function ProductDetails({
               renewHint={renewHint}
               socialLinks={socialLinks}
               supportNumber={supportNumber}
+              sizeChartImageUrl={sizeChartImageUrl}
               displayAttributes={pageAttributes}
             />
           </div>

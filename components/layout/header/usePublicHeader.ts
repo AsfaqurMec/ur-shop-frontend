@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getAuthToken, clearAuthToken } from '@/lib/api/client';
 import { getProfile } from '@/lib/api/auth';
 import { getCart } from '@/lib/api/cart';
+import { getGuestCart } from '@/lib/storefront/guestCart';
 import { fetchCategories } from '@/lib/api/categories';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import type { SafeUser } from '@/types/auth';
@@ -118,7 +119,7 @@ export function usePublicHeader(settings?: PublicStoreSettings | null) {
     const loadCartCount = async () => {
       const token = getAuthToken();
       if (!token) {
-        if (!cancelled) setCartCount(0);
+        if (!cancelled) setCartCount(getGuestCart().item_count);
         return;
       }
       try {

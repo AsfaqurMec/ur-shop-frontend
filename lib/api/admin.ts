@@ -260,6 +260,7 @@ export interface ProductListResult {
     description: string | null;
     full_description?: string | null;
     fullDescription?: string | null;
+    size_chart_image?: string | null;
     features?: string[] | null;
     product_type: string;
     price: number;
@@ -475,6 +476,18 @@ export async function uploadProductImages(
 export async function deleteProductImage(productId: number, imageId: number): Promise<void> {
   const res = await apiDelete<{ message: string }>(`products/${productId}/images/${imageId}`);
   unwrap(res);
+}
+
+export async function uploadProductSizeChartImage(productId: number, file: File): Promise<Product> {
+  const formData = new FormData();
+  formData.append('size_chart_image', file);
+  const res = await apiPostFormData<{ product: Product }>(`products/${productId}/size-chart-image`, formData);
+  return unwrap(res).product;
+}
+
+export async function removeProductSizeChartImage(productId: number): Promise<Product> {
+  const res = await apiDelete<{ product: Product }>(`products/${productId}/size-chart-image`);
+  return unwrap(res).product;
 }
 
 export async function getProductLicenseInventory(

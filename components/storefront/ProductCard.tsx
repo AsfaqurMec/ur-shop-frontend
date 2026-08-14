@@ -117,10 +117,10 @@ import { Button } from '@/components/ui';
 import { ProductTypeBadge } from './ProductTypeBadge';
 import { ProductPhoto } from './ProductPhoto';
 import { splitCurrencyDisplay } from '@/lib/utils/format';
-
+import { ShoppingCart } from 'lucide-react';
 export interface ProductCardProps {
   product: Product;
-  onAddToCart?: (product: Product) => void;
+  onAddToCart?: (product: Product) => void | Promise<void>;
   addToCartLoading?: boolean;
 }
 
@@ -136,6 +136,15 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
     hasComparePrice && product.compare_at_price! > 0
       ? Math.max(0, Math.round((1 - product.price / product.compare_at_price!) * 100))
       : 0;
+
+  const handleBuyNow = async () => {
+    if (needsPdp || !onAddToCart) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
+    await onAddToCart(product);
+    router.push('/checkout');
+  };
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border/80 bg-card shadow-card transition-all duration-200 hover:border-primary/20 hover:shadow-card-hover">
@@ -161,16 +170,16 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           </div>
         )}
       </Link>
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col px-2 md:px-4 py-4">
         <Link href={`/products/${product.slug}`} className="block">
-          <h2 className="line-clamp-1 min-h-[1.5rem] text-md md:text-xl font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+          <h2 className=" line-clamp-2 min-h-[2.5rem] text-[15px] md:text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary uppercase">
             {product.name}
           </h2>
         </Link>
         <div className="mt-2 space-y-1">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 md:gap-x-2 gap-y-0.5">
             <span className="inline-flex items-baseline gap-0.5 text-lg font-bold tracking-tight text-foreground">
-              <span className=" text-sm md:text-lg font-semibold leading-none"><span className='mr-1'>TK</span> {priceParts.amount}</span>
+              <span className=" text-md md:text-lg font-semibold leading-none"><span className='mr-1'>TK</span> {priceParts.amount}</span>
               <span className="sr-only">BDT</span>
             </span>
             {compareParts && (
@@ -215,6 +224,37 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           >
             View
           </Link>
+        </div>
+        <div className="mt-auto flex items-center justify-end gap-2 pt-4 sm:hidden">
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={addToCartLoading}
+            className="inline-flex flex-1 p-1.5 items-center justify-center rounded-lg bg-primary text-white shadow-md transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={`Buy ${product.name} now`}
+            title="Buy now"
+          >
+            {/* <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+            </svg> */} 
+            Buy Now
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (needsPdp) router.push(`/products/${product.slug}`);
+              else void onAddToCart?.(product);
+            }}
+            disabled={addToCartLoading}
+            className="inline-flex h-9 w-9 p-2 items-center justify-center rounded-full bg-black hover:bg-primary text-primary-foreground shadow-md shadow-primary/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={`Add ${product.name} to cart`}
+            title="Add to cart"
+          >
+            {/* <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 5v14M5 12h14" />
+            </svg> */}
+            <ShoppingCart />
+          </button>
         </div>
       </div>
     </article>

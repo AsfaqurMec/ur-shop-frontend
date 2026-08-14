@@ -38,7 +38,7 @@ export function CategoryCardSlider({ categories }: CategoryCardSliderProps) {
             )}
           </div>
           <div className="flex flex-1 flex-col items-center px-4 pb-5 pt-4 text-center">
-            <h3 className="line-clamp-2 text-xl sm:text-base font-semibold tracking-tight text-foreground md:text-lg">
+            <h3 className="line-clamp-2 text-xl sm:text-base font-semibold tracking-tight text-foreground md:text-lg uppercase">
               {category.name}
             </h3>
             {category.description ? (
@@ -60,7 +60,7 @@ export function CategoryCardSlider({ categories }: CategoryCardSliderProps) {
     // <HorizontalSlider visibleSm={2} visibleLg={3} autoPlayMs={4000}>
     //   {cards}
     // </HorizontalSlider>
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 sm:gap-3 lg:grid-cols-4 2xl:grid-cols-4">
          {cards}
     </div>
   );

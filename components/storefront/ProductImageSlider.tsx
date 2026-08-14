@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Product } from '@/types/product';
 import { getPrimaryProductImageAlt, getPrimaryProductImagePath } from '@/lib/imageUrl';
 import { ProductPhoto } from './ProductPhoto';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 
 export function ProductImageSlider({ product }: { product: Product }) {
   const images = useMemo(() => {
@@ -40,7 +41,8 @@ export function ProductImageSlider({ product }: { product: Product }) {
               onClick={() => go(-1)}
               className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-background/80 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
             >
-              <span aria-hidden>&lt;</span>
+              {/* <span aria-hidden>&lt;</span> */}
+              <ArrowLeft />
             </button>
             <button
               type="button"
@@ -48,7 +50,8 @@ export function ProductImageSlider({ product }: { product: Product }) {
               onClick={() => go(1)}
               className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-background/80 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
             >
-              <span aria-hidden>&gt;</span>
+              {/* <span aria-hidden>&gt;</span> */}
+              <ArrowRight />
             </button>
           </>
         ) : null}

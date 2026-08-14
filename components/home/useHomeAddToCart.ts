@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { addToCart } from '@/lib/api/cart';
+import { addSimpleProductToCart } from '@/lib/storefront/cartActions';
 import { getPrimaryProductImagePath, getProductImageUrl } from '@/lib/imageUrl';
 import { useShowAddedToCartModal } from '@/components/storefront/AddedToCartModalProvider';
 import type { Product } from '@/types/product';
@@ -13,7 +13,7 @@ export function useHomeAddToCart() {
   const handleAddToCart = async (product: Product) => {
     setAddingProductId(product.id);
     try {
-      await addToCart(product.id, 1);
+      await addSimpleProductToCart(product);
 
       if (typeof window !== 'undefined' && window.fbq) {
         window.fbq('track', 'AddToCart', {

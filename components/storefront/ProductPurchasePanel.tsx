@@ -128,6 +128,7 @@ export interface ProductPurchasePanelProps {
   renewHint?: boolean;
   socialLinks?: SocialLink[];
   supportNumber?: string;
+  sizeChartImageUrl?: string | null;
   /** Specs visible on PDP (non-variation attributes); rendered inside the price card. */
   displayAttributes?: ProductCatalogAttribute[];
 }
@@ -139,6 +140,7 @@ export function ProductPurchasePanel({
   renewHint = false,
   socialLinks = [],
   supportNumber = '',
+  sizeChartImageUrl = null,
   displayAttributes = [],
 }: ProductPurchasePanelProps) {
   const router = useRouter();
@@ -638,6 +640,17 @@ export function ProductPurchasePanel({
           variationId={cartVariationId}
           validateBeforeAdd={validateBeforeAdd}
           resumeAfterLoginRedirect="/cart"
+          getGuestCartItem={() => ({
+            productId: product.id,
+            productName: product.name,
+            productSlug: product.slug,
+            productType: product.product_type,
+            unitPrice: displayPrice,
+            quantity: maxQty > 1 ? qty : 1,
+            maxQuantity: maxQty,
+            variationId: cartVariationId,
+            selections: buildSelectionsSnapshot(),
+          })}
           disabled={maxQty < 1}
           productSummary={{
             name: product.name,
@@ -657,6 +670,17 @@ export function ProductPurchasePanel({
           resumeAfterLoginRedirect="/checkout"
           guestCheckoutOnUnauthorized
           placeOrderAfterGuestCheckout
+          getGuestCartItem={() => ({
+            productId: product.id,
+            productName: product.name,
+            productSlug: product.slug,
+            productType: product.product_type,
+            unitPrice: displayPrice,
+            quantity: maxQty > 1 ? qty : 1,
+            maxQuantity: maxQty,
+            variationId: cartVariationId,
+            selections: buildSelectionsSnapshot(),
+          })}
           disabled={maxQty < 1}
           onAdded={() => {
             router.push('/checkout');
@@ -669,6 +693,12 @@ export function ProductPurchasePanel({
       </div>
 
       <ProductSocialContactStrip links={socialLinks} supportNumber={supportNumber} />
+      {sizeChartImageUrl ? (
+        <section className="mt-4 overflow-hidden rounded-lg border border-border/80 bg-card p-3 shadow-sm">
+          <h2 className="mb-3 text-base font-bold text-foreground">Size chart</h2>
+          <img src={sizeChartImageUrl} alt={`${product.name} size chart`} className="h-auto w-full rounded-md" />
+        </section>
+      ) : null}
     </div>
   );
 }

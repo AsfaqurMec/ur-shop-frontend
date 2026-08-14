@@ -42,20 +42,23 @@ interface PageProps {
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const searchParamsResolved = await searchParams;
-  const page = Number(searchParamsResolved.page) || 1;
   const search = typeof searchParamsResolved.search === 'string' ? searchParamsResolved.search : undefined;
+  const minPrice = typeof searchParamsResolved.min_price === 'string' ? Number(searchParamsResolved.min_price) : undefined;
+  const maxPrice = typeof searchParamsResolved.max_price === 'string' ? Number(searchParamsResolved.max_price) : undefined;
 
   const category = await fetchCategoryBySlug(slug).catch(() => null);
   if (!category) notFound();
 
   const [result, categories, publicSettings] = await Promise.all([
     fetchProducts({
-      page,
-      limit: 12,
+      page: 1,
+      limit: 8,
       category_id: category.id,
       search,
+      min_price: Number.isFinite(minPrice) ? minPrice : undefined,
+      max_price: Number.isFinite(maxPrice) ? maxPrice : undefined,
       is_active: true,
-    }).catch(() => emptyProductList(page)),
+    }).catch(() => emptyProductList(1, 8)),
     fetchCategories().catch((): Category[] => []),
     getPublicStoreSettings().catch(() => null),
   ]);
@@ -105,9 +108,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           <CategoryShopClient
             initialProducts={result.products}
             total={result.total}
-            totalPages={result.totalPages}
-            page={result.page}
             categorySlug={slug}
+            categoryId={category.id}
+            search={search}
+            minPrice={Number.isFinite(minPrice) ? minPrice : undefined}
+            maxPrice={Number.isFinite(maxPrice) ? maxPrice : undefined}
           />
         </div>
       </div>

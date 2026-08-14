@@ -14,6 +14,7 @@ import { getAuthToken, setAuthToken } from '@/lib/api/client';
 import { GuestCheckoutModal, type GuestCheckoutDetails } from './GuestCheckoutModal';
 import { OrderPlacedModal } from './OrderPlacedModal';
 import { toast } from 'sonner';
+import { addGuestCartItem, type GuestCartItemInput } from '@/lib/storefront/guestCart';
 
 const COUPON_STORAGE_KEY = 'checkout_coupon_code';
 
@@ -42,6 +43,8 @@ export interface AddToCartButtonProps {
   guestCheckoutOnUnauthorized?: boolean;
   /** When true with guest checkout, places the order immediately after the guest form. */
   placeOrderAfterGuestCheckout?: boolean;
+  /** Item snapshot used when a guest adds this configured product to their local cart. */
+  getGuestCartItem?: () => GuestCartItemInput;
   disabled?: boolean;
 }
 
@@ -62,6 +65,7 @@ export function AddToCartButton({
   resumeAfterLoginRedirect,
   guestCheckoutOnUnauthorized = false,
   placeOrderAfterGuestCheckout = false,
+  getGuestCartItem,
   disabled = false,
 }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -138,8 +142,22 @@ export function AddToCartButton({
         return;
       }
     }
-    if (guestCheckoutOnUnauthorized && !getAuthToken()) {
-      setGuestModalOpen(true);
+    if (!getAuthToken() && getGuestCartItem) {
+      setLoading(true);
+      try {
+        addGuestCartItem(getGuestCartItem());
+        if (onAdded) {
+          await onAdded();
+        } else if (productSummary) {
+          showAddedToCart({ name: productSummary.name, imageUrl: productSummary.imageUrl });
+        } else {
+          toast.success('Added to cart');
+        }
+      } catch (err) {
+        setNotice({ title: "Couldn't add to cart", message: err instanceof Error ? err.message : 'Failed to add to cart' });
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 

@@ -25,16 +25,19 @@ interface PageProps {
 
 export default async function ShopPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const page = Number(params.page) || 1;
   const search = typeof params.search === 'string' ? params.search : undefined;
+  const minPrice = typeof params.min_price === 'string' ? Number(params.min_price) : undefined;
+  const maxPrice = typeof params.max_price === 'string' ? Number(params.max_price) : undefined;
   
   const [result, categories, publicSettings] = await Promise.all([
     fetchProducts({
-      page,
-      limit: 12,
+      page: 1,
+      limit: 8,
       search,
+      min_price: Number.isFinite(minPrice) ? minPrice : undefined,
+      max_price: Number.isFinite(maxPrice) ? maxPrice : undefined,
       is_active: true,
-    }).catch(() => emptyProductList(page)),
+    }).catch(() => emptyProductList(1, 8)),
     fetchCategories().catch((): Category[] => []),
     getPublicStoreSettings().catch(() => null),
   ]);
@@ -77,9 +80,10 @@ export default async function ShopPage({ searchParams }: PageProps) {
             <ShopClient
               initialProducts={result.products}
               total={result.total}
-              totalPages={result.totalPages}
-              page={result.page}
               categories={categories}
+              search={search}
+              minPrice={Number.isFinite(minPrice) ? minPrice : undefined}
+              maxPrice={Number.isFinite(maxPrice) ? maxPrice : undefined}
             />
           </Suspense>
         </div>

@@ -3,8 +3,8 @@ export const BDT_SYMBOL = '\u09F3';
 
 function formatBDTNumber(amount: number): string {
   return new Intl.NumberFormat('en-BD', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
@@ -14,7 +14,7 @@ function formatBDTNumber(amount: number): string {
  */
 export function formatCurrency(amount: number, currency = 'BDT'): string {
   if (currency === 'BDT') {
-    return `${BDT_SYMBOL}${formatBDTNumber(amount)}`;
+    return `${BDT_SYMBOL} ${formatBDTNumber(amount)}`;
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

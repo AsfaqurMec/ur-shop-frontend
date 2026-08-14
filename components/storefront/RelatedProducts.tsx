@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { addToCart } from '@/lib/api/cart';
+import { addSimpleProductToCart } from '@/lib/storefront/cartActions';
 import type { Product } from '@/types/product';
 import { ProductGrid } from './ProductGrid';
 import { useShowAddedToCartModal } from './AddedToCartModalProvider';
@@ -21,7 +21,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
   const handleAddToCart = async (product: Product) => {
     setAddingProductId(product.id);
     try {
-      await addToCart(product.id, 1);
+      await addSimpleProductToCart(product);
       window.dispatchEvent(new Event('cart:changed'));
       showAddedToCart({
         name: product.name,

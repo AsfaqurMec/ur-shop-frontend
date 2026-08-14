@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createProduct, getCategories, uploadProductImage, uploadProductFile } from '@/lib/api/admin';
+import { createProduct, getCategories, uploadProductImage, uploadProductFile, uploadProductSizeChartImage } from '@/lib/api/admin';
 import { AdminPageHeader } from '@/components/admin';
 import { AdminAccordionSection } from '@/components/admin/AdminAccordionSection';
 import { IconClipboard, IconImage, IconFolderDown, IconKey } from '@/components/admin/admin-icons';
@@ -35,6 +35,7 @@ export default function AdminAddProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [sizeChartFile, setSizeChartFile] = useState<File | null>(null);
   const [pendingDownloadFiles, setPendingDownloadFiles] = useState<{ key: string; file: File }[]>([]);
 
   useEffect(() => {
@@ -78,6 +79,9 @@ export default function AdminAddProductPage() {
           );
           return;
         }
+      }
+      if (sizeChartFile) {
+        await uploadProductSizeChartImage(product.id, sizeChartFile);
       }
       if (productType === 'downloadable' && pendingDownloadFiles.length > 0) {
         try {
@@ -152,7 +156,7 @@ export default function AdminAddProductPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium">Short description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -336,6 +340,16 @@ export default function AdminAddProductPage() {
                 </p>
               )}
             </div>
+          </AdminAccordionSection>
+
+          <AdminAccordionSection
+            title="Size chart image"
+            description="Optional image shown after the Contact Us section on the product page."
+            icon={<IconImage />}
+            defaultOpen={false}
+          >
+            <input type="file" accept="image/*,.jpg,.jpeg,.png,.gif,.webp" className={fileInputClass} onChange={(e) => setSizeChartFile(e.target.files?.[0] ?? null)} />
+            {sizeChartFile ? <p className="mt-2 text-sm text-muted-foreground">Selected: <span className="font-medium text-foreground">{sizeChartFile.name}</span></p> : null}
           </AdminAccordionSection>
 
           {/* {productType === 'downloadable' && (

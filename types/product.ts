@@ -63,6 +63,7 @@ export interface Product {
   description: string | null;
   full_description?: string | null;
   fullDescription?: string | null;
+  size_chart_image?: string | null;
   features?: string[] | null;
   product_type: ProductType;
   manual_fulfillment_required?: boolean;
