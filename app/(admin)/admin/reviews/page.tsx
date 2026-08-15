@@ -274,14 +274,14 @@
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { createAdminReview, getAdminReviewsList, getCategories, getProducts, setReviewHidden } from '@/lib/api/admin';
+import { createAdminReview, getAdminReviewsList, getCategories, getProducts, setReviewHidden, updateAdminReview } from '@/lib/api/admin';
 import type { CategoryItem } from '@/lib/api/admin';
 import { AdminPageHeader } from '@/components/admin/PageHeader';
 import { DataTable } from '@/components/admin/DataTable';
 import { Button, Pagination } from '@/components/ui';
 import type { ProductReviewAdminTableRow } from '@/types/review';
 import { toast } from 'sonner';
-import { X, Plus, Star } from 'lucide-react';
+import { X, Plus, Pencil } from 'lucide-react';
 import { getReviewImageUrl } from '@/lib/imageUrl';
 
 const PAGE_SIZE = 10;
@@ -312,9 +312,11 @@ interface CreateReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  review?: ProductReviewAdminTableRow | null;
 }
 
-function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProps) {
+function CreateReviewModal({ isOpen, onClose, onSuccess, review }: CreateReviewModalProps) {
+  const isEditing = Boolean(review);
   const [products, setProducts] = useState<Array<{ id: number; name: string }>>([]);
   const [productId, setProductId] = useState('');
   const [reviewerName, setReviewerName] = useState('');
@@ -329,19 +331,21 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setRating(5);
-      setProductId('');
-      setReviewerName('');
-      setTitle('');
-      setBody('');
+      setRating(review?.rating ?? 5);
+      setProductId(review ? String(review.product_id) : '');
+      setReviewerName(review?.reviewer_name ?? '');
+      setTitle(review?.title ?? '');
+      setBody(review?.body ?? '');
       setImage(null);
       setFormError(null);
       setFormSuccess(null);
-      getProducts({ page: 1, limit: 100 })
-        .then((result) => setProducts(result.products.map((product) => ({ id: product.id, name: product.name }))))
-        .catch(() => setProducts([]));
+      if (!review) {
+        getProducts({ page: 1, limit: 100 })
+          .then((result) => setProducts(result.products.map((product) => ({ id: product.id, name: product.name }))))
+          .catch(() => setProducts([]));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, review]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -350,17 +354,27 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
     setSubmitting(true);
 
     try {
-      if (!productId) throw new Error('Please select a product');
       if (!reviewerName.trim()) throw new Error('Reviewer name is required');
-      await createAdminReview({
-        product_id: Number(productId),
-        reviewer_name: reviewerName,
-        rating,
-        title: title.trim() || undefined,
-        body: body.trim() || undefined,
-        image,
-      });
-      setFormSuccess('Review created successfully!');
+      if (isEditing && review) {
+        await updateAdminReview(review.id, {
+          reviewer_name: reviewerName,
+          rating,
+          title,
+          body,
+          image,
+        });
+      } else {
+        if (!productId) throw new Error('Please select a product');
+        await createAdminReview({
+          product_id: Number(productId),
+          reviewer_name: reviewerName,
+          rating,
+          title: title.trim() || undefined,
+          body: body.trim() || undefined,
+          image,
+        });
+      }
+      setFormSuccess(isEditing ? 'Review updated successfully!' : 'Review created successfully!');
       onClose();
       onSuccess();
     } catch (err) {
@@ -387,8 +401,8 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border/80">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Create Review</h2>
-            <p className="text-sm text-muted-foreground mt-1">Add a new review to the system</p>
+            <h2 className="text-xl font-semibold text-foreground">{isEditing ? 'Edit Review' : 'Create Review'}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{isEditing ? 'Update the displayed review details.' : 'Add a new review to the system'}</p>
           </div>
           <button
             onClick={onClose}
@@ -406,7 +420,9 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
             <label htmlFor="modal-review-product" className="text-sm font-medium text-foreground block mb-2">
               Product <span className="text-destructive">*</span>
             </label>
-            <select
+            {isEditing ? (
+              <div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">{review?.product_name}</div>
+            ) : <select
               id="modal-review-product"
               value={productId}
               onChange={(e) => setProductId(e.target.value)}
@@ -415,7 +431,7 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
             >
               <option value="">Select a product</option>
               {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-            </select>
+            </select>}
           </div>
 
           <div>
@@ -475,6 +491,13 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
               className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:font-medium file:text-primary hover:file:bg-primary/20"
             />
             {image && <p className="mt-1 text-xs text-muted-foreground">Selected: {image.name}</p>}
+            {!image && isEditing && getReviewImageUrl(review?.image_path) && (
+              <img
+                src={getReviewImageUrl(review?.image_path) ?? undefined}
+                alt="Current review photo"
+                className="mt-3 h-24 w-24 rounded-md border border-border object-cover"
+              />
+            )}
           </div>
           </div>
 
@@ -537,7 +560,7 @@ function CreateReviewModal({ isOpen, onClose, onSuccess }: CreateReviewModalProp
               isLoading={submitting}
               className="flex-1"
             >
-              {submitting ? 'Creating...' : 'Create Review'}
+              {submitting ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save changes' : 'Create Review')}
             </Button>
           </div>
         </form>
@@ -560,6 +583,7 @@ function AdminReviewsContent() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState<ProductReviewAdminTableRow | null>(null);
 
   useEffect(() => {
     getCategories()
@@ -644,8 +668,9 @@ function AdminReviewsContent() {
 
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false);
+    setEditingReview(null);
     loadReviews();
-    toast.success('Review created successfully');
+    toast.success(editingReview ? 'Review updated successfully' : 'Review created successfully');
   };
 
   const categorySelectValue =
@@ -789,16 +814,19 @@ function AdminReviewsContent() {
                 header: '',
                 className: 'whitespace-nowrap',
                 render: (row) => (
-                  <Button
-                    type="button"
-                    variant={row.is_hidden ? 'primary' : 'outline'}
-                    size="sm"
-                    disabled={busyId === row.id}
-                    isLoading={busyId === row.id}
-                    onClick={() => void toggleHidden(row)}
-                  >
-                    {row.is_hidden ? 'Show' : 'Hide'}
-                  </Button>
+                  <span className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => { setEditingReview(row); setIsCreateModalOpen(true); }} aria-label={`Edit review by ${row.reviewer_name ?? 'customer'}`}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button
+                      type="button"
+                      variant={row.is_hidden ? 'primary' : 'outline'}
+                      size="sm"
+                      disabled={busyId === row.id}
+                      isLoading={busyId === row.id}
+                      onClick={() => void toggleHidden(row)}
+                    >
+                      {row.is_hidden ? 'Show' : 'Hide'}
+                    </Button>
+                  </span>
                 ),
               },
             ]}
@@ -817,8 +845,9 @@ function AdminReviewsContent() {
       {/* Create Review Modal */}
       <CreateReviewModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => { setIsCreateModalOpen(false); setEditingReview(null); }}
         onSuccess={handleCreateSuccess}
+        review={editingReview}
       />
     </div>
   );

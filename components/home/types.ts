@@ -3,6 +3,7 @@ import type { SocialLink } from '@/lib/api/storeSettings';
 import type { Category } from '@/types/category';
 import type { Product } from '@/types/product';
 import type { ProductReviewPublic } from '@/types/review';
+import type { AdItem } from '@/lib/api/ads';
 
 export interface HomeClientProps {
   featuredProducts: Product[];
@@ -11,6 +12,7 @@ export interface HomeClientProps {
   socialLinks: SocialLink[];
   categories: Category[];
   categoryProducts: Array<{ category: Category; products: Product[] }>;
+  ads: AdItem[];
 }
 
 export interface HeroSlide {

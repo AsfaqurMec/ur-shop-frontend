@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { Alert, AlertDescription } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
+import { getProductImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
 
 const COUPON_STORAGE_KEY = 'checkout_coupon_code';
@@ -191,6 +192,11 @@ export default function CartPage() {
             <Card key={item.id}>
               <CardContent className="p-4 pt-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  {getProductImageUrl(item.product_thumbnail) ? (
+                    <img src={getProductImageUrl(item.product_thumbnail) ?? undefined} alt="" className="h-20 w-20 shrink-0 rounded-lg border border-border object-cover" />
+                  ) : (
+                    <div className="h-20 w-20 shrink-0 rounded-lg border border-border bg-muted" aria-hidden />
+                  )}
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/products/${item.product_slug}`}

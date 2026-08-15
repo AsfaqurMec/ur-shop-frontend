@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getAuthToken } from '@/lib/api/client';
-import { fetchProductReviews, submitProductReview } from '@/lib/api/reviews';
+import { fetchProductReviews, submitProductReview, updateProductReview } from '@/lib/api/reviews';
+import { getProfile } from '@/lib/api/auth';
 import type { ProductReviewPublic } from '@/types/review';
 import { Button } from '@/components/ui';
 import { Container } from '@/components/ui';
@@ -50,9 +51,13 @@ export function ProductReviewsSection({
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
 
   useEffect(() => {
-    setLoggedIn(!!getAuthToken());
+    if (!getAuthToken()) return;
+    setLoggedIn(true);
+    void getProfile().then(({ user }) => setCurrentUserId(user.id)).catch(() => setLoggedIn(false));
   }, []);
 
   const average = useMemo(() => {
@@ -78,17 +83,19 @@ export function ProductReviewsSection({
     setFormSuccess(null);
     setSubmitting(true);
     try {
-      await submitProductReview(productId, {
-        rating,
-        title: title.trim() || undefined,
-        body: body.trim() || undefined,
-        image,
-      });
-      setFormSuccess('Thanks! Your review is live on this page.');
-      toast.success('Review submitted');
+      if (editingReviewId != null) {
+        await updateProductReview(editingReviewId, { rating, title: title.trim() || null, body: body.trim() || null, image });
+        setFormSuccess('Your review has been updated.');
+        toast.success('Review updated');
+      } else {
+        await submitProductReview(productId, { rating, title: title.trim() || undefined, body: body.trim() || undefined, image });
+        setFormSuccess('Thanks! Your review is live on this page.');
+        toast.success('Review submitted');
+      }
       setTitle('');
       setBody('');
       setImage(null);
+      setEditingReviewId(null);
       await refreshList();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not submit review';
@@ -137,7 +144,7 @@ export function ProductReviewsSection({
       {summaryBlock}
 
         <div className={embedded ? 'mt-6 rounded-xl border border-border/80 bg-background p-6 shadow-sm' : 'mt-8 rounded-xl border border-border/80 bg-background p-6 shadow-sm'}>
-          <h3 className="text-lg font-semibold text-foreground">Write a review</h3>
+          <h3 className="text-lg font-semibold text-foreground">{editingReviewId != null ? 'Edit your review' : 'Write a review'}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             Only verified purchasers (completed orders including this product) can submit a review. One review per product.
           </p>
@@ -221,7 +228,7 @@ export function ProductReviewsSection({
                 </div>
               )}
               <Button type="submit" disabled={submitting} isLoading={submitting}>
-                Submit review
+                {editingReviewId != null ? 'Save review' : 'Submit review'}
               </Button>
             </form>
           )}
@@ -258,6 +265,11 @@ export function ProductReviewsSection({
                   {r.title && <p className="mt-2 font-medium text-foreground">{r.title}</p>}
                   {r.body && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{r.body}</p>}
                   {r.reviewer_name && <p className="mt-2 text-sm font-medium text-foreground">{r.reviewer_name}</p>}
+                  {currentUserId === r.user_id ? (
+                    <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => { setEditingReviewId(r.id); setRating(r.rating); setTitle(r.title ?? ''); setBody(r.body ?? ''); setImage(null); setFormError(null); setFormSuccess(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                      Edit review
+                    </Button>
+                  ) : null}
                   {getReviewImageUrl(r.image_path) && (
                     <img
                       src={getReviewImageUrl(r.image_path) ?? undefined}

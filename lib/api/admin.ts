@@ -4,7 +4,7 @@
  */
 
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiPostFormData, apiPutFormData } from './client';
-import type { SocialLink } from './storeSettings';
+import type { SocialLink, ShippingMethod } from './storeSettings';
 import type { ProductReviewAdminTableRow } from '@/types/review';
 import type { Product, ProductCatalogAttribute, ProductPurchaseVariable } from '@/types/product';
 import type { PaymentMethod } from '@/types/payment';
@@ -51,6 +51,7 @@ export interface AdminStoreSettings {
   currency: string;
   timezone: string;
   socialLinks: SocialLink[];
+  shippingMethods: ShippingMethod[];
 }
 
 export async function getAdminStoreSettings(): Promise<AdminStoreSettings> {
@@ -959,6 +960,23 @@ export async function createAdminReview(body: {
   if (body.body?.trim()) formData.append('body', body.body.trim());
   if (body.image) formData.append('image', body.image);
   const res = await apiPostFormData('reviews/admin', formData);
+  return unwrap(res);
+}
+
+export async function updateAdminReview(reviewId: number, body: {
+  reviewer_name?: string;
+  rating?: number;
+  title?: string;
+  body?: string;
+  image?: File | null;
+}) {
+  const formData = new FormData();
+  if (body.reviewer_name !== undefined) formData.append('reviewer_name', body.reviewer_name.trim());
+  if (body.rating !== undefined) formData.append('rating', String(body.rating));
+  if (body.title !== undefined) formData.append('title', body.title.trim());
+  if (body.body !== undefined) formData.append('body', body.body.trim());
+  if (body.image) formData.append('image', body.image);
+  const res = await apiPutFormData(`reviews/admin/${reviewId}`, formData);
   return unwrap(res);
 }
 

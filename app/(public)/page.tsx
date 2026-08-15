@@ -3,10 +3,11 @@ import { fetchStorefrontReviews } from '@/lib/api/reviews';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { fetchPublicBanners } from '@/lib/api/banners';
 import { fetchCategories } from '@/lib/api/categories';
+import { fetchPublicAds } from '@/lib/api/ads';
 import { fetchProducts } from '@/lib/api/products';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { createPageMetadata } from '@/lib/seo/metadata';
-import { websiteJsonLd } from '@/lib/seo/jsonld';
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import { SITE_META_HOME_DESCRIPTION } from '@/lib/seo/siteCopy';
 import { HomeClient } from './HomeClient';
 import type { Category } from '@/types/category';
@@ -32,7 +33,7 @@ export const metadata = createPageMetadata({
 export default async function HomePage() {
   // These requests do not depend on one another. Starting them together avoids
   // making visitors wait for four round-trips before the catalog can render.
-  const [featuredProducts, banners, publicSettings, categories, storefrontReviews] = await Promise.all([
+  const [featuredProducts, banners, publicSettings, categories, storefrontReviews, ads] = await Promise.all([
     fetchFeaturedProducts(8).catch(() => []),
     fetchPublicBanners().catch(() => []),
     getPublicStoreSettings().catch(() => null),
@@ -41,6 +42,7 @@ export default async function HomePage() {
       reviews: [],
       total: 0,
     })),
+    fetchPublicAds().catch(() => []),
   ]);
   const topCategories = categories
     .filter((c) => c.parent_id == null)
@@ -62,6 +64,7 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
+      <JsonLd data={organizationJsonLd()} />
       <HomeClient
         featuredProducts={featuredProducts}
         banners={banners}
@@ -69,6 +72,7 @@ export default async function HomePage() {
         socialLinks={publicSettings?.socialLinks ?? []}
         categories={topCategories}
         categoryProducts={categoryProducts.filter((s) => s.products.length > 0)}
+        ads={ads}
       />
     </>
   );

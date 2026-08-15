@@ -20,9 +20,11 @@ export async function fetchProducts(params: ProductListParams = {}): Promise<Pro
   if (params.product_type) query.product_type = params.product_type;
   if (params.min_price != null) query.min_price = params.min_price;
   if (params.max_price != null) query.max_price = params.max_price;
+  if (params.on_sale === true) query.on_sale = '1';
   if (params.search) query.search = params.search;
   if (params.featured === true) query.featured = '1';
   if (params.is_active !== undefined) query.is_active = params.is_active ? '1' : '0';
+  if (params.sort) query.sort = params.sort;
 
   const res = await apiGet<ProductListResult>('products', {
     params: query,

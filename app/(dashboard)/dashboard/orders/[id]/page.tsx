@@ -8,6 +8,8 @@ import { listPaymentMethods } from '@/lib/api/payments';
 import { PageHeader, StatusBadge } from '@/components/dashboard';
 import { Button } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
+import { downloadOrderInvoice } from '@/lib/api/invoices';
+import { toast } from 'sonner';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -18,6 +20,7 @@ export default function OrderDetailPage() {
   const [bankProofGatewayKeys, setBankProofGatewayKeys] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   useEffect(() => {
     if (!orderId || Number.isNaN(orderId)) {
@@ -70,12 +73,26 @@ export default function OrderDetailPage() {
 
   const isPending = order.status === 'pending';
 
+  const handleInvoiceDownload = async () => {
+    setDownloadingInvoice(true);
+    try {
+      await downloadOrderInvoice(order.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not download the invoice.');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
   return (
     <div>
       <PageHeader title={`Order #${order.order_number}`}>
         <Link href="/dashboard/orders">
           <Button variant="outline">Back to orders</Button>
         </Link>
+        <Button variant="secondary" onClick={handleInvoiceDownload} isLoading={downloadingInvoice}>
+          Download invoice PDF
+        </Button>
       </PageHeader>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-4">

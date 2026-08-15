@@ -137,6 +137,11 @@ const links: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: '/admin/ads',
+    label: 'Popup Ads',
+    icon: <I><svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m7 15 3-3 2 2 3-4 2 3" /></svg></I>,
+  },
+  {
     href: '/admin/emails',
     label: 'Emails',
     icon: (

@@ -20,6 +20,10 @@ export interface CreateOrderBody {
   bkash_transaction_id?: string | null;
   mobile: string;
   address: string;
+  city: string;
+  postal_code?: string | null;
+  address_line2?: string | null;
+  shipping_method_id?: string | null;
 }
 
 /** Create order from cart (requires auth). Cart is cleared on success. */

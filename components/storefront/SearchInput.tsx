@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface SearchInputProps {
   placeholder?: string;
@@ -19,6 +19,24 @@ export function SearchInput({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(searchParams.get(paramName) ?? '');
+
+  useEffect(() => {
+    setValue(searchParams.get(paramName) ?? '');
+  }, [searchParams, paramName]);
+
+  useEffect(() => {
+    const current = searchParams.get(paramName) ?? '';
+    if (value === current) return;
+    const timer = window.setTimeout(() => {
+      const q = value.trim();
+      const params = new URLSearchParams(searchParams.toString());
+      if (q) params.set(paramName, q);
+      else params.delete(paramName);
+      params.delete('page');
+      router.replace(`${basePath}${params.toString() ? `?${params.toString()}` : ''}`);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [value, router, searchParams, basePath, paramName]);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {

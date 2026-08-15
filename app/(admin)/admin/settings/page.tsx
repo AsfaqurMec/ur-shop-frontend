@@ -26,7 +26,7 @@ import {
   Input,
 } from '@/components/ui';
 import { toast } from 'sonner';
-import type { SocialLink } from '@/lib/api/storeSettings';
+import type { SocialLink, ShippingMethod } from '@/lib/api/storeSettings';
 
 const CURRENCIES = [
   { value: 'BDT', label: 'BDT — Bangladeshi Taka' },
@@ -111,6 +111,7 @@ type StoreSettings = {
   currency: string;
   timezone: string;
   socialLinks: SocialLink[];
+  shippingMethods: ShippingMethod[];
 };
 
 function isHttpUrl(s: string): boolean {
@@ -144,6 +145,7 @@ const defaultSettings = (): StoreSettings => ({
   currency: 'BDT',
   timezone: 'UTC',
   socialLinks: [],
+  shippingMethods: [],
 });
 
 function normalizeStoreSettings(input: Partial<StoreSettings> | StoreSettings): StoreSettings {
@@ -151,6 +153,7 @@ function normalizeStoreSettings(input: Partial<StoreSettings> | StoreSettings): 
     ...defaultSettings(),
     ...input,
     socialLinks: Array.isArray(input.socialLinks) ? input.socialLinks : [],
+    shippingMethods: Array.isArray(input.shippingMethods) ? input.shippingMethods : [],
   };
 }
 
@@ -230,6 +233,17 @@ export default function AdminSettingsPage() {
   const [deleteSocialTarget, setDeleteSocialTarget] = useState<SocialLink | null>(null);
   const [deleteSocialSubmitting, setDeleteSocialSubmitting] = useState(false);
   const [deleteSocialError, setDeleteSocialError] = useState<string | null>(null);
+
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
+  const [shippingEditingId, setShippingEditingId] = useState<string | null>(null);
+  const [smTitle, setSmTitle] = useState('');
+  const [smSubtitle, setSmSubtitle] = useState('');
+  const [smExtraPrice, setSmExtraPrice] = useState('0');
+  const [shippingFormError, setShippingFormError] = useState<string | null>(null);
+  const [shippingSubmitting, setShippingSubmitting] = useState(false);
+  const [deleteShippingTarget, setDeleteShippingTarget] = useState<ShippingMethod | null>(null);
+  const [deleteShippingSubmitting, setDeleteShippingSubmitting] = useState(false);
+  const [deleteShippingError, setDeleteShippingError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -500,6 +514,103 @@ export default function AdminSettingsPage() {
       toast.error(msg);
     } finally {
       setDeleteSocialSubmitting(false);
+    }
+  };
+
+  const resetShippingForm = () => {
+    setShippingEditingId(null);
+    setSmTitle('');
+    setSmSubtitle('');
+    setSmExtraPrice('0');
+    setShippingFormError(null);
+  };
+
+  const openShippingCreate = () => {
+    resetShippingForm();
+    setShippingModalOpen(true);
+  };
+
+  const openShippingEdit = (row: ShippingMethod) => {
+    setShippingEditingId(row.id);
+    setSmTitle(row.title);
+    setSmSubtitle(row.subtitle);
+    setSmExtraPrice(String(row.extraPrice));
+    setShippingFormError(null);
+    setShippingModalOpen(true);
+  };
+
+  const closeShippingModal = () => {
+    setShippingModalOpen(false);
+    resetShippingForm();
+  };
+
+  const persistShippingMethods = async (shippingMethods: ShippingMethod[]) => {
+    await updateAdminStoreSettings({ shippingMethods });
+    const fresh = normalizeStoreSettings(await getAdminStoreSettings());
+    setSettings(fresh);
+  };
+
+  const handleShippingSave = async () => {
+    setShippingFormError(null);
+    const title = smTitle.trim();
+    const subtitle = smSubtitle.trim();
+    const extraPrice = Math.max(0, Math.round(Number(smExtraPrice) * 100) / 100) || 0;
+    if (!title) {
+      setShippingFormError('Title is required.');
+      return;
+    }
+    if (Number.isNaN(Number(smExtraPrice))) {
+      setShippingFormError('Extra price must be a valid number.');
+      return;
+    }
+
+    const id =
+      shippingEditingId ??
+      (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `ship_${Date.now()}`);
+    const entry: ShippingMethod = { id, title, subtitle, extraPrice };
+
+    setShippingSubmitting(true);
+    try {
+      let shippingMethods: ShippingMethod[];
+      if (shippingEditingId != null) {
+        shippingMethods = settings.shippingMethods.map((s) => (s.id === shippingEditingId ? entry : s));
+      } else {
+        shippingMethods = [...settings.shippingMethods, entry];
+      }
+      await persistShippingMethods(shippingMethods);
+      closeShippingModal();
+      toast.success(shippingEditingId != null ? 'Shipping method updated' : 'Shipping method added');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not save';
+      setShippingFormError(msg);
+      toast.error(msg);
+    } finally {
+      setShippingSubmitting(false);
+    }
+  };
+
+  const closeDeleteShipping = () => {
+    setDeleteShippingTarget(null);
+    setDeleteShippingError(null);
+  };
+
+  const confirmDeleteShipping = async () => {
+    if (!deleteShippingTarget) return;
+    setDeleteShippingError(null);
+    setDeleteShippingSubmitting(true);
+    try {
+      const shippingMethods = settings.shippingMethods.filter((s) => s.id !== deleteShippingTarget.id);
+      await persistShippingMethods(shippingMethods);
+      closeDeleteShipping();
+      toast.success('Shipping method removed');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not delete';
+      setDeleteShippingError(msg);
+      toast.error(msg);
+    } finally {
+      setDeleteShippingSubmitting(false);
     }
   };
 
@@ -845,6 +956,60 @@ export default function AdminSettingsPage() {
 
           <Card className="lg:col-span-2">
             <CardHeader>
+              <CardTitle>Shipping methods</CardTitle>
+              <CardDescription>
+                Configure checkout shipping options. Each method can include an extra charge added to the order total.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {settings.shippingMethods.length === 0
+                    ? 'No shipping methods yet — add one to show shipping selection on checkout.'
+                    : `${settings.shippingMethods.length} method(s) configured.`}
+                </p>
+                <Button type="button" onClick={openShippingCreate} variant="secondary" size="sm">
+                  Add shipping method
+                </Button>
+              </div>
+              {settings.shippingMethods.length > 0 ? (
+                <ul className="divide-y divide-border rounded-lg border border-border/80">
+                  {settings.shippingMethods.map((method) => (
+                    <li
+                      key={method.id}
+                      className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">{method.title}</p>
+                        {method.subtitle ? (
+                          <p className="text-sm text-muted-foreground">{method.subtitle}</p>
+                        ) : null}
+                        <p className="mt-1 text-sm tabular-nums text-foreground/90">
+                          Extra price: {method.extraPrice > 0 ? method.extraPrice.toFixed(2) : 'Free'}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => openShippingEdit(method)}>
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeleteShippingTarget(method)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
               <CardTitle>Home — floating social buttons</CardTitle>
               <CardDescription>
                 Shown on the home page as a floating chat button. Each entry needs a label, link, and logo image URL.
@@ -985,6 +1150,93 @@ export default function AdminSettingsPage() {
                   isLoading={deleteSocialSubmitting}
                 >
                   Remove link
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal
+            open={shippingModalOpen}
+            onClose={closeShippingModal}
+            title={shippingEditingId != null ? 'Edit shipping method' : 'Add shipping method'}
+            wide
+          >
+            <div className="space-y-4">
+              {shippingFormError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{shippingFormError}</AlertDescription>
+                </Alert>
+              ) : null}
+              <div className="space-y-2">
+                <label htmlFor="sm-title" className={fieldLabel}>
+                  Title
+                </label>
+                <Input
+                  id="sm-title"
+                  value={smTitle}
+                  onChange={(e) => setSmTitle(e.target.value)}
+                  placeholder="Standard delivery"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="sm-subtitle" className={fieldLabel}>
+                  Subtitle
+                </label>
+                <Input
+                  id="sm-subtitle"
+                  value={smSubtitle}
+                  onChange={(e) => setSmSubtitle(e.target.value)}
+                  placeholder="Delivered within 3–5 business days"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="sm-extra-price" className={fieldLabel}>
+                  Extra price
+                </label>
+                <Input
+                  id="sm-extra-price"
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={smExtraPrice}
+                  onChange={(e) => setSmExtraPrice(e.target.value)}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground">Added to the order subtotal at checkout.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" isLoading={shippingSubmitting} onClick={() => void handleShippingSave()}>
+                  {shippingEditingId != null ? 'Save changes' : 'Add method'}
+                </Button>
+                <Button type="button" variant="outline" onClick={closeShippingModal}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal open={deleteShippingTarget != null} onClose={closeDeleteShipping} title="Remove shipping method">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Remove <span className="font-semibold text-foreground">{deleteShippingTarget?.title}</span> from
+                checkout?
+              </p>
+              {deleteShippingError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{deleteShippingError}</AlertDescription>
+                </Alert>
+              ) : null}
+              <div className="flex flex-wrap gap-3 pt-1">
+                <Button type="button" variant="outline" onClick={closeDeleteShipping} disabled={deleteShippingSubmitting}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => void confirmDeleteShipping()}
+                  isLoading={deleteShippingSubmitting}
+                >
+                  Remove method
                 </Button>
               </div>
             </div>

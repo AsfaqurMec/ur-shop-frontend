@@ -35,7 +35,7 @@ export function FloatingCartSummary() {
   return (
     <Link
       href="/cart"
-      className="fixed right-1 top-1/2 z-[30] block w-16 -translate-y-1/2 overflow-hidden rounded-md bg-slate-950 text-sm font-semibold text-white  transition hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:right-5"
+      className="fixed right-1 top-1/2 z-[30] block w-16 -translate-y-1/2 overflow-hidden rounded-md bg-slate-950 text-sm font-semibold text-white  transition hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:right-2"
       aria-label={`View cart: ${summary.count} items, ${formatCurrency(summary.total)}`}
     >
       <span className="relative flex h-14 items-center justify-center pr-2">

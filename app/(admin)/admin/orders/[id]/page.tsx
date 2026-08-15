@@ -164,9 +164,26 @@ export default function AdminOrderDetailPage() {
               <div>
                 <dt className="text-muted-foreground mb-1">Address</dt>
                 <dd className="whitespace-pre-wrap text-foreground/90">
-                  {order.shipping_address?.trim() || order.customer_address?.trim() || '—'}
+                  {[
+                    order.shipping_address?.trim(),
+                    order.shipping_address_line2?.trim(),
+                    [order.shipping_city?.trim(), order.shipping_postal_code?.trim()].filter(Boolean).join(' '),
+                  ]
+                    .filter(Boolean)
+                    .join('\n') ||
+                    order.customer_address?.trim() ||
+                    '—'}
                 </dd>
               </div>
+              {order.shipping_method_title ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Shipping</dt>
+                  <dd className="text-right">
+                    {order.shipping_method_title}
+                    {order.shipping_fee > 0 ? ` (+${formatCurrency(order.shipping_fee, order.currency)})` : ' (Free)'}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </div>
           <div className="rounded-lg border p-4">
@@ -180,6 +197,12 @@ export default function AdminOrderDetailPage() {
                 <div className="flex justify-between text-green-600">
                   <span>Discount</span>
                   <span>−{formatCurrency(order.discount, order.currency)}</span>
+                </div>
+              )}
+              {order.shipping_fee > 0 && (
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span className="tabular-nums">{formatCurrency(order.shipping_fee, order.currency)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t pt-2 font-medium">

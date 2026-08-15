@@ -7,6 +7,7 @@ import { Container } from '@/components/ui';
 import { CategoryFilter } from '@/components/storefront';
 import { SearchInput } from '@/components/storefront';
 import { ShopCollapsibleFilters } from '@/components/storefront';
+import { ShopSaleFilter, ShopSidebarFilters, ShopSortControl } from '@/components/storefront/ShopCollapsibleFilters';
 import { SocialSpeedDial } from '@/components/storefront';
 import { ShopClient } from './ShopClient';
 import { createPageMetadata } from '@/lib/seo/metadata';
@@ -28,6 +29,10 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const search = typeof params.search === 'string' ? params.search : undefined;
   const minPrice = typeof params.min_price === 'string' ? Number(params.min_price) : undefined;
   const maxPrice = typeof params.max_price === 'string' ? Number(params.max_price) : undefined;
+  const onSale = params.on_sale === '1';
+  const sort = typeof params.sort === 'string' && ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'].includes(params.sort)
+    ? params.sort as 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc'
+    : undefined;
   
   const [result, categories, publicSettings] = await Promise.all([
     fetchProducts({
@@ -36,6 +41,8 @@ export default async function ShopPage({ searchParams }: PageProps) {
       search,
       min_price: Number.isFinite(minPrice) ? minPrice : undefined,
       max_price: Number.isFinite(maxPrice) ? maxPrice : undefined,
+      on_sale: onSale || undefined,
+      sort,
       is_active: true,
     }).catch(() => emptyProductList(1, 8)),
     fetchCategories().catch((): Category[] => []),
@@ -59,7 +66,8 @@ export default async function ShopPage({ searchParams }: PageProps) {
       <div className="flex flex-col gap-10 lg:flex-row lg:gap-12">
         <aside className="hidden shrink-0 lg:block lg:w-60">
           <div className="space-y-8 lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
-            <div>
+            <ShopSidebarFilters />
+            <div className="hidden">
               <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Search
               </h2>
@@ -67,15 +75,20 @@ export default async function ShopPage({ searchParams }: PageProps) {
                 <SearchInput basePath="/shop" placeholder="Search shop…" />
               </Suspense>
             </div>
-            <div className="rounded-xl border border-border/80 bg-card p-4 shadow-card">
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Categories
-              </h2>
-              <CategoryFilter categories={categories} basePath="/shop" />
-            </div>
+            <details className="rounded-xl border border-border/80 bg-card p-4 shadow-card" open>
+              <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-muted-foreground">Categories</summary>
+              <div className="mt-3"><CategoryFilter categories={categories} basePath="/shop" /></div>
+            </details>
+            <ShopSaleFilter />
           </div>
         </aside>
         <div className="min-w-0 flex-1">
+          <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
+            <Suspense fallback={<div className="h-10 w-72 animate-pulse rounded-md bg-muted" aria-hidden />}>
+              <SearchInput basePath="/shop" placeholder="Search shop" className="w-full max-w-md" />
+            </Suspense>
+            <ShopSortControl />
+          </div>
           <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded" />}>
             <ShopClient
               initialProducts={result.products}
@@ -84,6 +97,8 @@ export default async function ShopPage({ searchParams }: PageProps) {
               search={search}
               minPrice={Number.isFinite(minPrice) ? minPrice : undefined}
               maxPrice={Number.isFinite(maxPrice) ? maxPrice : undefined}
+              onSale={onSale}
+              sort={sort}
             />
           </Suspense>
         </div>

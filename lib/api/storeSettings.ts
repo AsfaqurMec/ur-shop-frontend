@@ -9,6 +9,13 @@ export interface SocialLink {
   accentColor?: string;
 }
 
+export interface ShippingMethod {
+  id: string;
+  title: string;
+  subtitle: string;
+  extraPrice: number;
+}
+
 export interface PublicStoreSettings {
   siteTitle: string;
   siteLogo: string;
@@ -20,6 +27,8 @@ export interface PublicStoreSettings {
   contactEmail: string;
   /** Present when API supports floating social FAB (home). */
   socialLinks?: SocialLink[];
+  /** Checkout shipping options configured in admin settings. */
+  shippingMethods?: ShippingMethod[];
 }
 
 function unwrap<T>(res: { success: boolean; data?: T; error?: string; message?: string }): T {

@@ -669,7 +669,6 @@ export function ProductPurchasePanel({
           validateBeforeAdd={validateBeforeAdd}
           resumeAfterLoginRedirect="/checkout"
           guestCheckoutOnUnauthorized
-          placeOrderAfterGuestCheckout
           getGuestCartItem={() => ({
             productId: product.id,
             productName: product.name,

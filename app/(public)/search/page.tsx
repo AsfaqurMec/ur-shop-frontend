@@ -19,6 +19,7 @@ export const metadata = createPageMetadata({
   description:
     'Search Parves BD by product name or description. Find software, courses, tools, and licenses in the catalog.',
   keywords: ['Parves BD search', 'find digital products', 'catalog search'],
+  index: false,
 });
 
 interface PageProps {

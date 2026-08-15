@@ -15,6 +15,7 @@ import {
   type HomeClientProps,
 } from '@/components/home';
 import { buildHeroSlides } from '@/components/home/utils';
+import { HomepageAdPopup } from '@/components/home/HomepageAdPopup';
 
 export function HomeClient({
   featuredProducts,
@@ -23,6 +24,7 @@ export function HomeClient({
   socialLinks,
   categories,
   categoryProducts,
+  ads,
 }: HomeClientProps) {
   const { addingProductId, handleAddToCart } = useHomeAddToCart();
   const slides = buildHeroSlides(banners, featuredProducts);
@@ -30,6 +32,7 @@ export function HomeClient({
 
   return (
     <>
+      <HomepageAdPopup ads={ads} />
       <HeroSection banners={banners} featuredProducts={featuredProducts} />
       <FeaturedCategoriesSection categories={categories} />
       <TrendingProductsSection

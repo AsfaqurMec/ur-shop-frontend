@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCart, removeCartItem } from '@/lib/api/cart';
@@ -8,14 +8,18 @@ import { createOrder } from '@/lib/api/checkout';
 import { getProfile, guestCheckout } from '@/lib/api/auth';
 import { getAuthToken, setAuthToken } from '@/lib/api/client';
 import { getGuestCart, removeGuestCartItem, transferGuestCartToAccount } from '@/lib/storefront/guestCart';
+import { getPublicStoreSettings, type ShippingMethod } from '@/lib/api/storeSettings';
 import type { Cart } from '@/types/cart';
 import type { PaymentMethod } from '@/types/payment';
 import type { CheckoutPaymentMethod } from '@/lib/api/checkout';
 import { CheckoutPaymentMethods } from '@/components/checkout/CheckoutPaymentMethods';
+import { CheckoutShippingMethods } from '@/components/checkout/CheckoutShippingMethods';
+import { CheckoutOrderItemsAccordion } from '@/components/checkout/CheckoutOrderItemsAccordion';
 import { Container, Button, Input, Card, CardContent, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
-import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { toast } from 'sonner';
+import { validateCoupon } from '@/lib/api/coupons';
+import type { CouponValidationResult } from '@/types/coupon';
 
 const COUPON_STORAGE_KEY = 'checkout_coupon_code';
 
@@ -23,9 +27,14 @@ function validateMobile(value: string) {
   return /^01[3-9]\d{8}$/.test(value.replace(/\D/g, ''));
 }
 
+function formatGuestAddress(address: string, addressLine2: string, city: string, postalCode: string) {
+  return [address, addressLine2, [city, postalCode].filter(Boolean).join(' ')].filter(Boolean).join('\n');
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [isGuest, setIsGuest] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,27 +44,48 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [shippingMethodId, setShippingMethodId] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [paymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('cash_on_delivery');
   const [senderNumber, setSenderNumber] = useState('');
   const [transactionId, setTransactionId] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [couponResult, setCouponResult] = useState<CouponValidationResult | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setCouponInput(typeof window !== 'undefined' ? sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim() ?? '' : '');
     const guest = !getAuthToken();
     setIsGuest(guest);
-    if (guest) {
-      if (!cancelled) {
-        setCart(getGuestCart());
-        setLoading(false);
-      }
-      return () => { cancelled = true; };
-    }
+
     (async () => {
       try {
-        const [cartData, profile] = await Promise.all([getCart(), getProfile().catch(() => null)]);
+        const settingsPromise = getPublicStoreSettings().catch(() => ({ shippingMethods: [] as ShippingMethod[] }));
+        if (guest) {
+          const settings = await settingsPromise;
+          if (cancelled) return;
+          const methods = settings.shippingMethods ?? [];
+          setShippingMethods(methods);
+          setShippingMethodId(methods[0]?.id ?? '');
+          setCart(getGuestCart());
+          setLoading(false);
+          return;
+        }
+
+        const [cartData, profile, settings] = await Promise.all([
+          getCart(),
+          getProfile().catch(() => null),
+          settingsPromise,
+        ]);
         if (cancelled) return;
+        const methods = settings.shippingMethods ?? [];
+        setShippingMethods(methods);
+        setShippingMethodId(methods[0]?.id ?? '');
         setCart(cartData);
         if (profile?.user) {
           setName(profile.user.name ?? '');
@@ -69,8 +99,39 @@ export default function CheckoutPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const selectedShippingMethod = useMemo(
+    () => shippingMethods.find((method) => method.id === shippingMethodId) ?? null,
+    [shippingMethods, shippingMethodId]
+  );
+  const shippingExtra = selectedShippingMethod?.extraPrice ?? 0;
+  const couponDiscount = couponResult?.valid ? couponResult.discount_amount ?? 0 : 0;
+  const orderTotal = Math.max(0, (cart?.subtotal ?? 0) - couponDiscount + shippingExtra);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code || !cart) return;
+    setCouponLoading(true);
+    try {
+      if (getAuthToken()) {
+        const result = await validateCoupon(code, cart.subtotal, cart.items);
+        setCouponResult(result);
+        if (!result.valid) throw new Error(result.message || 'Coupon is not valid.');
+      }
+      sessionStorage.setItem(COUPON_STORAGE_KEY, code);
+      toast.success('Coupon added');
+    } catch (err) {
+      sessionStorage.removeItem(COUPON_STORAGE_KEY);
+      toast.error(err instanceof Error ? err.message : 'Could not apply coupon.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   const removeItem = async (itemId: number) => {
     setRemovingId(itemId);
@@ -90,6 +151,11 @@ export default function CheckoutPage() {
   const handleCreateOrder = async () => {
     if (!cart?.items.length) return;
     const normalizedMobile = mobile.replace(/\D/g, '');
+    const trimmedAddress = address.trim();
+    const trimmedCity = city.trim();
+    const trimmedAddressLine2 = addressLine2.trim();
+    const trimmedPostalCode = postalCode.trim();
+
     if (isGuest && (!name.trim() || !email.trim())) {
       setSubmitError('Name and email are required to continue as a guest.');
       return;
@@ -98,20 +164,41 @@ export default function CheckoutPage() {
       setSubmitError('Enter a valid Bangladesh mobile number (for example, 01712345678).');
       return;
     }
-    if (!address.trim()) {
+    if (!trimmedAddress) {
       setSubmitError('Address is required.');
+      return;
+    }
+    if (!trimmedCity) {
+      setSubmitError('City is required.');
+      return;
+    }
+    if (shippingMethods.length > 0 && !shippingMethodId) {
+      setSubmitError('Please select a shipping method.');
       return;
     }
 
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const formattedAddress = formatGuestAddress(
+        trimmedAddress,
+        trimmedAddressLine2,
+        trimmedCity,
+        trimmedPostalCode
+      );
+
       if (isGuest) {
-        const result = await guestCheckout({ name: name.trim(), email: email.trim().toLowerCase(), mobile: normalizedMobile, address: address.trim() });
+        const result = await guestCheckout({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          mobile: normalizedMobile,
+          address: formattedAddress,
+        });
         setAuthToken(result.accessToken);
         window.dispatchEvent(new Event('profile:updated'));
         await transferGuestCartToAccount();
       }
+
       const coupon = sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim();
       const order = await createOrder({
         coupon_code: coupon || null,
@@ -120,7 +207,11 @@ export default function CheckoutPage() {
         sender_number: null,
         transaction_id: null,
         mobile: normalizedMobile,
-        address: address.trim(),
+        address: trimmedAddress,
+        city: trimmedCity,
+        postal_code: trimmedPostalCode || null,
+        address_line2: trimmedAddressLine2 || null,
+        shipping_method_id: shippingMethodId || null,
       });
       sessionStorage.removeItem(COUPON_STORAGE_KEY);
       window.dispatchEvent(new Event('cart:changed'));
@@ -134,29 +225,265 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading) return <Container className="py-12"><div className="flex justify-center py-12"><span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div></Container>;
-  if (error && !cart) return <Container className="py-12"><Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert><Link href="/cart" className="mt-4 inline-block"><Button variant="outline">Back to cart</Button></Link></Container>;
-  if (!cart?.items.length) return <Container className="py-12"><Card><CardHeader><CardTitle>Checkout</CardTitle><p className="text-sm text-muted-foreground">Your cart is empty.</p></CardHeader><CardContent><Link href="/shop"><Button>Continue shopping</Button></Link></CardContent></Card></Container>;
+  if (loading) {
+    return (
+      <Container className="py-12">
+        <div className="flex justify-center py-12">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </Container>
+    );
+  }
+
+  if (error && !cart) {
+    return (
+      <Container className="py-12">
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Link href="/cart" className="mt-4 inline-block">
+          <Button variant="outline">Back to cart</Button>
+        </Link>
+      </Container>
+    );
+  }
+
+  if (!cart?.items.length) {
+    return (
+      <Container className="py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle>Checkout</CardTitle>
+            <p className="text-sm text-muted-foreground">Your cart is empty.</p>
+          </CardHeader>
+          <CardContent>
+            <Link href="/shop">
+              <Button>Continue shopping</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
 
   return (
     <Container className="max-w-6xl py-6 sm:py-8">
       <h1 className="mb-1 text-xl font-semibold tracking-tight sm:text-2xl">Checkout</h1>
-      <p className="mb-6 text-sm text-muted-foreground">{isGuest ? 'Enter your details to create your account and place the order.' : 'Place your order with cash on delivery.'}</p>
-      {submitError && <Alert variant="destructive" className="mb-4"><AlertDescription>{submitError}</AlertDescription></Alert>}
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-5 lg:gap-8">
+      <p className="mb-6 text-sm text-muted-foreground">
+        {isGuest
+          ? 'Enter your details to create your account and place the order.'
+          : 'Place your order with cash on delivery.'}
+      </p>
+      {submitError ? (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      ) : null}
+      <div className="flex flex-col-reverse gap-6 lg:grid lg:grid-cols-5 lg:gap-8">
         <div className="order-2 space-y-4 sm:space-y-6 lg:order-none lg:col-span-3">
           <Card className="overflow-hidden shadow-sm">
-            <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2"><CardTitle className="text-base sm:text-lg">Delivery details</CardTitle><p className="text-sm font-normal text-muted-foreground">{isGuest ? 'We will create your account from these details.' : 'Mobile number and address are required to place your order.'}</p></CardHeader>
+            <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+              <CardTitle className="text-base sm:text-lg">Delivery details</CardTitle>
+              <p className="text-sm font-normal text-muted-foreground">
+                {isGuest
+                  ? 'We will create your account from these details.'
+                  : 'Mobile number and delivery address are required to place your order.'}
+              </p>
+            </CardHeader>
             <CardContent className="space-y-4 p-4 pt-2 sm:p-6 sm:pt-2">
-              {isGuest && <><div className="space-y-2"><label htmlFor="guest-name" className="text-sm font-medium">Name <span className="text-destructive">*</span></label><Input id="guest-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={255} required /></div><div className="space-y-2"><label htmlFor="guest-email" className="text-sm font-medium">Email <span className="text-destructive">*</span></label><Input id="guest-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} required /></div></>}
-              <div className="space-y-2"><label htmlFor="checkout-mobile" className="text-sm font-medium">Mobile number <span className="text-destructive">*</span></label><Input id="checkout-mobile" type="tel" autoComplete="tel" value={mobile} onChange={(e) => setMobile(e.target.value.replace(/[^\d\s+-]/g, ''))} maxLength={20} placeholder="017xxxxxxxx" required /><p className="text-xs text-muted-foreground">Enter a valid Bangladesh mobile number.</p></div>
-              <div className="space-y-2"><label htmlFor="checkout-address" className="text-sm font-medium">Address <span className="text-destructive">*</span></label><textarea id="checkout-address" autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={1000} rows={3} required className="flex min-h-[5.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>
+              {isGuest ? (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="guest-name" className="text-sm font-medium">
+                      Name <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="guest-name"
+                      autoComplete="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={255}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="guest-email" className="text-sm font-medium">
+                      Email <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="guest-email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      maxLength={254}
+                      required
+                    />
+                  </div>
+                </>
+              ) : null}
+              <div className="space-y-2">
+                <label htmlFor="checkout-mobile" className="text-sm font-medium">
+                  Mobile number <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="checkout-mobile"
+                  type="tel"
+                  autoComplete="tel"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/[^\d\s+-]/g, ''))}
+                  maxLength={20}
+                  placeholder="017xxxxxxxx"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Enter a valid Bangladesh mobile number.</p>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="checkout-address" className="text-sm font-medium">
+                  Address <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="checkout-address"
+                  autoComplete="street-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  maxLength={255}
+                  required
+                  placeholder="House no., road, area"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="checkout-address-line2" className="text-sm font-medium">
+                  Apartment, suite, etc.
+                </label>
+                <Input
+                  id="checkout-address-line2"
+                  autoComplete="address-line2"
+                  value={addressLine2}
+                  onChange={(e) => setAddressLine2(e.target.value)}
+                  maxLength={255}
+                  placeholder="Apartment, suite, unit, floor, etc."
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="checkout-city" className="text-sm font-medium">
+                    City <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    id="checkout-city"
+                    autoComplete="address-level2"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    maxLength={120}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="checkout-postal-code" className="text-sm font-medium">
+                    Postal code
+                  </label>
+                  <Input
+                    id="checkout-postal-code"
+                    autoComplete="postal-code"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    maxLength={32}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="overflow-hidden shadow-sm"><CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2"><CardTitle className="text-base sm:text-lg">Payment</CardTitle></CardHeader><CardContent className="p-4 pt-2 sm:p-6 sm:pt-2"><CheckoutPaymentMethods checkoutMethods={paymentMethods} bkashMerchantEnabled={false} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} senderNumber={senderNumber} transactionId={transactionId} onSenderNumberChange={setSenderNumber} onTransactionIdChange={setTransactionId} /></CardContent></Card>
-          <Card className="overflow-hidden"><CardHeader className="p-4 sm:p-6"><CardTitle className="text-base sm:text-lg">Order items</CardTitle></CardHeader><CardContent className="p-4 pt-0 sm:p-6 sm:pt-0"><ul className="divide-y divide-border/60">{cart.items.map((item) => { const rows = storefrontSelectionsSummary(item.selections_summary); return <li key={item.id} className="flex gap-3 py-3"><div className="min-w-0 flex-1"><Link href={`/products/${item.product_slug}`} className="font-medium text-primary hover:underline">{item.product_name}</Link><p className="text-sm text-muted-foreground">{formatCurrency(item.unit_price)} × {item.quantity}</p>{rows.length > 0 && <ul className="mt-1 text-xs text-muted-foreground">{rows.map((row) => <li key={`${item.id}-${row.label}`}>{row.label}: {row.value}</li>)}</ul>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className="font-medium tabular-nums">{formatCurrency(item.line_total)}</span><Button size="sm" variant="ghost" disabled={removingId === item.id} onClick={() => removeItem(item.id)} className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive">Remove</Button></div></li>; })}</ul></CardContent></Card>
+
+          {shippingMethods.length > 0 ? (
+            <Card className="overflow-hidden shadow-sm">
+              <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+                <CardTitle className="text-base sm:text-lg">Shipping method</CardTitle>
+                <p className="text-sm font-normal text-muted-foreground">
+                  Choose how you would like your order delivered.
+                </p>
+              </CardHeader>
+              <CardContent className="p-4 pt-2 sm:p-6 sm:pt-2">
+                <CheckoutShippingMethods
+                  methods={shippingMethods}
+                  selectedId={shippingMethodId}
+                  onSelect={setShippingMethodId}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <Card className="overflow-hidden shadow-sm">
+            <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+              <CardTitle className="text-base sm:text-lg">Payment</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-2 sm:p-6 sm:pt-2">
+              <CheckoutPaymentMethods
+                checkoutMethods={paymentMethods}
+                bkashMerchantEnabled={false}
+                paymentMethod={paymentMethod}
+                onPaymentMethodChange={setPaymentMethod}
+                senderNumber={senderNumber}
+                transactionId={transactionId}
+                onSenderNumberChange={setSenderNumber}
+                onTransactionIdChange={setTransactionId}
+              />
+            </CardContent>
+          </Card>
         </div>
-        <div className="order-1 lg:order-none lg:col-span-2"><Card className="shadow-sm lg:sticky lg:top-[calc(var(--header-height)+1rem)]"><CardHeader className="p-4 sm:p-6"><CardTitle className="text-base sm:text-lg">Summary</CardTitle></CardHeader><CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span className="font-medium tabular-nums">{formatCurrency(cart.subtotal)}</span></div><div className="border-t pt-4"><Button fullWidth size="lg" onClick={handleCreateOrder} isLoading={submitting}>{isGuest ? 'Continue as guest' : 'Place order'}</Button></div><Link href="/cart" className="block text-center text-sm text-muted-foreground hover:text-foreground">Back to cart</Link></CardContent></Card></div>
+
+        <div className="order-1 space-y-4 lg:order-none lg:col-span-2">
+          <CheckoutOrderItemsAccordion items={cart.items} removingId={removingId} onRemoveItem={removeItem} />
+          <Card className="shadow-sm lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium tabular-nums">{formatCurrency(cart.subtotal)}</span>
+              </div>
+              {shippingExtra > 0 ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Shipping{selectedShippingMethod ? ` (${selectedShippingMethod.title})` : ''}
+                  </span>
+                  <span className="font-medium tabular-nums">{formatCurrency(shippingExtra)}</span>
+                </div>
+              ) : selectedShippingMethod ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Shipping ({selectedShippingMethod.title})</span>
+                  <span className="font-medium tabular-nums">Free</span>
+                </div>
+              ) : null}
+              <div className="space-y-2 border-t pt-4">
+                <label htmlFor="checkout-coupon" className="text-sm font-medium">Coupon code</label>
+                <div className="flex gap-2">
+                  <Input id="checkout-coupon" value={couponInput} onChange={(e) => { setCouponInput(e.target.value); setCouponResult(null); }} placeholder="Enter code" />
+                  <Button type="button" variant="outline" onClick={() => void applyCoupon()} isLoading={couponLoading} disabled={!couponInput.trim()}>Apply</Button>
+                </div>
+                {couponResult?.valid ? <p className="text-xs text-green-600">Coupon discount applied.</p> : null}
+                {couponResult && !couponResult.valid ? <p className="text-xs text-destructive">{couponResult.message || 'Coupon is not valid.'}</p> : null}
+              </div>
+              {couponDiscount > 0 ? (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount</span><span className="font-medium tabular-nums">-{formatCurrency(couponDiscount)}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between border-t pt-4 text-base font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">{formatCurrency(orderTotal)}</span>
+              </div>
+              <Button fullWidth size="lg" className='bg-green-600 hover:bg-green-800' onClick={handleCreateOrder} isLoading={submitting}>
+                {isGuest ? 'Place order' : 'Place order'}
+              </Button>
+              <Link href="/cart" className="block text-center text-sm text-muted-foreground hover:text-foreground">
+                Back to cart
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </Container>
   );

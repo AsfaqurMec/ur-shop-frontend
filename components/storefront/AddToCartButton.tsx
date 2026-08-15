@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { addToCart } from '@/lib/api/cart';
-import { createOrder } from '@/lib/api/checkout';
 import { guestCheckout } from '@/lib/api/auth';
 import { getSafeReturnPath } from '@/lib/auth/returnPath';
 import type { AddedToCartSummary } from './AddedToCartModal';
@@ -12,11 +11,8 @@ import { StorefrontNoticeModal } from './StorefrontNoticeModal';
 import { savePendingBuyNowIntent } from '@/lib/storefront/pendingBuyNowIntent';
 import { getAuthToken, setAuthToken } from '@/lib/api/client';
 import { GuestCheckoutModal, type GuestCheckoutDetails } from './GuestCheckoutModal';
-import { OrderPlacedModal } from './OrderPlacedModal';
 import { toast } from 'sonner';
 import { addGuestCartItem, type GuestCartItemInput } from '@/lib/storefront/guestCart';
-
-const COUPON_STORAGE_KEY = 'checkout_coupon_code';
 
 export interface AddToCartButtonProps {
   productId: number;
@@ -41,8 +37,6 @@ export interface AddToCartButtonProps {
   resumeAfterLoginRedirect?: string;
   /** When true, unauthenticated buy-now shows a guest form instead of redirecting to login. */
   guestCheckoutOnUnauthorized?: boolean;
-  /** When true with guest checkout, places the order immediately after the guest form. */
-  placeOrderAfterGuestCheckout?: boolean;
   /** Item snapshot used when a guest adds this configured product to their local cart. */
   getGuestCartItem?: () => GuestCartItemInput;
   disabled?: boolean;
@@ -64,7 +58,6 @@ export function AddToCartButton({
   onAdded,
   resumeAfterLoginRedirect,
   guestCheckoutOnUnauthorized = false,
-  placeOrderAfterGuestCheckout = false,
   getGuestCartItem,
   disabled = false,
 }: AddToCartButtonProps) {
@@ -72,7 +65,6 @@ export function AddToCartButton({
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
   const [guestModalOpen, setGuestModalOpen] = useState(false);
   const [guestProcessingMessage, setGuestProcessingMessage] = useState<string | null>(null);
-  const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
   const showAddedToCart = useShowAddedToCartModal();
 
   const addToCartAndContinue = async () => {
@@ -104,27 +96,6 @@ export function AddToCartButton({
       skip401Redirect: true,
     });
     window.dispatchEvent(new Event('cart:changed'));
-
-    if (placeOrderAfterGuestCheckout) {
-      setGuestProcessingMessage('Placing your order…');
-      const couponCode =
-        typeof window !== 'undefined' ? sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim() : '';
-      const order = await createOrder({
-        coupon_code: couponCode || null,
-        payment_method: 'cash_on_delivery',
-        payment_type: 'cash_on_delivery',
-        sender_number: null,
-        transaction_id: null,
-        mobile: details.mobile,
-        address: details.address,
-      });
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(COUPON_STORAGE_KEY);
-      }
-      setGuestProcessingMessage(null);
-      setPlacedOrderId(order.id);
-      return;
-    }
 
     setGuestProcessingMessage(null);
     if (onAdded) {
@@ -219,11 +190,6 @@ export function AddToCartButton({
         }}
         onSubmit={handleGuestSubmit}
         processingMessage={guestProcessingMessage}
-      />
-      <OrderPlacedModal
-        open={placedOrderId != null}
-        orderId={placedOrderId}
-        onClose={() => setPlacedOrderId(null)}
       />
     </>
   );
