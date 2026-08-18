@@ -4,16 +4,12 @@ const PASSWORD_MIN = 8;
 const NAME_MAX = 255;
 
 export const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email address (e.g., name@example.com)'),
+  identifier: z.string().min(1, 'Email or mobile number is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
 export const registerSchema = z.object({
-  email: z.string()
-    .min(1, 'Email is required')
-    .email('Enter a valid email address (e.g., name@example.com)')
-    .max(254, 'Email address is too long (max 254 characters)')
-    .refine((email) => !email.includes('..'), 'Email cannot contain consecutive dots'),
+  identifier: z.string().min(1, 'Email or mobile number is required').max(254, 'Value is too long'),
   password: z
     .string()
     .min(PASSWORD_MIN, `Password must be at least ${PASSWORD_MIN} characters`),

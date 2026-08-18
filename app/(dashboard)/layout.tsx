@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { DashboardNav } from '@/components/layout/DashboardNav';
 import { DashboardSidebarShell } from '@/components/layout/DashboardSidebarShell';
 import { DashboardAuthGuard } from '@/components/dashboard';
-import { ThemeToggle } from '@/components/theme';
+//import { ThemeToggle } from '@/components/theme';
 import { SEO_NO_INDEX } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default function DashboardLayout({
         sidebar={
           <>
             <div className="mb-4 hidden justify-end md:flex">
-              <ThemeToggle />
+              {/* <ThemeToggle /> */}
             </div>
             <DashboardNav />
           </>

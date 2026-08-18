@@ -14,23 +14,23 @@ function unwrap<T>(res: { success: boolean; data?: T; error?: string; message?: 
   return res.data;
 }
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  const res = await apiPost<LoginResponse>('auth/login', { email, password }, { skipAuth: true });
+export async function login(identifier: string, password: string): Promise<LoginResponse> {
+  const res = await apiPost<LoginResponse>('auth/login', { identifier, password }, { skipAuth: true });
   const data = unwrap(res);
   setAuthToken(data.accessToken);
   return data;
 }
 
 export async function register(
-  email: string,
+  identifier: string,
   password: string,
   name: string,
   verificationBaseUrl?: string
 ): Promise<RegisterResponse> {
-  const body: { email: string; password: string; name: string; verificationBaseUrl?: string } = {
-    email,
+  const body: { identifier: string; password: string; name: string; verificationBaseUrl?: string } = {
+    identifier,
     password,
-    name: name.trim() || email,
+    name: name.trim() || identifier,
   };
   if (verificationBaseUrl) body.verificationBaseUrl = verificationBaseUrl;
   const res = await apiPost<RegisterResponse>('auth/register', body, { skipAuth: true });
@@ -87,10 +87,14 @@ export async function updateProfile(
 
 export async function guestCheckout(body: {
   name: string;
-  email: string;
   mobile: string;
   address: string;
 }): Promise<LoginResponse> {
   const res = await apiPost<LoginResponse>('auth/guest-checkout', body, { skipAuth: true });
+  return unwrap(res);
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<MessageResponse> {
+  const res = await apiPost<MessageResponse>('auth/change-password', { current_password: currentPassword, new_password: newPassword });
   return unwrap(res);
 }

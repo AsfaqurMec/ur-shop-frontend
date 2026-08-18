@@ -37,7 +37,7 @@ export default function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { email: '', password: '', name: '' },
+    defaultValues: { identifier: '', password: '', name: '' },
   });
 
   const onSubmit = async (data: RegisterInput) => {
@@ -46,7 +46,7 @@ export default function RegisterPage() {
     try {
       const verificationBaseUrl = getVerificationBaseUrl();
       const result = await registerApi(
-        data.email,
+        data.identifier,
         data.password,
         data.name ?? '',
         verificationBaseUrl || undefined
@@ -86,11 +86,11 @@ export default function RegisterPage() {
           </Alert>
         )}
         <FormField
-          label="Email"
-          type="email"
-          {...register('email')}
-          error={errors.email?.message}
-          placeholder="you@example.com"
+          label="Email or mobile number"
+          type="text"
+          {...register('identifier')}
+          error={errors.identifier?.message}
+          placeholder="you@example.com or 017xxxxxxxx"
         />
         <FormField
           label="Name"

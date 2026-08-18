@@ -48,7 +48,7 @@ export default function AdminOrderDetailPage() {
     }
   };
 
-  const handleStatusChange = async (status: 'pending' | 'paid' | 'unpaid') => {
+  const handleStatusChange = async (status: 'pending' | 'placed' | 'delivered' | 'complete' | 'cancelled' | 'refunded' | 'processing' | 'paid' | 'unpaid') => {
     if (!orderId || !order) return;
     setUpdatingStatus(true);
     try {
@@ -95,9 +95,9 @@ export default function AdminOrderDetailPage() {
           {order.status.replace(/_/g, ' ')}
         </span>
         <select
-          value={['pending', 'paid', 'unpaid'].includes(order.status) ? order.status : ''}
+          value={['pending', 'placed', 'delivered', 'complete', 'cancelled', 'refunded', 'processing', 'paid', 'unpaid'].includes(order.status) ? order.status : ''}
           onChange={(event) => {
-            const next = event.target.value as 'pending' | 'paid' | 'unpaid' | '';
+            const next = event.target.value as 'pending' | 'placed' | 'delivered' | 'complete' | 'cancelled' | 'refunded' | 'processing' | 'paid' | 'unpaid' | '';
             if (next) handleStatusChange(next);
           }}
           disabled={updatingStatus}
@@ -107,6 +107,12 @@ export default function AdminOrderDetailPage() {
             Change status
           </option>
           <option value="pending">Pending</option>
+          <option value="placed">Placed</option>
+          <option value="delivered">Delivered</option>
+          <option value="complete">Complete</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
+          <option value="processing">Processing</option>
           <option value="paid">Paid</option>
           <option value="unpaid">Unpaid</option>
         </select>

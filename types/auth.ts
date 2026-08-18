@@ -8,6 +8,7 @@ export interface SafeUser {
   created_at: string;
   updated_at: string;
   role: 'user' | 'admin';
+  needs_password_change?: boolean;
 }
 
 export interface LoginResponse {

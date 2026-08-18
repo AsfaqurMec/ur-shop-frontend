@@ -28,8 +28,8 @@ function validateMobile(value: string) {
   return /^01[3-9]\d{8}$/.test(value.replace(/\D/g, ''));
 }
 
-function formatGuestAddress(address: string, addressLine2: string, city: string, postalCode: string) {
-  return [address, addressLine2, [city, postalCode].filter(Boolean).join(' ')].filter(Boolean).join('\n');
+function formatGuestAddress(address: string, addressLine2: string, postalCode: string) {
+  return [address, addressLine2, postalCode].filter(Boolean).join('\n');
 }
 
 export default function CheckoutPage() {
@@ -43,11 +43,9 @@ export default function CheckoutPage() {
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
-  const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [shippingMethodId, setShippingMethodId] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -105,7 +103,6 @@ export default function CheckoutPage() {
         setCart(cartData);
         if (profile?.user) {
           setName(profile.user.name ?? '');
-          setEmail(profile.user.email ?? '');
           setMobile(profile.user.mobile ?? '');
           setAddress(profile.user.address ?? '');
         }
@@ -134,11 +131,9 @@ export default function CheckoutPage() {
     if (!code || !cart) return;
     setCouponLoading(true);
     try {
-      if (getAuthToken()) {
-        const result = await validateCoupon(code, cart.subtotal, cart.items);
-        setCouponResult(result);
-        if (!result.valid) throw new Error(result.message || 'Coupon is not valid.');
-      }
+      const result = await validateCoupon(code, cart.subtotal, cart.items);
+      setCouponResult(result);
+      if (!result.valid) throw new Error(result.message || 'Coupon is not valid.');
       sessionStorage.setItem(COUPON_STORAGE_KEY, code);
       toast.success('Coupon added');
     } catch (err) {
@@ -192,16 +187,11 @@ export default function CheckoutPage() {
     if (!cart?.items.length) return;
     const normalizedMobile = mobile.replace(/\D/g, '');
     const trimmedAddress = address.trim();
-    const trimmedCity = city.trim();
     const trimmedAddressLine2 = addressLine2.trim();
     const trimmedPostalCode = postalCode.trim();
 
     if (isGuest && !name.trim()) {
       showCheckoutError('Name is required to continue as a guest.', 'guest-name');
-      return;
-    }
-    if (isGuest && !email.trim()) {
-      showCheckoutError('Email is required to continue as a guest.', 'guest-email');
       return;
     }
     if (!validateMobile(normalizedMobile)) {
@@ -210,10 +200,6 @@ export default function CheckoutPage() {
     }
     if (!trimmedAddress) {
       showCheckoutError('Address is required.', 'checkout-address');
-      return;
-    }
-    if (!trimmedCity) {
-      showCheckoutError('City is required.', 'checkout-city');
       return;
     }
     if (shippingMethods.length > 0 && !shippingMethodId) {
@@ -227,14 +213,12 @@ export default function CheckoutPage() {
       const formattedAddress = formatGuestAddress(
         trimmedAddress,
         trimmedAddressLine2,
-        trimmedCity,
         trimmedPostalCode
       );
 
       if (isGuest) {
         const result = await guestCheckout({
           name: name.trim(),
-          email: email.trim().toLowerCase(),
           mobile: normalizedMobile,
           address: formattedAddress,
         });
@@ -252,7 +236,7 @@ export default function CheckoutPage() {
         transaction_id: null,
         mobile: normalizedMobile,
         address: trimmedAddress,
-        city: trimmedCity,
+        city: 'N/A',
         postal_code: trimmedPostalCode || null,
         address_line2: trimmedAddressLine2 || null,
         shipping_method_id: shippingMethodId || null,
@@ -349,20 +333,6 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label htmlFor="guest-email" className="text-sm font-medium">
-                      Email <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      id="guest-email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      maxLength={254}
-                      required
-                    />
-                  </div>
                 </>
               ) : null}
               <div className="space-y-2">
@@ -408,21 +378,8 @@ export default function CheckoutPage() {
                   placeholder="Apartment, suite, unit, floor, etc."
                 />
               </div> */}
-              <div className="grid gap-4 sm:grid-cols-2">
+              {/* <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="checkout-city" className="text-sm font-medium">
-                    City <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    id="checkout-city"
-                    autoComplete="address-level2"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    maxLength={120}
-                    required
-                  />
-                </div>
-                {/* <div className="space-y-2">
                   <label htmlFor="checkout-postal-code" className="text-sm font-medium">
                     Postal code
                   </label>
@@ -434,8 +391,8 @@ export default function CheckoutPage() {
                     maxLength={32}
                     placeholder="Optional"
                   />
-                </div> */}
-              </div>
+                </div>
+              </div> */}
             </CardContent>
           </Card>
 

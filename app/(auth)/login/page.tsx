@@ -34,13 +34,13 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { identifier: '', password: '' },
   });
 
   const onSubmit = async (data: LoginInput) => {
     setSubmitError(null);
     try {
-      const result = await login(data.email, data.password);
+      const result = await login(data.identifier, data.password);
       if (result.user.role !== 'admin') {
         const pendingBuyNow = consumePendingBuyNowIntent();
         if (pendingBuyNow) {
@@ -105,11 +105,11 @@ export default function LoginPage() {
           </Alert>
         )}
         <FormField
-          label="Email"
-          type="email"
-          {...register('email')}
-          error={errors.email?.message}
-          placeholder="you@example.com"
+          label="Email or mobile number"
+          type="text"
+          {...register('identifier')}
+          error={errors.identifier?.message}
+          placeholder="you@example.com or 017xxxxxxxx"
         />
         <FormField
           label="Password"

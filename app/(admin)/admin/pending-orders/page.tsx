@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { deleteOrder, getAdminRecentOrders } from '@/lib/api/admin';
+import { deleteOrder, getAdminRecentOrders, updateAdminOrderStatus } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Alert, AlertDescription, Button, Pagination } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
@@ -26,6 +26,7 @@ function PendingOrdersContent() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
   useEffect(() => {
     const offset = (pageFromUrl - 1) * PAGE_SIZE;
@@ -78,6 +79,19 @@ function PendingOrdersContent() {
     }
   };
 
+  const updateStatus = async (id: number, status: Parameters<typeof updateAdminOrderStatus>[1]) => {
+    setUpdatingStatusId(id);
+    try {
+      await updateAdminOrderStatus(id, status);
+      setRefreshToken((value) => value + 1);
+      toast.success('Order status updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex justify-center py-12">
@@ -99,7 +113,7 @@ function PendingOrdersContent() {
           columns={[
             { key: 'id', header: 'ID', render: (r) => `#${r.id}` },
             { key: 'order_number', header: 'Order', render: (r) => `#${r.order_number}` },
-            { key: 'status', header: 'Status', render: (r) => <span className="capitalize">{r.status}</span> },
+            { key: 'status', header: 'Status', render: (r) => <select value={r.status} disabled={updatingStatusId === r.id} onChange={(event) => void updateStatus(r.id, event.target.value as Parameters<typeof updateAdminOrderStatus>[1])} className="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"><option value="pending">Pending</option><option value="placed">Placed</option><option value="delivered">Delivered</option><option value="complete">Complete</option><option value="cancelled">Cancelled</option><option value="refunded">Refunded</option><option value="processing">Processing</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select> },
             { key: 'total', header: 'Total', render: (r) => formatCurrency(r.total, r.currency) },
             {
               key: 'customer_name',

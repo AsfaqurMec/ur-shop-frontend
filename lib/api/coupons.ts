@@ -29,11 +29,11 @@ export async function validateCoupon(
     subtotal,
     items: items?.map((i) => ({
       product_id: i.product_id,
-      category_id: null,
+      category_id: i.category_id ?? null,
       quantity: i.quantity,
       unit_price: i.unit_price,
     })),
   };
-  const res = await apiPost<CouponValidationResult>('coupons/validate', body);
+  const res = await apiPost<CouponValidationResult>('coupons/validate', body, { skip401Redirect: true });
   return unwrap(res);
 }

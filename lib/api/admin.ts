@@ -212,7 +212,7 @@ export async function getAdminOrderDetails(orderId: number) {
 
 export async function updateAdminOrderStatus(
   orderId: number,
-  status: 'pending' | 'paid' | 'unpaid'
+  status: 'pending' | 'placed' | 'delivered' | 'complete' | 'cancelled' | 'refunded' | 'processing' | 'paid' | 'unpaid'
 ): Promise<AdminRecentOrder> {
   const res = await apiPatch<{ order: AdminRecentOrder }>(`admin/dashboard/orders/${orderId}/status`, { status });
   return unwrap(res).order;
