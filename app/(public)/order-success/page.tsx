@@ -86,13 +86,13 @@ export default function OrderSuccessPage() {
           <p className="text-lg">
             Order reference: <strong>#{orderId}</strong>
           </p>
-          <div className="flex flex-row gap-3 sm:flex-row">
-            <Link href="/dashboard/orders" className="w-1/2">
+          <div className="flex flex-col gap-3 sm:flex-row w-full">
+            <Link href="/dashboard/orders" className="w-full sm:w-1/2">
               <Button variant="outline" fullWidth className='bg-primary text-white hover:bg-red-700'>
                 View my orders
               </Button>
             </Link>
-            <Button variant="secondary" fullWidth className="w-1/2 bg-stone-800 text-white hover:bg-stone-700" onClick={handleInvoiceDownload} isLoading={downloading}>
+            <Button variant="secondary" fullWidth className="w-full sm:w-1/2 bg-stone-800 text-white hover:bg-stone-700" onClick={handleInvoiceDownload} isLoading={downloading}>
               Download invoice PDF
             </Button>
           </div>

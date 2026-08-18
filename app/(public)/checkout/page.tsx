@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getCart, removeCartItem } from '@/lib/api/cart';
+import { getCart, removeCartItem, updateCartItem } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
 import { getProfile, guestCheckout } from '@/lib/api/auth';
 import { getAuthToken, setAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, transferGuestCartToAccount } from '@/lib/storefront/guestCart';
+import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem } from '@/lib/storefront/guestCart';
+import { fetchProductBySlug } from '@/lib/api/products';
 import { getPublicStoreSettings, type ShippingMethod } from '@/lib/api/storeSettings';
 import type { Cart } from '@/types/cart';
 import type { PaymentMethod } from '@/types/payment';
@@ -40,6 +41,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -72,7 +74,21 @@ export default function CheckoutPage() {
           const methods = settings.shippingMethods ?? [];
           setShippingMethods(methods);
           setShippingMethodId(methods[0]?.id ?? '');
-          setCart(getGuestCart());
+          const guestCart = getGuestCart();
+          setCart(guestCart);
+          const missingImages = guestCart.items.filter((item) => !item.product_thumbnail);
+          if (missingImages.length) {
+            void Promise.all(missingImages.map(async (item) => {
+              try {
+                const product = await fetchProductBySlug(item.product_slug);
+                return setGuestCartItemThumbnail(item.id, product.thumbnail);
+              } catch {
+                return null;
+              }
+            })).then(() => {
+              if (!cancelled) setCart(getGuestCart());
+            });
+          }
           setLoading(false);
           return;
         }
@@ -133,6 +149,16 @@ export default function CheckoutPage() {
     }
   };
 
+  const showCheckoutError = (message: string, targetId?: string) => {
+    setSubmitError(message);
+    toast.error(message);
+    requestAnimationFrame(() => {
+      const target = document.getElementById(targetId ?? 'checkout-error');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (target instanceof HTMLElement) target.focus({ preventScroll: true });
+    });
+  };
+
   const removeItem = async (itemId: number) => {
     setRemovingId(itemId);
     setSubmitError(null);
@@ -148,6 +174,20 @@ export default function CheckoutPage() {
     }
   };
 
+  const updateItemQuantity = async (item: Cart['items'][number], quantity: number) => {
+    const nextQuantity = Math.max(1, Math.min(quantity, item.max_quantity));
+    if (nextQuantity === item.quantity) return;
+    setUpdatingId(item.id);
+    try {
+      const updated = item.id < 0 ? updateGuestCartItem(item.id, nextQuantity) : await updateCartItem(item.id, nextQuantity);
+      setCart(updated);
+    } catch (err) {
+      showCheckoutError(err instanceof Error ? err.message : 'Could not update quantity.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleCreateOrder = async () => {
     if (!cart?.items.length) return;
     const normalizedMobile = mobile.replace(/\D/g, '');
@@ -156,24 +196,28 @@ export default function CheckoutPage() {
     const trimmedAddressLine2 = addressLine2.trim();
     const trimmedPostalCode = postalCode.trim();
 
-    if (isGuest && (!name.trim() || !email.trim())) {
-      setSubmitError('Name and email are required to continue as a guest.');
+    if (isGuest && !name.trim()) {
+      showCheckoutError('Name is required to continue as a guest.', 'guest-name');
+      return;
+    }
+    if (isGuest && !email.trim()) {
+      showCheckoutError('Email is required to continue as a guest.', 'guest-email');
       return;
     }
     if (!validateMobile(normalizedMobile)) {
-      setSubmitError('Enter a valid Bangladesh mobile number (for example, 01712345678).');
+      showCheckoutError('Enter a valid Bangladesh mobile number (for example, 01712345678).', 'checkout-mobile');
       return;
     }
     if (!trimmedAddress) {
-      setSubmitError('Address is required.');
+      showCheckoutError('Address is required.', 'checkout-address');
       return;
     }
     if (!trimmedCity) {
-      setSubmitError('City is required.');
+      showCheckoutError('City is required.', 'checkout-city');
       return;
     }
     if (shippingMethods.length > 0 && !shippingMethodId) {
-      setSubmitError('Please select a shipping method.');
+      showCheckoutError('Please select a shipping method.', 'checkout-shipping-methods');
       return;
     }
 
@@ -218,8 +262,7 @@ export default function CheckoutPage() {
       router.push(`/order-success?orderId=${order.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Checkout failed. Please try again.';
-      setSubmitError(message);
-      toast.error(message);
+      showCheckoutError(message);
     } finally {
       setSubmitting(false);
     }
@@ -275,7 +318,7 @@ export default function CheckoutPage() {
           : 'Place your order with cash on delivery.'}
       </p>
       {submitError ? (
-        <Alert variant="destructive" className="mb-4">
+        <Alert id="checkout-error" variant="destructive" className="mb-4" tabIndex={-1}>
           <AlertDescription>{submitError}</AlertDescription>
         </Alert>
       ) : null}
@@ -352,7 +395,7 @@ export default function CheckoutPage() {
                   placeholder="House no., road, area"
                 />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label htmlFor="checkout-address-line2" className="text-sm font-medium">
                   Apartment, suite, etc.
                 </label>
@@ -364,7 +407,7 @@ export default function CheckoutPage() {
                   maxLength={255}
                   placeholder="Apartment, suite, unit, floor, etc."
                 />
-              </div>
+              </div> */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label htmlFor="checkout-city" className="text-sm font-medium">
@@ -379,7 +422,7 @@ export default function CheckoutPage() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label htmlFor="checkout-postal-code" className="text-sm font-medium">
                     Postal code
                   </label>
@@ -391,7 +434,7 @@ export default function CheckoutPage() {
                     maxLength={32}
                     placeholder="Optional"
                   />
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
@@ -414,7 +457,7 @@ export default function CheckoutPage() {
             </Card>
           ) : null}
 
-          <Card className="overflow-hidden shadow-sm">
+          <Card className="overflow-hidden shadow-sm hidden sm:flex flex-col">
             <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
               <CardTitle className="text-base sm:text-lg">Payment</CardTitle>
             </CardHeader>
@@ -434,7 +477,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="order-1 space-y-4 lg:order-none lg:col-span-2">
-          <CheckoutOrderItemsAccordion items={cart.items} removingId={removingId} onRemoveItem={removeItem} />
+          <CheckoutOrderItemsAccordion items={cart.items} removingId={removingId} updatingId={updatingId} onRemoveItem={removeItem} onUpdateItem={updateItemQuantity} />
           <Card className="shadow-sm lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="text-base sm:text-lg">Summary</CardTitle>
@@ -461,7 +504,7 @@ export default function CheckoutPage() {
                 <label htmlFor="checkout-coupon" className="text-sm font-medium">Coupon code</label>
                 <div className="flex gap-2">
                   <Input id="checkout-coupon" value={couponInput} onChange={(e) => { setCouponInput(e.target.value); setCouponResult(null); }} placeholder="Enter code" />
-                  <Button type="button" variant="outline" onClick={() => void applyCoupon()} isLoading={couponLoading} disabled={!couponInput.trim()}>Apply</Button>
+                  <Button type="button" variant="success" onClick={() => void applyCoupon()} isLoading={couponLoading} disabled={!couponInput.trim()}>Apply</Button>
                 </div>
                 {couponResult?.valid ? <p className="text-xs text-green-600">Coupon discount applied.</p> : null}
                 {couponResult && !couponResult.valid ? <p className="text-xs text-destructive">{couponResult.message || 'Coupon is not valid.'}</p> : null}
@@ -475,7 +518,7 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span className="tabular-nums">{formatCurrency(orderTotal)}</span>
               </div>
-              <Button fullWidth size="lg" className='bg-green-600 hover:bg-green-800' onClick={handleCreateOrder} isLoading={submitting}>
+              <Button fullWidth size="lg" variant="success" onClick={handleCreateOrder} isLoading={submitting}>
                 {isGuest ? 'Place order' : 'Place order'}
               </Button>
               <Link href="/cart" className="block text-center text-sm text-muted-foreground hover:text-foreground">

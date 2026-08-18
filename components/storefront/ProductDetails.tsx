@@ -13,6 +13,7 @@ import { ProductDetailInfoTabs } from './ProductDetailInfoTabs';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { RelatedProducts } from './RelatedProducts';
 import { SocialSpeedDial } from './SocialSpeedDial';
+import { ProductSocialContactStrip } from './ProductSocialContactStrip';
 
 export interface ProductDetailsProps {
   product: Product;
@@ -166,6 +167,9 @@ export function ProductDetails({
           />
         </div>
       ) : null}
+     <div className='mt-5 flex sm:hidden'>
+    <ProductSocialContactStrip links={socialLinks} supportNumber={supportNumber} />
+    </div>
     </Container>
     {relatedProducts.length > 0 ? (
       <section className="border-t border-border/60 bg-muted/25">

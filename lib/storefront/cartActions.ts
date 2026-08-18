@@ -13,6 +13,7 @@ export async function addSimpleProductToCart(product: Product) {
       productName: product.name,
       productSlug: product.slug,
       productType: product.product_type,
+      productThumbnail: product.thumbnail,
       unitPrice: product.price,
       maxQuantity: product.quantity ?? product.license_available_count ?? 99,
     });

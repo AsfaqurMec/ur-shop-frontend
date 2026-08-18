@@ -3,11 +3,12 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getAdminRecentOrders } from '@/lib/api/admin';
-import { AdminPageHeader, DataTable } from '@/components/admin';
-import { Pagination } from '@/components/ui';
+import { deleteOrder, getAdminRecentOrders } from '@/lib/api/admin';
+import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
+import { Alert, AlertDescription, Button, Pagination } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
 import type { AdminRecentOrder } from '@/lib/api/admin';
+import { toast } from 'sonner';
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +22,10 @@ function PendingOrdersContent() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminRecentOrder | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     const offset = (pageFromUrl - 1) * PAGE_SIZE;
@@ -42,7 +47,7 @@ function PendingOrdersContent() {
     return () => {
       cancelled = true;
     };
-  }, [pageFromUrl]);
+  }, [pageFromUrl, refreshToken]);
 
   const setPage = (p: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -50,6 +55,27 @@ function PendingOrdersContent() {
     else params.set('page', String(p));
     const q = params.toString();
     router.push(q ? `${pathname}?${q}` : pathname);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!deleteTarget) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      await deleteOrder(deleteTarget.id);
+      closeDeleteModal();
+      setRefreshToken((value) => value + 1);
+      toast.success('Order deleted');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete order');
+    } finally {
+      setDeleteSubmitting(false);
+    }
   };
 
   if (loading && orders.length === 0) {
@@ -91,9 +117,14 @@ function PendingOrdersContent() {
               key: 'actions',
               header: '',
               render: (r) => (
-                <Link href={`/admin/orders/${r.id}`} className="text-primary hover:underline">
-                  View
-                </Link>
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  <Link href={`/admin/orders/${r.id}`} className="rounded-md border-2 px-3 py-2 text-primary hover:underline">
+                    View
+                  </Link>
+                  <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(r)}>
+                    Delete
+                  </Button>
+                </div>
               ),
             },
           ]}
@@ -111,6 +142,18 @@ function PendingOrdersContent() {
           disabled={loading}
         />
       </div>
+      <Modal open={deleteTarget != null} onClose={closeDeleteModal} title="Delete Order">
+        <div className="space-y-4">
+          <p className="text-lg text-muted-foreground">
+            Delete <span className="pr-3 font-semibold text-foreground">#{deleteTarget?.id}?</span> The order will be deleted permanently.
+          </p>
+          {deleteError ? <Alert variant="destructive"><AlertDescription>{deleteError}</AlertDescription></Alert> : null}
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Button type="button" variant="outline" onClick={closeDeleteModal} disabled={deleteSubmitting}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={confirmDeleteOrder} isLoading={deleteSubmitting}>Delete Order</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

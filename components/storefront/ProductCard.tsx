@@ -120,7 +120,7 @@ import { splitCurrencyDisplay } from '@/lib/utils/format';
 import { ShoppingCart } from 'lucide-react';
 export interface ProductCardProps {
   product: Product;
-  onAddToCart?: (product: Product) => void | Promise<void>;
+  onAddToCart?: (product: Product, options?: { showConfirmation?: boolean }) => void | Promise<void>;
   addToCartLoading?: boolean;
 }
 
@@ -138,11 +138,8 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
       : 0;
 
   const handleBuyNow = async () => {
-    if (needsPdp || !onAddToCart) {
-      router.push(`/products/${product.slug}`);
-      return;
-    }
-    await onAddToCart(product);
+    if (!onAddToCart) return;
+    await onAddToCart(product, { showConfirmation: false });
     router.push('/checkout');
   };
 
@@ -230,7 +227,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
             type="button"
             onClick={handleBuyNow}
             disabled={addToCartLoading}
-            className="inline-flex flex-1 p-1.5 items-center justify-center rounded-lg bg-primary text-white shadow-md transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="uppercase font-semibold inline-flex flex-1 p-1 items-center justify-center rounded-md bg-primary text-white text-sm shadow-md transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={`Buy ${product.name} now`}
             title="Buy now"
           >
@@ -246,7 +243,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
               else void onAddToCart?.(product);
             }}
             disabled={addToCartLoading}
-            className="inline-flex h-9 w-9 p-2 items-center justify-center rounded-full bg-black hover:bg-primary text-primary-foreground shadow-md shadow-primary/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            className="uppercase font-semibold inline-flex h-7 w-7 p-1.5 items-center justify-center rounded-full bg-black hover:bg-primary text-primary-foreground shadow-md shadow-primary/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={`Add ${product.name} to cart`}
             title="Add to cart"
           >

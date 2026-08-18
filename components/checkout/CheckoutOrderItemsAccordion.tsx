@@ -8,17 +8,22 @@ import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { cn } from '@/lib/utils/cn';
 import { getProductImageUrl } from '@/lib/imageUrl';
+import { Trash2 } from 'lucide-react';
 
 export interface CheckoutOrderItemsAccordionProps {
   items: CartItem[];
   removingId: number | null;
+  updatingId: number | null;
   onRemoveItem: (itemId: number) => void;
+  onUpdateItem: (item: CartItem, quantity: number) => void;
 }
 
 export function CheckoutOrderItemsAccordion({
   items,
   removingId,
+  updatingId,
   onRemoveItem,
+  onUpdateItem,
 }: CheckoutOrderItemsAccordionProps) {
   const [open, setOpen] = useState(true);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -56,9 +61,7 @@ export function CheckoutOrderItemsAccordion({
               const rows = storefrontSelectionsSummary(item.selections_summary);
               return (
                 <li key={item.id} className="flex gap-3 py-3">
-                  {getProductImageUrl(item.product_thumbnail) ? (
-                    <img src={getProductImageUrl(item.product_thumbnail) ?? undefined} alt="" className="h-14 w-14 shrink-0 rounded-md border border-border object-cover" />
-                  ) : null}
+                  <img src={getProductImageUrl(item.product_thumbnail) ?? '/icon.png'} alt={item.product_name} className="h-14 w-14 shrink-0 rounded-md border border-border object-cover" />
                   <div className="min-w-0 flex-1">
                     <Link href={`/products/${item.product_slug}`} className="font-medium text-primary hover:underline">
                       {item.product_name}
@@ -66,6 +69,11 @@ export function CheckoutOrderItemsAccordion({
                     <p className="text-sm text-muted-foreground">
                       {formatCurrency(item.unit_price)} × {item.quantity}
                     </p>
+                    <div className="mt-2 inline-flex items-center rounded-md border border-border bg-background">
+                      <button type="button" aria-label={`Decrease ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity - 1)} disabled={updatingId === item.id || item.quantity <= 1} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                      <span className="min-w-8 text-center text-sm font-medium tabular-nums">{item.quantity}</span>
+                      <button type="button" aria-label={`Increase ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity + 1)} disabled={updatingId === item.id || item.quantity >= item.max_quantity} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">+</button>
+                    </div>
                     {rows.length > 0 ? (
                       <ul className="mt-1 text-xs text-muted-foreground">
                         {rows.map((row) => (
@@ -83,9 +91,10 @@ export function CheckoutOrderItemsAccordion({
                       variant="ghost"
                       disabled={removingId === item.id}
                       onClick={() => onRemoveItem(item.id)}
-                      className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="h-12 w-12 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive bg-stone-50 "
+                      aria-label={`Remove ${item.product_name}`}
                     >
-                      Remove
+                     <Trash2 className="h-10 w-10 text-primary" aria-hidden />
                     </Button>
                   </div>
                 </li>

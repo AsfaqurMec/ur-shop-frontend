@@ -62,12 +62,14 @@ export function ShopClient({ initialProducts, total, search, minPrice, maxPrice,
     return () => observer.disconnect();
   }, [hasMore, loadingMore, products.length]);
 
-  const handleAddToCart = async (product: Product) => {
+  const handleAddToCart = async (product: Product, options?: { showConfirmation?: boolean }) => {
     setAddingProductId(product.id);
     try {
       await addSimpleProductToCart(product);
       if (window.fbq) window.fbq('track', 'AddToCart', { content_ids: [String(product.id)], content_name: product.name, content_type: 'product', value: Number(product.price), currency: 'BDT' });
-      showAddedToCart({ name: product.name, imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) });
+      if (options?.showConfirmation !== false) {
+        showAddedToCart({ name: product.name, imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) });
+      }
     } finally {
       setAddingProductId(null);
     }

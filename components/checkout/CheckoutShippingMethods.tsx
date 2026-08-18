@@ -14,7 +14,7 @@ export function CheckoutShippingMethods({ methods, selectedId, onSelect }: Check
   if (methods.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div id="checkout-shipping-methods" className="space-y-3" tabIndex={-1}>
       {methods.map((method) => {
         const selected = selectedId === method.id;
         return (

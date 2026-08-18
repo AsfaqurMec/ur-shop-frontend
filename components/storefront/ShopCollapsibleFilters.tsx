@@ -128,18 +128,24 @@ export function ShopCollapsibleFilters({
   const [saleOnly, setSaleOnly] = useState(searchParams.get('on_sale') === '1');
   const [sort, setSort] = useState<ProductSort>((searchParams.get('sort') as ProductSort) || 'newest');
 
-  const applyPriceRange = (event: React.FormEvent) => {
-    event.preventDefault();
+  const applyDrawerFilters = (overrides: Partial<{ minPrice: string; maxPrice: string; saleOnly: boolean; sort: ProductSort }> = {}) => {
     const params = new URLSearchParams(searchParams.toString());
-    const min = minPrice.trim();
-    const max = maxPrice.trim();
+    const min = (overrides.minPrice ?? minPrice).trim();
+    const max = (overrides.maxPrice ?? maxPrice).trim();
+    const nextSaleOnly = overrides.saleOnly ?? saleOnly;
+    const nextSort = overrides.sort ?? sort;
     if (min) params.set('min_price', min); else params.delete('min_price');
     if (max) params.set('max_price', max); else params.delete('max_price');
-    if (saleOnly) params.set('on_sale', '1'); else params.delete('on_sale');
-    if (sort === 'newest') params.delete('sort'); else params.set('sort', sort);
+    if (nextSaleOnly) params.set('on_sale', '1'); else params.delete('on_sale');
+    if (nextSort === 'newest') params.delete('sort'); else params.set('sort', nextSort);
     params.delete('page');
     router.push(`${searchBasePath}${params.toString() ? `?${params.toString()}` : ''}`);
     setOpen(false);
+  };
+
+  const applyPriceRange = (event: React.FormEvent) => {
+    event.preventDefault();
+    applyDrawerFilters();
   };
 
   return (
@@ -177,9 +183,9 @@ export function ShopCollapsibleFilters({
               <input type="number" min="0" inputMode="decimal" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max price" className="h-10 min-w-0 rounded-md border border-input bg-background px-3 text-sm" />
             </div>
             <Button type="submit" size="sm">Apply price</Button>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={saleOnly} onChange={(e) => setSaleOnly(e.target.checked)} /> Sale items only</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={saleOnly} onChange={(e) => { const checked = e.target.checked; setSaleOnly(checked); applyDrawerFilters({ saleOnly: checked }); }} /> Sale items only</label>
             <label className="block text-sm font-medium">Sort by
-              <select value={sort} onChange={(e) => setSort(e.target.value as ProductSort)} className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <select value={sort} onChange={(e) => { const value = e.target.value as ProductSort; setSort(value); applyDrawerFilters({ sort: value }); }} className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="newest">Newest</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="name_asc">Name: A to Z</option><option value="name_desc">Name: Z to A</option>
               </select>
             </label>

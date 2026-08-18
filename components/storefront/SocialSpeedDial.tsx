@@ -60,9 +60,9 @@ export function SocialSpeedDial({ links }: SocialSpeedDialProps) {
           onClick={close}
         />
       ) : null}
-      <div className="pointer-events-auto relative z-[1] flex flex-col items-end gap-3">
+      <div className="pointer-events-auto relative z-[1]">
         <div
-          className={`flex flex-col items-end gap-3 ${open ? '' : 'pointer-events-none'}`}
+          className={`absolute bottom-[calc(100%+0.75rem)] right-0 flex flex-col items-end gap-3 ${open ? '' : 'pointer-events-none invisible'}`}
           aria-hidden={!open}
         >
           {links.map((item, index) => {

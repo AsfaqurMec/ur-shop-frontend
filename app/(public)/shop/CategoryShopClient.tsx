@@ -50,6 +50,6 @@ export function CategoryShopClient({ initialProducts, total, categorySlug, categ
     return () => observer.disconnect();
   }, [hasMore, loadingMore, products.length]);
 
-  const handleAddToCart = async (product: Product) => { setAddingProductId(product.id); try { await addSimpleProductToCart(product); showAddedToCart({ name: product.name, imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) }); } finally { setAddingProductId(null); } };
+  const handleAddToCart = async (product: Product, options?: { showConfirmation?: boolean }) => { setAddingProductId(product.id); try { await addSimpleProductToCart(product); if (options?.showConfirmation !== false) showAddedToCart({ name: product.name, imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)) }); } finally { setAddingProductId(null); } };
   return <div className="space-y-6"><p className="text-sm font-medium text-muted-foreground">Showing <span className="tabular-nums text-foreground">{products.length}</span> of <span className="tabular-nums text-foreground">{total}</span> products</p><ProductGrid products={products} onAddToCart={handleAddToCart} addingProductId={addingProductId} /><div ref={sentinelRef} className="flex min-h-12 justify-center" aria-live="polite">{loadingMore ? <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /> : hasMore ? <span className="text-sm text-muted-foreground">Scroll for more products</span> : <span className="text-sm text-muted-foreground">You have reached the end.</span>}</div></div>;
 }

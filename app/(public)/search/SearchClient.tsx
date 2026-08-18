@@ -29,15 +29,17 @@ export function SearchClient({
   const searchParams = useSearchParams();
   const showAddedToCart = useShowAddedToCartModal();
 
-  const handleAddToCart = async (product: Product) => {
+  const handleAddToCart = async (product: Product, options?: { showConfirmation?: boolean }) => {
     setAddingProductId(product.id);
     try {
       await addSimpleProductToCart(product);
       window.dispatchEvent(new Event('cart:changed'));
-      showAddedToCart({
-        name: product.name,
-        imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)),
-      });
+      if (options?.showConfirmation !== false) {
+        showAddedToCart({
+          name: product.name,
+          imageUrl: getProductImageUrl(getPrimaryProductImagePath(product)),
+        });
+      }
     } finally {
       setAddingProductId(null);
     }

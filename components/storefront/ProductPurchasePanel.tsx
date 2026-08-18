@@ -629,7 +629,7 @@ export function ProductPurchasePanel({
         </div>
       )}
 
-      <div className="grid gap-2 pt-1 sm:grid-cols-2">
+      <div className="grid gap-2 pt-1 grid-cols-2">
         <AddToCartButton
           productId={product.id}
           quantity={maxQty > 1 ? qty : 1}
@@ -645,6 +645,7 @@ export function ProductPurchasePanel({
             productName: product.name,
             productSlug: product.slug,
             productType: product.product_type,
+            productThumbnail: imageUrl,
             unitPrice: displayPrice,
             quantity: maxQty > 1 ? qty : 1,
             maxQuantity: maxQty,
@@ -674,6 +675,7 @@ export function ProductPurchasePanel({
             productName: product.name,
             productSlug: product.slug,
             productType: product.product_type,
+            productThumbnail: imageUrl,
             unitPrice: displayPrice,
             quantity: maxQty > 1 ? qty : 1,
             maxQuantity: maxQty,
@@ -690,14 +692,18 @@ export function ProductPurchasePanel({
       </div>
         </form>
       </div>
-
+      
+      <div className='hidden sm:flex'>
       <ProductSocialContactStrip links={socialLinks} supportNumber={supportNumber} />
+      </div>
+     
       {sizeChartImageUrl ? (
         <section className="mt-4 overflow-hidden rounded-lg border border-border/80 bg-card p-3 shadow-sm">
           <h2 className="mb-3 text-base font-bold text-foreground">Size chart</h2>
           <img src={sizeChartImageUrl} alt={`${product.name} size chart`} className="h-auto w-full rounded-md" />
         </section>
       ) : null}
+       
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { HorizontalSlider } from './HorizontalSlider';
 
 export interface ProductGridProps {
   products: Product[];
-  onAddToCart?: (product: Product) => void | Promise<void>;
+  onAddToCart?: (product: Product, options?: { showConfirmation?: boolean }) => void | Promise<void>;
   addingProductId?: number | null;
 }
 

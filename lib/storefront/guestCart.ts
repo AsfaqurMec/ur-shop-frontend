@@ -8,6 +8,7 @@ export interface GuestCartItemInput {
   productName: string;
   productSlug: string;
   productType: string;
+  productThumbnail?: string | null;
   unitPrice: number;
   quantity?: number;
   maxQuantity?: number;
@@ -75,6 +76,7 @@ export function addGuestCartItem(input: GuestCartItemInput): Cart {
   );
   if (existing) {
     existing.quantity = Math.min(maxQuantity, existing.quantity + quantity);
+    if (!existing.product_thumbnail && input.productThumbnail) existing.product_thumbnail = input.productThumbnail;
     existing.line_total = Math.round(existing.quantity * existing.unit_price * 100) / 100;
   } else {
     items.push({
@@ -85,6 +87,7 @@ export function addGuestCartItem(input: GuestCartItemInput): Cart {
       product_name: input.productName,
       product_slug: input.productSlug,
       product_type: input.productType,
+      product_thumbnail: input.productThumbnail ?? null,
       quantity,
       max_quantity: maxQuantity,
       unit_price: Math.round((Number(input.unitPrice) || 0) * 100) / 100,
@@ -106,6 +109,18 @@ export function updateGuestCartItem(itemId: number, quantity: number): Cart {
   item.line_total = Math.round(item.quantity * item.unit_price * 100) / 100;
   writeItems(items);
   emitChange();
+  return asCart(items);
+}
+
+/** Backfills image data for guest carts created before thumbnails were persisted. */
+export function setGuestCartItemThumbnail(itemId: number, productThumbnail: string | null | undefined): Cart {
+  if (!productThumbnail) return asCart(readItems());
+  const items = readItems();
+  const item = items.find((candidate) => candidate.id === itemId);
+  if (item && !item.product_thumbnail) {
+    item.product_thumbnail = productThumbnail;
+    writeItems(items);
+  }
   return asCart(items);
 }
 

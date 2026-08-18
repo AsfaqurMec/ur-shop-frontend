@@ -8,7 +8,8 @@ import {
   removeCartItem,
 } from '@/lib/api/cart';
 import { getAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, updateGuestCartItem } from '@/lib/storefront/guestCart';
+import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, updateGuestCartItem } from '@/lib/storefront/guestCart';
+import { fetchProductBySlug } from '@/lib/api/products';
 import { validateCoupon } from '@/lib/api/coupons';
 import type { Cart, CartItem } from '@/types/cart';
 import type { CouponValidationResult } from '@/types/coupon';
@@ -20,6 +21,7 @@ import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { getProductImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
+import { Trash2 } from 'lucide-react';
 
 const COUPON_STORAGE_KEY = 'checkout_coupon_code';
 
@@ -38,7 +40,19 @@ export default function CartPage() {
     setLoading(true);
     setError(null);
     if (!getAuthToken()) {
-      setCart(getGuestCart());
+      const guestCart = getGuestCart();
+      setCart(guestCart);
+      const missingImages = guestCart.items.filter((item) => !item.product_thumbnail);
+      if (missingImages.length) {
+        void Promise.all(missingImages.map(async (item) => {
+          try {
+            const product = await fetchProductBySlug(item.product_slug);
+            return setGuestCartItemThumbnail(item.id, product.thumbnail);
+          } catch {
+            return null;
+          }
+        })).then(() => setCart(getGuestCart()));
+      }
       setLoading(false);
       return;
     }
@@ -191,67 +205,88 @@ export default function CartPage() {
             return (
             <Card key={item.id}>
               <CardContent className="p-4 pt-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  {getProductImageUrl(item.product_thumbnail) ? (
-                    <img src={getProductImageUrl(item.product_thumbnail) ?? undefined} alt="" className="h-20 w-20 shrink-0 rounded-lg border border-border object-cover" />
-                  ) : (
-                    <div className="h-20 w-20 shrink-0 rounded-lg border border-border bg-muted" aria-hidden />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/products/${item.product_slug}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {item.product_name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {formatCurrency(item.unit_price)} × {item.quantity}
-                    </p>
-                    {summaryRows.length ? (
-                      <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-                        {summaryRows.map((row) => (
-                          <li key={`${item.id}-${row.label}`}>
-                            <span className="font-medium text-foreground/80">{row.label}:</span> {row.value}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-shrink-0 flex-wrap items-center gap-3 sm:flex-nowrap">
-                    <label className="sr-only" htmlFor={`qty-${item.id}`}>
-                      Quantity
-                    </label>
-                    {maxQ < 1 ? (
-                      <span className="text-xs text-destructive whitespace-nowrap">Out of stock</span>
-                    ) : (
-                    <select
-                      id={`qty-${item.id}`}
-                      value={displayQty}
-                      onChange={(e) => handleUpdateQuantity(item, Number(e.target.value))}
-                      disabled={updatingId === item.id}
-                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      {Array.from({ length: selectMax }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
-                    )}
-                    <span className="w-20 text-right font-medium tabular-nums">
-                      {formatCurrency(item.line_total)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemove(item.id)}
-                      disabled={updatingId === item.id}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+  {/* Product info */}
+  <div className="flex min-w-0 flex-1 items-start gap-3">
+    <img
+      src={getProductImageUrl(item.product_thumbnail) ?? '/icon.png'}
+      alt={item.product_name}
+      className="h-20 w-20 shrink-0 rounded-lg border border-border object-cover"
+    />
+
+    <div className="min-w-0 flex-1">
+      <Link
+        href={`/products/${item.product_slug}`}
+        className="line-clamp-2 font-medium text-primary hover:underline"
+      >
+        {item.product_name}
+      </Link>
+
+      <p className="mt-0.5 text-sm text-muted-foreground">
+        {formatCurrency(item.unit_price)} × {item.quantity}
+      </p>
+
+      {summaryRows.length ? (
+        <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+          {summaryRows.map((row) => (
+            <li key={`${item.id}-${row.label}`}>
+              <span className="font-medium text-foreground/80">
+                {row.label}:
+              </span>{' '}
+              {row.value}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  </div>
+
+  {/* Controls */}
+  <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto sm:justify-end">
+    <div className="flex items-center gap-3">
+      <label className="sr-only" htmlFor={`qty-${item.id}`}>
+        Quantity
+      </label>
+
+      {maxQ < 1 ? (
+        <span className="whitespace-nowrap text-xs text-destructive">
+          Out of stock
+        </span>
+      ) : (
+        <select
+          id={`qty-${item.id}`}
+          value={displayQty}
+          onChange={(e) =>
+            handleUpdateQuantity(item, Number(e.target.value))
+          }
+          disabled={updatingId === item.id}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          {Array.from({ length: selectMax }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <span className="w-auto min-w-[80px] text-right font-medium tabular-nums">
+        {formatCurrency(item.line_total)}
+      </span>
+    </div>
+
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => handleRemove(item.id)}
+      disabled={updatingId === item.id}
+      className="h-12 w-12 shrink-0 bg-red-50 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      aria-label={`Remove ${item.product_name}`}
+    >
+      <Trash2 className="h-9 w-9 text-primary" aria-hidden />
+    </Button>
+  </div>
+</div>
               </CardContent>
             </Card>
             );
@@ -268,12 +303,13 @@ export default function CartPage() {
                 <span className="tabular-nums">{formatCurrency(cart.subtotal)}</span>
               </div>
               {/* Coupon */}
-              {isGuest ? (
+              {/* {isGuest ? (
                 <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
                   Coupon codes are available after signing in.
                 </p>
-              ) : <div className="space-y-2">
-                <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+              ) : */}
+               <div className="space-y-2">
+                {/* <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
                     value={couponInput}
@@ -285,15 +321,15 @@ export default function CartPage() {
                     className="min-h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                   />
                   <Button
-                    variant="outline"
-                    className="w-full shrink-0 sm:w-auto"
+                    variant="success"
+                    className="w-full bg-green-600 text-white hover:bg-green-800 shrink-0 sm:w-auto"
                     onClick={handleApplyCoupon}
                     disabled={couponLoading || !couponInput.trim()}
                     isLoading={couponLoading}
                   >
                     Apply
                   </Button>
-                </div>
+                </div> */}
                 {couponError && (
                   <p className="text-sm text-red-600 dark:text-red-400">{couponError}</p>
                 )}
@@ -312,7 +348,7 @@ export default function CartPage() {
                     </button>
                   </p>
                 )}
-              </div>}
+              </div>
               {discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span>Discount</span>
@@ -326,7 +362,7 @@ export default function CartPage() {
                 <span className="tabular-nums">{formatCurrency(estimatedTotal)}</span>
               </div>
               <Link href="/checkout" className="block">
-                <Button fullWidth size="lg">
+                <Button fullWidth size="lg" variant='success' className='bg-green-600 text-white hover:bg-green-800'>
                   Proceed to checkout
                 </Button>
               </Link>
