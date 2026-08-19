@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCart, removeCartItem, updateCartItem } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
-import { getProfile, guestCheckout } from '@/lib/api/auth';
+import { getProfile, guestAccountExists, guestCheckout, continueCheckout } from '@/lib/api/auth';
 import { getAuthToken, setAuthToken } from '@/lib/api/client';
 import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem } from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
@@ -23,6 +23,7 @@ import { validateCoupon } from '@/lib/api/coupons';
 import type { CouponValidationResult } from '@/types/coupon';
 
 const COUPON_STORAGE_KEY = 'checkout_coupon_code';
+const CHECKOUT_DRAFT_STORAGE_KEY = 'checkout_guest_draft';
 
 function validateMobile(value: string) {
   return /^01[3-9]\d{8}$/.test(value.replace(/\D/g, ''));
@@ -30,6 +31,15 @@ function validateMobile(value: string) {
 
 function formatGuestAddress(address: string, addressLine2: string, postalCode: string) {
   return [address, addressLine2, postalCode].filter(Boolean).join('\n');
+}
+
+function parseStoredAddress(storedAddress: string) {
+  const parts = storedAddress.split('\n').map((part) => part.trim()).filter(Boolean);
+  return {
+    address: parts[0] ?? '',
+    addressLine2: parts[1] ?? '',
+    postalCode: parts[2] ?? '',
+  };
 }
 
 export default function CheckoutPage() {
@@ -56,10 +66,18 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [couponResult, setCouponResult] = useState<CouponValidationResult | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [checkingExistingAccount, setCheckingExistingAccount] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setCouponInput(typeof window !== 'undefined' ? sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim() ?? '' : '');
+    const savedDraft = typeof window !== 'undefined' ? sessionStorage.getItem(CHECKOUT_DRAFT_STORAGE_KEY) : null;
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft) as { name?: string; mobile?: string; address?: string; addressLine2?: string; postalCode?: string };
+        setName(draft.name ?? ''); setMobile(draft.mobile ?? ''); setAddress(draft.address ?? ''); setAddressLine2(draft.addressLine2 ?? ''); setPostalCode(draft.postalCode ?? '');
+      } catch { sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY); }
+    }
     const guest = !getAuthToken();
     setIsGuest(guest);
 
@@ -183,6 +201,45 @@ export default function CheckoutPage() {
     }
   };
 
+  const saveCheckoutDraft = () => {
+    sessionStorage.setItem(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify({ name, mobile, address, addressLine2, postalCode }));
+  };
+
+  const placeOrderWithStoredAccount = async (normalizedMobile: string) => {
+    const result = await continueCheckout(normalizedMobile);
+    const user = result.user;
+    const storedAddress = user.address?.trim() ?? '';
+    if (!storedAddress) {
+      throw new Error('This account has no saved address. Please log in to update your profile.');
+    }
+
+    setAuthToken(result.accessToken);
+    window.dispatchEvent(new Event('profile:updated'));
+    await transferGuestCartToAccount();
+
+    const { address: orderAddress, addressLine2: orderAddressLine2, postalCode: orderPostalCode } =
+      parseStoredAddress(storedAddress);
+    const resolvedAddress = orderAddress || storedAddress;
+
+    const coupon = sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim();
+    const order = await createOrder({
+      coupon_code: coupon || null,
+      payment_method: 'cash_on_delivery',
+      payment_type: 'cash_on_delivery',
+      sender_number: null,
+      transaction_id: null,
+      mobile: user.mobile ?? normalizedMobile,
+      address: resolvedAddress,
+      postal_code: orderPostalCode || null,
+      address_line2: orderAddressLine2 || null,
+      shipping_method_id: shippingMethodId || null,
+    });
+    sessionStorage.removeItem(COUPON_STORAGE_KEY);
+    sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
+    window.dispatchEvent(new Event('cart:changed'));
+    router.push(`/order-success?orderId=${order.id}`);
+  };
+
   const handleCreateOrder = async () => {
     if (!cart?.items.length) return;
     const normalizedMobile = mobile.replace(/\D/g, '');
@@ -190,20 +247,44 @@ export default function CheckoutPage() {
     const trimmedAddressLine2 = addressLine2.trim();
     const trimmedPostalCode = postalCode.trim();
 
-    if (isGuest && !name.trim()) {
-      showCheckoutError('Name is required to continue as a guest.', 'guest-name');
-      return;
-    }
     if (!validateMobile(normalizedMobile)) {
       showCheckoutError('Enter a valid Bangladesh mobile number (for example, 01712345678).', 'checkout-mobile');
       return;
     }
-    if (!trimmedAddress) {
-      showCheckoutError('Address is required.', 'checkout-address');
-      return;
-    }
     if (shippingMethods.length > 0 && !shippingMethodId) {
       showCheckoutError('Please select a shipping method.', 'checkout-shipping-methods');
+      return;
+    }
+
+    if (isGuest) {
+      setCheckingExistingAccount(true);
+      try {
+        if (await guestAccountExists(normalizedMobile)) {
+          setSubmitting(true);
+          setSubmitError(null);
+          try {
+            await placeOrderWithStoredAccount(normalizedMobile);
+          } catch (err) {
+            showCheckoutError(err instanceof Error ? err.message : 'Could not place order with your saved account.');
+          } finally {
+            setSubmitting(false);
+          }
+          return;
+        }
+      } catch (err) {
+        showCheckoutError(err instanceof Error ? err.message : 'Could not check the account for this mobile number.');
+        return;
+      } finally {
+        setCheckingExistingAccount(false);
+      }
+    }
+
+    if (isGuest && !name.trim()) {
+      showCheckoutError('Name is required to continue as a guest.', 'guest-name');
+      return;
+    }
+    if (!trimmedAddress) {
+      showCheckoutError('Address is required.', 'checkout-address');
       return;
     }
 
@@ -236,12 +317,12 @@ export default function CheckoutPage() {
         transaction_id: null,
         mobile: normalizedMobile,
         address: trimmedAddress,
-        city: 'N/A',
         postal_code: trimmedPostalCode || null,
         address_line2: trimmedAddressLine2 || null,
         shipping_method_id: shippingMethodId || null,
       });
       sessionStorage.removeItem(COUPON_STORAGE_KEY);
+      sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
       window.dispatchEvent(new Event('cart:changed'));
       router.push(`/order-success?orderId=${order.id}`);
     } catch (err) {
@@ -475,7 +556,7 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span className="tabular-nums">{formatCurrency(orderTotal)}</span>
               </div>
-              <Button fullWidth size="lg" variant="success" onClick={handleCreateOrder} isLoading={submitting}>
+              <Button fullWidth size="lg" variant="success" onClick={() => void handleCreateOrder()} isLoading={submitting || checkingExistingAccount}>
                 {isGuest ? 'Place order' : 'Place order'}
               </Button>
               <Link href="/cart" className="block text-center text-sm text-muted-foreground hover:text-foreground">

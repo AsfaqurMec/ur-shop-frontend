@@ -173,7 +173,7 @@ export default function AdminOrderDetailPage() {
                   {[
                     order.shipping_address?.trim(),
                     order.shipping_address_line2?.trim(),
-                    [order.shipping_city?.trim(), order.shipping_postal_code?.trim()].filter(Boolean).join(' '),
+                    order.shipping_postal_code?.trim(),
                   ]
                     .filter(Boolean)
                     .join('\n') ||

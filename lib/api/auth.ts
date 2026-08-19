@@ -98,3 +98,13 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const res = await apiPost<MessageResponse>('auth/change-password', { current_password: currentPassword, new_password: newPassword });
   return unwrap(res);
 }
+
+export async function guestAccountExists(mobile: string): Promise<boolean> {
+  const res = await apiPost<{ exists: boolean }>('auth/guest-account-status', { mobile }, { skipAuth: true });
+  return unwrap(res).exists;
+}
+
+export async function continueCheckout(mobile: string): Promise<LoginResponse> {
+  const res = await apiPost<LoginResponse>('auth/continue-checkout', { mobile }, { skipAuth: true });
+  return unwrap(res);
+}

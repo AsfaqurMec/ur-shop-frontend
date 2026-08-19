@@ -9,6 +9,7 @@ import { login } from '@/lib/api/auth';
 import { addToCart } from '@/lib/api/cart';
 import { sanitizeRedirectParam } from '@/lib/auth/returnPath';
 import { consumePendingBuyNowIntent } from '@/lib/storefront/pendingBuyNowIntent';
+import { transferGuestCartToAccount } from '@/lib/storefront/guestCart';
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import { AuthCard, FormField } from '@/components/auth';
 import { Button } from '@/components/ui';
@@ -41,6 +42,10 @@ export default function LoginPage() {
     setSubmitError(null);
     try {
       const result = await login(data.identifier, data.password);
+      if (redirect === '/checkout') {
+        await transferGuestCartToAccount();
+        window.dispatchEvent(new Event('cart:changed'));
+      }
       if (result.user.role !== 'admin') {
         const pendingBuyNow = consumePendingBuyNowIntent();
         if (pendingBuyNow) {

@@ -1,8 +1,10 @@
 import { apiPost } from './client';
 import type { Order } from '@/types/order';
 
-function unwrap<T>(res: { success: boolean; data?: T; error?: string }): T {
-  if (!res.success || res.data === undefined) throw new Error(res.error ?? 'Request failed');
+function unwrap<T>(res: { success: boolean; data?: T; error?: string; message?: string }): T {
+  if (!res.success || res.data === undefined) {
+    throw new Error(res.message || res.error || 'Request failed');
+  }
   return res.data as T;
 }
 
@@ -20,7 +22,6 @@ export interface CreateOrderBody {
   bkash_transaction_id?: string | null;
   mobile: string;
   address: string;
-  city: string;
   postal_code?: string | null;
   address_line2?: string | null;
   shipping_method_id?: string | null;
