@@ -30,10 +30,10 @@ export function CheckoutShippingMethods({ methods, selectedId, onSelect }: Check
             )}
           >
             <div className="pointer-events-none absolute inset-y-3 left-0 w-0 rounded-r-full bg-primary" aria-hidden />
-            <div className="flex items-start gap-4 px-5 py-4 pl-6">
+            <div className="flex items-start gap-4 px-3 pb-1.5 mt-3 pl-3">
                   <div
                       className={cn(
-                        'flex h-5 w-5 items-center justify-center rounded-full border-[5.5px]',
+                        'flex h-[21px] w-[22px] items-center justify-center rounded-full border-[6.5px]',
                         selected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
                       )}
                       aria-hidden
@@ -47,7 +47,7 @@ export function CheckoutShippingMethods({ methods, selectedId, onSelect }: Check
                 <div className="flex items-start justify-between gap-3">
                   
                   <div>
-                    <p className="text-base font-semibold tracking-tight text-foreground">{method.title}</p>
+                    <p className="text-[15px] font-medium tracking-normal [word-spacing:5px]">{method.title}</p>
                     {method.subtitle ? (
                       <p className="mt-.5 text-sm leading-relaxed text-muted-foreground">{method.subtitle}</p>
                     ) : null}
