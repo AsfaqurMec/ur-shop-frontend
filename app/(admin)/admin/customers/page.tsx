@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   getAdminCustomers,
@@ -10,11 +11,19 @@ import {
 import { AdminPageHeader } from '@/components/admin/PageHeader';
 import { DataTable } from '@/components/admin/DataTable';
 import { Modal } from '@/components/admin/Modal';
-import { Button, Pagination } from '@/components/ui';
+import { Button, Pagination, Input } from '@/components/ui';
+import { IconEye, IconPencil, IconTrash } from '@/components/admin/admin-icons';
 import type { AdminCustomerListItem } from '@/lib/api/admin';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 10;
+
+function truncateWords(text: string | null | undefined, maxWords = 20): string {
+  if (!text || !text.trim()) return '—';
+  const words = text.trim().split(/\s+/);
+  if (words.length <= maxWords) return text.trim();
+  return words.slice(0, maxWords).join(' ') + '...';
+}
 
 function AdminCustomersContent() {
   const router = useRouter();
@@ -27,6 +36,7 @@ function AdminCustomersContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit Customer state
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<AdminCustomerListItem | null>(null);
   const [editEmail, setEditEmail] = useState('');
@@ -35,6 +45,8 @@ function AdminCustomersContent() {
   const [editAddress, setEditAddress] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Delete Customer state
   const [deleteTarget, setDeleteTarget] = useState<AdminCustomerListItem | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -43,7 +55,6 @@ function AdminCustomersContent() {
     const offset = (pageFromUrl - 1) * PAGE_SIZE;
     return getAdminCustomers({ limit: PAGE_SIZE, offset });
   }, [pageFromUrl]);
- 
 
   useEffect(() => {
     let cancelled = false;
@@ -167,25 +178,34 @@ function AdminCustomersContent() {
   }
 
   return (
-    <div>
-      <AdminPageHeader title="Customers" description="Customers who have placed orders" />
-      <div className="mb-6 rounded-lg border p-6">
-        <p className="text-muted-foreground text-sm">Total customers</p>
-        <p className="text-2xl font-semibold tabular-nums">{total}</p>
+    <div className="space-y-6">
+      <AdminPageHeader title="Customers" description="Manage customer accounts and view order history" />
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <p className="text-xs font-medium text-muted-foreground">Total registered customers</p>
+        <p className="mt-1 text-2xl font-bold text-foreground tabular-nums">{total}</p>
       </div>
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
+        <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
           {error}
         </div>
       )}
       <div className={loading ? 'pointer-events-none opacity-60' : ''}>
         <DataTable<AdminCustomerListItem>
           columns={[
-            { key: 'email', header: 'Email' },
             {
               key: 'name',
-              header: 'Name',
-              render: (r) => (r.name?.trim() ? r.name : '—'),
+              header: 'Customer Name',
+              render: (r) => (
+                <div>
+                  <Link
+                    href={`/admin/customers/${r.user_id}`}
+                    className="font-medium text-foreground hover:text-primary transition-colors text-left inline-block"
+                  >
+                    {r.name?.trim() ? r.name : 'Guest Customer'}
+                  </Link>
+                  <div className="text-[11px] text-muted-foreground">{r.mobile || 'No mobile'}</div>
+                </div>
+              ),
             },
             {
               key: 'mobile',
@@ -195,33 +215,57 @@ function AdminCustomersContent() {
             {
               key: 'address',
               header: 'Address',
-              render: (r) => (r.address?.trim() ? r.address : '—'),
+              render: (r) => (
+                <span className="text-xs text-muted-foreground max-w-xs block leading-relaxed" title={r.address || ''}>
+                  {truncateWords(r.address, 20)}
+                </span>
+              ),
             },
-            { key: 'order_count', header: 'Orders', render: (r) => r.order_count },
+            { key: 'order_count', header: 'Orders', render: (r) => `${r.order_count} orders` },
             {
               key: 'last_order_at',
               header: 'Last order',
-              render: (r) => new Date(r.last_order_at).toLocaleString(),
+              render: (r) => (r.last_order_at ? new Date(r.last_order_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'),
             },
             {
               key: 'actions',
               header: '',
-              className: 'min-w-[10rem]',
+              className: 'w-[120px]',
               render: (r) => (
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  <Button size="sm" variant="outline" type="button" onClick={() => openEdit(r)}>
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(r)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center justify-end gap-1.5">
+                  <Link
+                    href={`/admin/customers/${r.user_id}`}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-black text-white hover:bg-neutral-800 transition-colors shadow-sm dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                    title="View Customer Details"
+                    aria-label="View Customer Details"
+                  >
+                    <IconEye className="h-4 w-4" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(r)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-foreground hover:bg-muted transition-colors shadow-sm"
+                    title="Edit Customer"
+                    aria-label="Edit Customer"
+                  >
+                    <IconPencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(r)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors shadow-sm"
+                    title="Delete Customer"
+                    aria-label="Delete Customer"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                  </button>
                 </div>
               ),
             },
           ]}
           data={customers}
           keyExtractor={(r) => r.user_id}
-          emptyMessage="No customers with orders yet"
+          emptyMessage="No customers found"
         />
       </div>
       <div className="mt-6">
@@ -242,51 +286,48 @@ function AdminCustomersContent() {
             </div>
           )}
           <div>
-            <label className="text-sm font-medium">Email *</label>
-            <input
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">Email *</label>
+            <Input
               type="email"
               value={editEmail}
               onChange={(e) => setEditEmail(e.target.value)}
-              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               required
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Name</label>
-            <input
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">Name</label>
+            <Input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               maxLength={255}
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Mobile</label>
-            <input
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">Mobile</label>
+            <Input
               type="tel"
               value={editMobile}
               onChange={(e) => setEditMobile(e.target.value)}
-              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               maxLength={32}
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Address</label>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">Address</label>
             <textarea
               value={editAddress}
               onChange={(e) => setEditAddress(e.target.value)}
-              className="mt-1 flex min-h-[5.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="mt-1 flex min-h-[5.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               maxLength={1000}
               rows={3}
             />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" isLoading={editSubmitting}>
-              Save
-            </Button>
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={closeEdit}>
               Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={editSubmitting}>
+              Save
             </Button>
           </div>
         </form>
@@ -303,7 +344,7 @@ function AdminCustomersContent() {
               {deleteError}
             </div>
           )}
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={closeDeleteModal} disabled={deleteSubmitting}>
               Cancel
             </Button>

@@ -38,6 +38,17 @@ const links: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: '/admin/trending',
+    label: 'Trending',
+    icon: (
+      <I>
+        <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      </I>
+    ),
+  },
+  {
     href: '/admin/categories',
     label: 'Categories',
     icon: (

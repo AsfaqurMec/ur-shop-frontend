@@ -13,6 +13,7 @@ import { AdminPageHeader } from '@/components/admin/PageHeader';
 import { DataTable } from '@/components/admin/DataTable';
 import { Modal } from '@/components/admin/Modal';
 import { Button } from '@/components/ui';
+import { IconPencil, IconTrash } from '@/components/admin/admin-icons';
 import { formatCurrency } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -181,18 +182,39 @@ export default function AdminCouponsPage() {
           {
             key: 'actions',
             header: '',
-            className: 'min-w-[16rem]',
+            className: 'w-[120px]',
             render: (r) => (
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(r)}>
-                  Delete
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => toggleActive(r)}>
-                  {r.is_active ? 'Deactivate' : 'Activate'}
-                </Button>
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => toggleActive(r)}
+                  className={`inline-flex h-8 px-2.5 items-center justify-center rounded-md text-xs font-medium border transition-colors shadow-sm ${
+                    r.is_active
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                      : 'border-muted bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                  title={r.is_active ? 'Click to deactivate' : 'Click to activate'}
+                >
+                  {r.is_active ? 'Active' : 'Off'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEdit(r)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-foreground hover:bg-muted transition-colors shadow-sm"
+                  title="Edit Coupon"
+                  aria-label="Edit Coupon"
+                >
+                  <IconPencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(r)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors shadow-sm"
+                  title="Delete Coupon"
+                  aria-label="Delete Coupon"
+                >
+                  <IconTrash className="h-4 w-4" />
+                </button>
               </div>
             ),
           },

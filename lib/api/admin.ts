@@ -3,12 +3,15 @@
  * Base path: admin/dashboard for dashboard, products, categories, delivery, payments, tickets, coupons, reviews as per backend routes.
  */
 
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiPostFormData, apiPutFormData } from './client';
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiPostFormData, apiPutFormData, getAuthToken } from './client';
+import { getApiBaseUrl } from './baseUrl';
 import type { SocialLink, ShippingMethod } from './storeSettings';
+import type { Product, ProductCatalogAttribute, ProductPurchaseVariable, ProductListResult } from '@/types/product';
 import type { ProductReviewAdminTableRow } from '@/types/review';
-import type { Product, ProductCatalogAttribute, ProductPurchaseVariable } from '@/types/product';
 import type { PaymentMethod } from '@/types/payment';
 import type { BannerItem, BannerButton } from './banners';
+
+export type { ProductListResult };
 
 function unwrap<T>(res: {
   success: boolean;
@@ -91,6 +94,7 @@ export interface AdminRecentOrder {
   id: number;
   order_number: string;
   status: string;
+  payment_status: string;
   total: number;
   currency: string;
   user_id: number;
@@ -148,10 +152,33 @@ export async function getAdminSalesSummary(): Promise<AdminSalesSummary> {
   return d.summary;
 }
 
-export async function getAdminOrdersByStatus(): Promise<AdminOrdersByStatus[]> {
-  const res = await apiGet<{ by_status: AdminOrdersByStatus[] }>('admin/dashboard/orders-by-status');
-  const d = unwrap(res);
-  return d.by_status;
+export interface AdminPaymentDistribution {
+  paid: number;
+  unpaid: number;
+  total: number;
+  paid_revenue: number;
+  unpaid_revenue: number;
+}
+
+export async function getAdminOrdersByStatus(params?: {
+  month?: number;
+  year?: number;
+  period?: string;
+}): Promise<{
+  by_status: AdminOrdersByStatus[];
+  payment_distribution: AdminPaymentDistribution;
+}> {
+  const res = await apiGet<{
+    by_status: AdminOrdersByStatus[];
+    payment_distribution: AdminPaymentDistribution;
+  }>('admin/dashboard/orders-by-status', {
+    params: {
+      ...(params?.month != null ? { month: params.month } : {}),
+      ...(params?.year != null ? { year: params.year } : {}),
+      ...(params?.period ? { period: params.period } : {}),
+    },
+  });
+  return unwrap(res);
 }
 
 export async function getAdminRecentOrders(params?: {
@@ -210,12 +237,62 @@ export async function getAdminOrderDetails(orderId: number) {
   return unwrap(res);
 }
 
+export async function downloadAdminOrderInvoice(orderId: number): Promise<void> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Please sign in as admin to download the invoice.');
+
+  const base = getApiBaseUrl().replace(/\/$/, '');
+  const response = await fetch(`${base}/admin/dashboard/orders/${orderId}/invoice`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+    throw new Error(payload?.error || payload?.message || 'Could not download the invoice.');
+  }
+
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  const filename = contentDisposition.match(/filename="?([^";]+)"?/i)?.[1] || `invoice-${orderId}.pdf`;
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function updateAdminOrderStatus(
   orderId: number,
-  status: 'pending' | 'placed' | 'delivered' | 'complete' | 'cancelled' | 'refunded' | 'processing' | 'paid' | 'unpaid'
+  status: 'pending' | 'placed' | 'delivered' | 'complete' | 'completed' | 'cancelled' | 'refunded' | 'processing'
 ): Promise<AdminRecentOrder> {
   const res = await apiPatch<{ order: AdminRecentOrder }>(`admin/dashboard/orders/${orderId}/status`, { status });
   return unwrap(res).order;
+}
+
+export async function updateAdminOrderPaymentStatus(
+  orderId: number,
+  payment_status: 'paid' | 'unpaid'
+): Promise<AdminRecentOrder> {
+  const res = await apiPatch<{ order: AdminRecentOrder }>(`admin/dashboard/orders/${orderId}/payment-status`, { payment_status });
+  return unwrap(res).order;
+}
+
+export async function getAdminRevenueHistory(params?: {
+  month?: number;
+  year?: number;
+  period?: string;
+  days?: number;
+}): Promise<Array<{ date: string; revenue: number }>> {
+  const res = await apiGet<{ history: Array<{ date: string; revenue: number }> }>('admin/dashboard/revenue-history', {
+    params: {
+      ...(params?.month != null ? { month: params.month } : {}),
+      ...(params?.year != null ? { year: params.year } : {}),
+      ...(params?.period ? { period: params.period } : {}),
+      ...(params?.days != null ? { days: params.days } : {}),
+    },
+  });
+  return unwrap(res).history;
 }
 
 export async function getAdminCustomers(params?: {
@@ -234,6 +311,41 @@ export async function getAdminCustomers(params?: {
   return unwrap(res);
 }
 
+export interface AdminCustomerDetailedOrder {
+  id: number;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  gateway: string;
+  subtotal: number;
+  discount: number;
+  coupon_code: string | null;
+  total: number;
+  currency: string;
+  created_at: string;
+  items_count: number;
+  items: Array<{
+    id: number;
+    product_id: number;
+    product_name: string;
+    sku?: string | null;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    purchase_selections_summary?: Array<{ label: string; value: string }> | null;
+  }>;
+}
+
+export interface AdminCustomerDetailResponse {
+  customer: AdminCustomerListItem & { total_spent: number; created_at: string };
+  orders: AdminCustomerDetailedOrder[];
+}
+
+export async function getAdminCustomerDetails(userId: number): Promise<AdminCustomerDetailResponse> {
+  const res = await apiGet<AdminCustomerDetailResponse>(`admin/dashboard/customers/${userId}`);
+  return unwrap(res);
+}
+
 export async function updateAdminCustomer(
   userId: number,
   body: { email: string; name: string; mobile?: string | null; address?: string | null }
@@ -247,42 +359,26 @@ export async function deleteAdminCustomer(userId: number): Promise<void> {
   unwrap(res);
 }
 
+export async function getAdminTopProducts(limit?: number): Promise<{ top_products: AdminTopProduct[] }> {
+  const res = await apiGet<{ top_products: AdminTopProduct[] }>('admin/dashboard/top-products', {
+    params: limit != null ? { limit } : undefined,
+  });
+  return unwrap(res);
+}
+
+export async function getAdminLowStockLicenses(threshold?: number): Promise<{ low_stock: AdminLowStockLicense[] }> {
+  const res = await apiGet<{ low_stock: AdminLowStockLicense[] }>('admin/dashboard/low-stock-licenses', {
+    params: threshold != null ? { threshold } : undefined,
+  });
+  return unwrap(res);
+}
+
 export async function deleteOrder(id: number) {
   const res = await apiDelete<{ message: string }>(`admin/dashboard/orders/${id}`);
   return unwrap(res);
 }
 
 // ---- Products (admin uses same products API with auth) ----
-export interface ProductListResult {
-  products: Array<{
-    id: number;
-    name: string;
-    slug: string;
-    description: string | null;
-    full_description?: string | null;
-    fullDescription?: string | null;
-    size_chart_image?: string | null;
-    features?: string[] | null;
-    product_type: string;
-    price: number;
-    compare_at_price: number | null;
-    is_active: boolean;
-    is_featured: boolean;
-    category_id: number | null;
-    created_at: string;
-    updated_at: string;
-    thumbnail?: string | null;
-    images?: Array<{ id: number; path: string; alt_text: string | null; sort_order: number }>;
-    files?: Array<{ id: number; file_name: string; file_size: number | null; download_limit: number | null; sort_order: number }>;
-    license_available_count?: number;
-    purchase_variables?: ProductPurchaseVariable[];
-  }>;
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -315,10 +411,13 @@ export async function createProduct(body: {
   manual_fulfillment_required?: boolean;
   price: number;
   compare_at_price?: number | null;
+  sku?: string | null;
+  quantity?: number | null;
   is_active?: boolean;
   is_featured?: boolean;
-}) {
-  const res = await apiPost<{ product: ProductListResult['products'][0] }>('products', body);
+  is_trending?: boolean;
+}): Promise<Product> {
+  const res = await apiPost<{ product: Product }>('products', body);
   const d = unwrap(res);
   return d.product;
 }
@@ -342,6 +441,7 @@ export async function updateProduct(
     default_variation_id: number | null;
     is_active: boolean;
     is_featured: boolean;
+    is_trending: boolean;
   }>
 ) {
   const res = await apiPut<{ product: Product }>(`products/${id}`, body);
@@ -383,8 +483,15 @@ export type AdminCatalogAttributeInput = {
   visible_on_page: boolean;
   used_for_variations: boolean;
   sort_order: number;
-  values: Array<{ value_key: string; label: string; sort_order: number }>;
+  values: Array<{ value_key: string; label: string; color_code?: string | null; sort_order: number }>;
 };
+
+export async function putTrendingProducts(productIds: number[]): Promise<void> {
+  const res = await apiPut<{ message: string }>('products/admin/trending', {
+    product_ids: productIds,
+  });
+  unwrap(res);
+}
 
 export async function putProductCatalogAttributes(
   productId: number,
@@ -573,6 +680,7 @@ export interface CategoryItem {
   banner_image: string | null;
   parent_id: number | null;
   sort_order: number;
+  product_count?: number;
   created_at: string;
   updated_at: string;
 }

@@ -46,17 +46,24 @@ function selectionKey(selections: Record<string, string>) {
 }
 
 function asCart(items: StoredGuestItem[]): Cart {
-  const normalized = items.map((item) => ({
+  const normalized = items.map((item) => {
+    const maxQty = item.max_quantity != null ? item.max_quantity : 99;
+    return {
+      ...item,
+      quantity: maxQty <= 0 ? 0 : Math.max(1, Math.min(item.quantity, maxQty)),
+      max_quantity: maxQty,
+      unit_price: Number(item.unit_price) || 0,
+    };
+  });
+  const cartItems = normalized.map((item) => ({
     ...item,
-    quantity: Math.max(1, Math.min(item.quantity, Math.max(1, item.max_quantity || 99))),
-    unit_price: Number(item.unit_price) || 0,
+    line_total: Math.round(item.unit_price * item.quantity * 100) / 100,
   }));
-  const cartItems = normalized.map((item) => ({ ...item, line_total: Math.round(item.unit_price * item.quantity * 100) / 100 }));
   return {
     id: 0,
     items: cartItems,
-    item_count: cartItems.reduce((total, item) => total + item.quantity, 0),
-    subtotal: Math.round(cartItems.reduce((total, item) => total + item.line_total, 0) * 100) / 100,
+    item_count: cartItems.reduce((total, item) => total + (item.max_quantity <= 0 ? 0 : item.quantity), 0),
+    subtotal: Math.round(cartItems.reduce((total, item) => total + (item.max_quantity <= 0 ? 0 : item.line_total), 0) * 100) / 100,
   };
 }
 
@@ -66,7 +73,10 @@ export function getGuestCart(): Cart {
 
 export function addGuestCartItem(input: GuestCartItemInput): Cart {
   const selections = input.selections ?? {};
-  const maxQuantity = Math.max(1, input.maxQuantity ?? 99);
+  const maxQuantity = input.maxQuantity != null ? Math.max(0, input.maxQuantity) : 99;
+  if (maxQuantity < 1) {
+    return asCart(readItems());
+  }
   const quantity = Math.max(1, Math.min(input.quantity ?? 1, maxQuantity));
   const items = readItems();
   const existing = items.find((item) =>
@@ -75,6 +85,7 @@ export function addGuestCartItem(input: GuestCartItemInput): Cart {
     JSON.stringify(selectionKey(item.selections ?? {})) === JSON.stringify(selectionKey(selections))
   );
   if (existing) {
+    existing.max_quantity = maxQuantity;
     existing.quantity = Math.min(maxQuantity, existing.quantity + quantity);
     if (!existing.product_thumbnail && input.productThumbnail) existing.product_thumbnail = input.productThumbnail;
     existing.line_total = Math.round(existing.quantity * existing.unit_price * 100) / 100;
@@ -105,10 +116,39 @@ export function updateGuestCartItem(itemId: number, quantity: number): Cart {
   const items = readItems();
   const item = items.find((candidate) => candidate.id === itemId);
   if (!item) return asCart(items);
-  item.quantity = Math.max(1, Math.min(Math.trunc(quantity), Math.max(1, item.max_quantity || 99)));
+  const maxQty = item.max_quantity != null ? item.max_quantity : 99;
+  if (maxQty <= 0) {
+    item.quantity = 0;
+  } else {
+    item.quantity = Math.max(1, Math.min(Math.trunc(quantity), maxQty));
+  }
   item.line_total = Math.round(item.quantity * item.unit_price * 100) / 100;
   writeItems(items);
   emitChange();
+  return asCart(items);
+}
+
+export function syncGuestCartItemStock(productId: number, variationId: number | null | undefined, liveStock: number | null): Cart {
+  if (liveStock == null) return asCart(readItems());
+  const items = readItems();
+  let changed = false;
+  for (const item of items) {
+    if (
+      item.product_id === productId &&
+      Number(item.product_variation_id ?? 0) === Number(variationId ?? 0)
+    ) {
+      if (item.max_quantity !== liveStock) {
+        item.max_quantity = liveStock;
+        if (liveStock <= 0) item.quantity = 0;
+        else if (item.quantity > liveStock) item.quantity = liveStock;
+        changed = true;
+      }
+    }
+  }
+  if (changed) {
+    writeItems(items);
+    emitChange();
+  }
   return asCart(items);
 }
 

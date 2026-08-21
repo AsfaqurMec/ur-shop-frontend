@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { deleteOrder, getAdminRecentOrders, updateAdminOrderStatus } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Alert, AlertDescription, Button, Pagination } from '@/components/ui';
+import { IconEye, IconTrash } from '@/components/admin/admin-icons';
 import { formatCurrency } from '@/lib/utils/format';
 import type { AdminRecentOrder } from '@/lib/api/admin';
 import { toast } from 'sonner';
@@ -130,14 +131,26 @@ function PendingOrdersContent() {
             {
               key: 'actions',
               header: '',
+              className: 'w-[90px]',
               render: (r) => (
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  <Link href={`/admin/orders/${r.id}`} className="rounded-md border-2 px-3 py-2 text-primary hover:underline">
-                    View
+                <div className="flex items-center justify-end gap-1.5">
+                  <Link
+                    href={`/admin/orders/${r.id}`}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-black text-white hover:bg-neutral-800 transition-colors shadow-sm dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                    title="View Order Details"
+                    aria-label="View Order Details"
+                  >
+                    <IconEye className="h-4 w-4" />
                   </Link>
-                  <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(r)}>
-                    Delete
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(r)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors shadow-sm"
+                    title="Delete Order"
+                    aria-label="Delete Order"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                  </button>
                 </div>
               ),
             },

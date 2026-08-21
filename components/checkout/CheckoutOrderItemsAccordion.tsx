@@ -58,6 +58,7 @@ export function CheckoutOrderItemsAccordion({
         <div className="border-t border-border/60 px-4 py-2 sm:px-6 sm:py-3">
           <ul className="divide-y divide-border/60">
             {items.map((item) => {
+              const isOutOfStock = (item.max_quantity ?? 99) <= 0;
               const rows = storefrontSelectionsSummary(item.selections_summary);
               return (
                 <li key={item.id} className="flex gap-3 py-3">
@@ -69,11 +70,19 @@ export function CheckoutOrderItemsAccordion({
                     <p className="text-sm text-muted-foreground">
                       {formatCurrency(item.unit_price)} × {item.quantity}
                     </p>
-                    <div className="mt-2 inline-flex items-center rounded-md border border-border bg-background">
-                      <button type="button" aria-label={`Decrease ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity - 1)} disabled={updatingId === item.id || item.quantity <= 1} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">−</button>
-                      <span className="min-w-8 text-center text-sm font-medium tabular-nums">{item.quantity}</span>
-                      <button type="button" aria-label={`Increase ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity + 1)} disabled={updatingId === item.id || item.quantity >= item.max_quantity} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">+</button>
-                    </div>
+                    {isOutOfStock ? (
+                      <div className="mt-2">
+                        <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                          Out of stock
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 inline-flex items-center rounded-md border border-border bg-background">
+                        <button type="button" aria-label={`Decrease ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity - 1)} disabled={updatingId === item.id || item.quantity <= 1} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                        <span className="min-w-8 text-center text-sm font-medium tabular-nums">{item.quantity}</span>
+                        <button type="button" aria-label={`Increase ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity + 1)} disabled={updatingId === item.id || item.quantity >= (item.max_quantity ?? 99)} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">+</button>
+                      </div>
+                    )}
                     {rows.length > 0 ? (
                       <ul className="mt-1 text-xs text-muted-foreground">
                         {rows.map((row) => (

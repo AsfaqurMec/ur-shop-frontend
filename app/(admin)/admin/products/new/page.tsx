@@ -18,7 +18,7 @@ const fileInputClass =
 
 export default function AdminAddProductPage() {
   const router = useRouter();
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: number; name: string; product_count?: number }[]>([]);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
@@ -38,11 +38,39 @@ export default function AdminAddProductPage() {
   const [sizeChartFile, setSizeChartFile] = useState<File | null>(null);
   const [pendingDownloadFiles, setPendingDownloadFiles] = useState<{ key: string; file: File }[]>([]);
 
+  const [sku, setSku] = useState('');
+  const [quantity, setQuantity] = useState('');
+
   useEffect(() => {
     getCategories().then((r) =>
-      setCategories(r.categories.map((c) => ({ id: c.id, name: c.name })))
+      setCategories(r.categories.map((c) => ({ id: c.id, name: c.name, product_count: c.product_count })))
     );
   }, []);
+
+  const handleCategoryChange = (selectedCatId: string) => {
+    setCategoryId(selectedCatId);
+    if (!selectedCatId) return;
+    const cat = categories.find((c) => String(c.id) === selectedCatId);
+    if (cat) {
+      const prefix = cat.name.trim().slice(0, 2).toLowerCase();
+      const count = (cat.product_count ?? 0) + 1;
+      setSku(`${prefix}-${String(count).padStart(2, '0')}`);
+    }
+  };
+
+  const handleGenerateSku = () => {
+    if (!categoryId) {
+      toast.error('Please select a category first to generate SKU');
+      return;
+    }
+    const cat = categories.find((c) => String(c.id) === categoryId);
+    if (cat) {
+      const prefix = cat.name.trim().slice(0, 2).toLowerCase();
+      const count = (cat.product_count ?? 0) + 1;
+      setSku(`${prefix}-${String(count).padStart(2, '0')}`);
+      toast.success('SKU generated');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +85,8 @@ export default function AdminAddProductPage() {
       const product = await createProduct({
         name: name.trim(),
         slug: slug.trim() || undefined,
+        sku: sku.trim() || undefined,
+        quantity: quantity.trim() ? parseInt(quantity, 10) : undefined,
         description: description.trim() || null,
         full_description: fullDescription.trim() || null,
         fullDescription: fullDescription.trim() || null,
@@ -219,7 +249,7 @@ export default function AdminAddProductPage() {
               <label className="text-sm font-medium">Category</label>
               <select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">None</option>
@@ -229,6 +259,41 @@ export default function AdminAddProductPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">SKU</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateSku}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Auto-generate
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="e.g. ca-05"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Auto-formatted with category prefix & count (e.g. ca-05)
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Stock (Quantity)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="Leave empty for unlimited"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm tabular-nums"
+                />
+              </div>
             </div>
             {/* <div>
               <label className="text-sm font-medium">Product type *</label>

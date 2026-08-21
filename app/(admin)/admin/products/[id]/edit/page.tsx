@@ -34,7 +34,7 @@ export default function AdminEditProductPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = parseProductId(params?.id as string | string[] | undefined);
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: number; name: string; product_count?: number }[]>([]);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
@@ -42,11 +42,14 @@ export default function AdminEditProductPage() {
   const [features, setFeatures] = useState<string[]>([]);
   const [featureInput, setFeatureInput] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [sku, setSku] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [productType, setProductType] = useState('downloadable');
   const [price, setPrice] = useState('');
   const [compareAtPrice, setCompareAtPrice] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isTrending, setIsTrending] = useState(false);
   const [manualFulfillmentRequired, setManualFulfillmentRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -94,6 +97,8 @@ export default function AdminEditProductPage() {
       .then((p) => {
         setName(p.name);
         setSlug(p.slug);
+        setSku(p.sku ?? '');
+        setQuantity(p.quantity != null ? String(p.quantity) : '');
         setDescription(p.description ?? '');
         setFullDescription(p.full_description ?? p.fullDescription ?? '');
         setFeatures(Array.isArray(p.features) ? p.features.filter((f): f is string => typeof f === 'string') : []);
@@ -103,6 +108,7 @@ export default function AdminEditProductPage() {
         setCompareAtPrice(p.compare_at_price != null ? String(p.compare_at_price) : '');
         setIsActive(p.is_active);
         setIsFeatured(p.is_featured);
+        setIsTrending(Boolean(p.is_trending));
         setManualFulfillmentRequired(Boolean(p.manual_fulfillment_required));
         setImages((p.images ?? []).slice(0, 1));
         setSizeChartImage(p.size_chart_image ?? null);
@@ -113,9 +119,34 @@ export default function AdminEditProductPage() {
       })
       .catch((err) => setLoadError(err instanceof Error ? err.message : 'Failed to load'));
     getCategories().then((r) =>
-      setCategories(r.categories.map((c) => ({ id: c.id, name: c.name })))
+      setCategories(r.categories.map((c) => ({ id: c.id, name: c.name, product_count: c.product_count })))
     );
   }, [id]);
+
+  const handleCategoryChange = (selectedCatId: string) => {
+    setCategoryId(selectedCatId);
+    if (!selectedCatId) return;
+    const cat = categories.find((c) => String(c.id) === selectedCatId);
+    if (cat && !sku.trim()) {
+      const prefix = cat.name.trim().slice(0, 2).toLowerCase();
+      const count = (cat.product_count ?? 0) + 1;
+      setSku(`${prefix}-${String(count).padStart(2, '0')}`);
+    }
+  };
+
+  const handleGenerateSku = () => {
+    if (!categoryId) {
+      toast.error('Please select a category first to generate SKU');
+      return;
+    }
+    const cat = categories.find((c) => String(c.id) === categoryId);
+    if (cat) {
+      const prefix = cat.name.trim().slice(0, 2).toLowerCase();
+      const count = (cat.product_count ?? 0) + 1;
+      setSku(`${prefix}-${String(count).padStart(2, '0')}`);
+      toast.success('SKU generated');
+    }
+  };
 
   /** Only mirror catalog into the General price fields when variations are in play (fields are read-only then). */
   useEffect(() => {
@@ -158,6 +189,8 @@ export default function AdminEditProductPage() {
       await updateProduct(id, {
         name: name.trim(),
         slug: slug.trim() || undefined,
+        sku: sku.trim() || null,
+        quantity: quantity.trim() ? parseInt(quantity, 10) : null,
         description: description.trim() || null,
         full_description: fullDescription.trim() || null,
         fullDescription: fullDescription.trim() || null,
@@ -169,6 +202,7 @@ export default function AdminEditProductPage() {
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
         is_active: isActive,
         is_featured: isFeatured,
+        is_trending: isTrending,
       });
       const refreshed = await getProductById(id);
       setCatalogProduct(refreshed);
@@ -340,7 +374,7 @@ export default function AdminEditProductPage() {
               <label className="text-sm font-medium">Category</label>
               <select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">None</option>
@@ -351,28 +385,42 @@ export default function AdminEditProductPage() {
                 ))}
               </select>
             </div>
-            {/* <div>
-              <label className="text-sm font-medium">Product type *</label>
-              <select
-                value={productType}
-                onChange={(e) => {
-                  const nextType = e.target.value;
-                  setProductType(nextType);
-                  if (nextType === 'subscription_manual' || nextType === 'digital_service') {
-                    setManualFulfillmentRequired(true);
-                    return;
-                  }
-                  setManualFulfillmentRequired(false);
-                }}
-                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {PRODUCT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </select>
-            </div> */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">SKU</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateSku}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Auto-generate
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="e.g. ca-05"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Auto-formatted with category prefix & count (e.g. ca-05)
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Stock (Quantity)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder={usesVariations ? 'Managed by variations' : 'Leave empty for unlimited'}
+                  disabled={usesVariations}
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm tabular-nums disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
+            </div>
             {(productType === 'subscription_manual' || productType === 'digital_service') && (
               <label className="flex items-center gap-2">
                 <input
@@ -427,6 +475,10 @@ export default function AdminEditProductPage() {
                 <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
                 <span className="text-sm">Featured</span>
               </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={isTrending} onChange={(e) => setIsTrending(e.target.checked)} />
+                <span className="text-sm">Trending</span>
+              </label>
             </div>
             <Button type="submit" isLoading={loading}>
               Save changes
@@ -452,8 +504,6 @@ export default function AdminEditProductPage() {
 
           <AdminAccordionSection
             title="Product image"
-            description="Primary image used on listings and the product page."
-            icon={<IconImage />}
             defaultOpen
           >
             <div className="space-y-3">

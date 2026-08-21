@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { deleteOrder, getAdminRecentOrders } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Alert, AlertDescription, Button, Pagination } from '@/components/ui';
+import { IconEye, IconTrash } from '@/components/admin/admin-icons';
 import { formatCurrency } from '@/lib/utils/format';
 import type { AdminRecentOrder } from '@/lib/api/admin';
 import { toast } from 'sonner';
@@ -138,45 +139,87 @@ function AdminOrdersContent() {
       <div className={loading ? 'pointer-events-none opacity-60' : ''}>
         <DataTable<AdminRecentOrder>
           columns={[
-            { key: 'id', header: 'ID', render: (r) => `#${r.id}` },
-            { key: 'order_number', header: 'Order', render: (r) => `#${r.order_number}` },
-            {
-              key: 'status',
-              header: 'Status',
-              render: (r) => <span className="capitalize">{r.status.replace(/_/g, ' ')}</span>,
-            },
-            { key: 'total', header: 'Total', render: (r) => formatCurrency(r.total, r.currency) },
+            { key: 'order_number', header: 'Order #', render: (r) => (
+              <Link href={`/admin/orders/${r.id}`} className="font-semibold text-primary hover:underline">
+                #{r.order_number}
+              </Link>
+            ) },
             {
               key: 'customer_name',
               header: 'Customer',
-              render: (r) => (r.customer_name?.trim() ? r.customer_name : '—'),
+              render: (r) => (
+                <div>
+                  <div className="font-medium text-foreground text-xs">{r.customer_name?.trim() ? r.customer_name : 'Guest Customer'}</div>
+                  <div className="text-[11px] text-muted-foreground">{r.shipping_mobile || '—'}</div>
+                </div>
+              ),
             },
             {
-              key: 'shipping_mobile',
-              header: 'Mobile',
-              render: (r) => (r.shipping_mobile?.trim() ? r.shipping_mobile : '—'),
+              key: 'status',
+              header: 'Order Status',
+              render: (r) => (
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                  r.status === 'completed' || r.status === 'complete'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : r.status === 'processing'
+                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                    : r.status === 'cancelled' || r.status === 'refunded'
+                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                    : 'bg-muted text-muted-foreground'
+                }`}>
+                  {r.status.replace(/_/g, ' ')}
+                </span>
+              ),
             },
-            { key: 'user_id', header: 'User ID' },
-            { key: 'created_at', header: 'Date', render: (r) => new Date(r.created_at).toLocaleString() },
+            {
+              key: 'payment_status',
+              header: 'Payment',
+              render: (r) => (
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                  r.payment_status === 'paid'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                }`}>
+                  {r.payment_status || 'unpaid'}
+                </span>
+              ),
+            },
+            { key: 'total', header: 'Total', render: (r) => <span className="font-semibold tabular-nums text-xs">{formatCurrency(r.total, r.currency)}</span> },
+            { key: 'created_at', header: 'Date', render: (r) => (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            ) },
             {
               key: 'actions',
               header: '',
+              className: 'w-[90px]',
               render: (r) => (
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                <Link href={`/admin/orders/${r.id}`} className="text-primary hover:underline border-2 px-3 py-2 rounded-md">
-                  View
-                </Link>
-                <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(r)}>
-                Delete
-              </Button>
-              </div> 
+                <div className="flex items-center justify-end gap-1.5">
+                  <Link
+                    href={`/admin/orders/${r.id}`}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-black text-white hover:bg-neutral-800 transition-colors shadow-sm dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                    title="View Order Details"
+                    aria-label="View Order Details"
+                  >
+                    <IconEye className="h-4 w-4" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(r)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors shadow-sm"
+                    title="Delete Order"
+                    aria-label="Delete Order"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                  </button>
+                </div> 
               ),
             },
-            
           ]}
           data={orders}
           keyExtractor={(r) => r.id}
-          emptyMessage="No orders"
+          emptyMessage="No orders found"
         />
       </div>
       <div className="mt-6">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AdminNav } from '@/components/layout/AdminNav';
 import { DashboardSidebarShell } from '@/components/layout/DashboardSidebarShell';
 import { AdminAuthGuard } from '@/components/admin/AdminAuthGuard';
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { ThemeToggle } from '@/components/theme';
 import { SEO_NO_INDEX } from '@/lib/seo/metadata';
 
@@ -32,6 +33,7 @@ export default function AdminLayout({
           </>
         }
       >
+        <AdminBreadcrumbs />
         {children}
       </DashboardSidebarShell>
     </AdminAuthGuard>

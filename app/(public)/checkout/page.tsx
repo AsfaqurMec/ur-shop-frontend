@@ -579,7 +579,7 @@ import { getCart, removeCartItem, updateCartItem } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
 import { getProfile, guestAccountExists, guestCheckout, continueCheckout } from '@/lib/api/auth';
 import { getAuthToken, setAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem } from '@/lib/storefront/guestCart';
+import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
 import { getPublicStoreSettings, type ShippingMethod } from '@/lib/api/storeSettings';
 import type { Cart } from '@/types/cart';
@@ -653,16 +653,31 @@ export default function CheckoutPage() {
           setShippingMethodId(methods[0]?.id ?? '');
           const guestCart = getGuestCart();
           setCart(guestCart);
-          const missingImages = guestCart.items.filter((item) => !item.product_thumbnail);
-          if (missingImages.length) {
-            void Promise.all(missingImages.map(async (item) => {
-              try {
-                const product = await fetchProductBySlug(item.product_slug);
-                return setGuestCartItemThumbnail(item.id, product.thumbnail);
-              } catch {
-                return null;
-              }
-            })).then(() => {
+          if (guestCart.items.length) {
+            void Promise.all(
+              guestCart.items.map(async (item) => {
+                try {
+                  const product = await fetchProductBySlug(item.product_slug);
+                  if (!item.product_thumbnail && product.thumbnail) {
+                    setGuestCartItemThumbnail(item.id, product.thumbnail);
+                  }
+                  let liveStock: number | null = null;
+                  if (item.product_variation_id && product.catalog_variations) {
+                    const v = product.catalog_variations.find((vr) => vr.id === item.product_variation_id);
+                    if (v && v.quantity != null) liveStock = v.quantity;
+                  } else if (product.quantity != null) {
+                    liveStock = product.quantity;
+                  } else if (product.product_type === 'license_key' && product.license_available_count != null) {
+                    liveStock = product.license_available_count;
+                  }
+                  if (liveStock != null) {
+                    syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
+                  }
+                } catch {
+                  // ignore
+                }
+              })
+            ).then(() => {
               if (!cancelled) setCart(getGuestCart());
             });
           }
@@ -790,6 +805,12 @@ export default function CheckoutPage() {
       return;
     }
 
+    const hasOutOfStock = cart?.items.some((item) => (item.max_quantity ?? 99) <= 0);
+    if (hasOutOfStock) {
+      showCheckoutError('One or more items in your cart are out of stock. Please remove them to place your order.');
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -881,6 +902,8 @@ export default function CheckoutPage() {
     );
   }
 
+  const hasOutOfStockItems = cart ? cart.items.some((item) => (item.max_quantity ?? 99) <= 0) : false;
+
   return (
     <Container className="max-w-6xl py-6 sm:py-8">
       <h1 className="mb-3 text-md text-center font-bold tracking-tight sm:text-2xl uppercase [word-spacing:3px]">Please fill in the form to order</h1>
@@ -889,6 +912,13 @@ export default function CheckoutPage() {
           <AlertDescription>{submitError}</AlertDescription>
         </Alert>
       ) : null}
+      {hasOutOfStockItems && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            One or more items in your cart are currently out of stock. Please remove them to proceed with your order.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-col-reverse gap-6 lg:grid lg:grid-cols-5 lg:gap-8">
         <div className="order-2 space-y-4 sm:space-y-6 lg:order-none lg:col-span-3">
           <Card className="overflow-hidden shadow-sm">
@@ -904,9 +934,10 @@ export default function CheckoutPage() {
                   id="guest-name"
                   autoComplete="name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={255}
-                  required
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setSubmitError(null);
+                  }}
                   placeholder="Your full name"
                 />
               </div>
@@ -919,36 +950,37 @@ export default function CheckoutPage() {
                   type="tel"
                   autoComplete="tel"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/[^\d\s+-]/g, ''))}
-                  maxLength={20}
-                  placeholder="017xxxxxxxx"
-                  required
+                  onChange={(e) => {
+                    setMobile(e.target.value);
+                    setSubmitError(null);
+                  }}
+                  placeholder="01XXXXXXXXX"
                 />
-                <p className="text-xs text-muted-foreground">Enter a valid Bangladesh mobile number.</p>
               </div>
               <div className="space-y-2">
                 <label htmlFor="checkout-address" className="text-sm font-medium">
-                  Address <span className="text-destructive">*</span>
+                  Delivery address <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="checkout-address"
                   autoComplete="street-address"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  maxLength={255}
-                  required
-                  placeholder="House no., road, area"
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    setSubmitError(null);
+                  }}
+                  placeholder="House, road, area, city"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {shippingMethods.length > 0 ? (
-            <Card className="overflow-hidden shadow-sm">
-              <CardHeader className="p-2 pb-2 sm:p-6 sm:pb-2">
+          {shippingMethods.length > 0 && (
+            <Card className="shadow-sm">
+              <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
                 <CardTitle className="text-base sm:text-lg">Shipping method</CardTitle>
               </CardHeader>
-              <CardContent className="p-0 pt-2 sm:p-6 sm:pt-2">
+              <CardContent className="p-4 pt-2 sm:p-6 sm:pt-2">
                 <CheckoutShippingMethods
                   methods={shippingMethods}
                   selectedId={shippingMethodId}
@@ -956,9 +988,9 @@ export default function CheckoutPage() {
                 />
               </CardContent>
             </Card>
-          ) : null}
+          )}
 
-          <Card className="overflow-hidden shadow-sm hidden sm:flex flex-col">
+          <Card className="shadow-sm">
             <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
               <CardTitle className="text-base sm:text-lg">Payment</CardTitle>
             </CardHeader>
@@ -1019,8 +1051,16 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span className="tabular-nums">{formatCurrency(orderTotal)}</span>
               </div>
-              <Button fullWidth size="lg" variant="success" onClick={() => void handleCreateOrder()} isLoading={submitting || checkingExistingAccount}>
-                Place order
+              <Button
+                fullWidth
+                size="lg"
+                variant={hasOutOfStockItems ? 'secondary' : 'success'}
+                disabled={hasOutOfStockItems || submitting || checkingExistingAccount}
+                onClick={() => void handleCreateOrder()}
+                isLoading={submitting || checkingExistingAccount}
+                className={hasOutOfStockItems ? 'cursor-not-allowed opacity-60' : ''}
+              >
+                {hasOutOfStockItems ? 'Item(s) out of stock' : 'Place order'}
               </Button>
               <Link href="/cart" className="block text-center text-sm text-muted-foreground hover:text-foreground">
                 Back to cart

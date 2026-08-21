@@ -11,6 +11,7 @@ import {
 import type { BannerButton } from '@/lib/api/banners';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Alert, AlertDescription, Button } from '@/components/ui';
+import { IconPencil, IconTrash } from '@/components/admin/admin-icons';
 import { getBannerImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
 
@@ -212,15 +213,27 @@ export default function AdminBannersPage() {
           {
             key: 'actions',
             header: '',
-            className: 'min-w-[10rem]',
+            className: 'w-[90px]',
             render: (banner) => (
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                <Button size="sm" variant="outline" type="button" onClick={() => openEdit(banner)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(banner)}>
-                  Delete
-                </Button>
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => openEdit(banner)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-foreground hover:bg-muted transition-colors shadow-sm"
+                  title="Edit Banner"
+                  aria-label="Edit Banner"
+                >
+                  <IconPencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(banner)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors shadow-sm"
+                  title="Delete Banner"
+                  aria-label="Delete Banner"
+                >
+                  <IconTrash className="h-4 w-4" />
+                </button>
               </div>
             ),
           },

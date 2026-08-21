@@ -137,8 +137,10 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
       ? Math.max(0, Math.round((1 - product.price / product.compare_at_price!) * 100))
       : 0;
 
+  const isSoldOut = product.quantity != null && product.quantity <= 0;
+
   const handleBuyNow = async () => {
-    if (!onAddToCart) return;
+    if (isSoldOut || !onAddToCart) return;
     await onAddToCart(product, { showConfirmation: false });
     router.push('/checkout');
   };
@@ -153,19 +155,25 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           path={primaryPath}
           alt={imageAlt}
           fill
-          className="transition-transform duration-300 group-hover:scale-[1.03]"
+          className={`transition-transform duration-300 group-hover:scale-[1.03] ${isSoldOut ? 'grayscale-[40%]' : ''}`}
         />
         <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
           {/* <ProductTypeBadge type={product.product_type} /> */}
         </div>
-        {/* Sale/Compare Price Badge - Top Right */}
-        {hasComparePrice && (
+        {/* Sold Out or Sale/Compare Price Badge - Top Right */}
+        {isSoldOut ? (
+          <div className="pointer-events-none absolute right-3 top-3 z-10">
+            <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-md">
+              Sold Out
+            </span>
+          </div>
+        ) : hasComparePrice ? (
           <div className="pointer-events-none absolute right-3 top-3 z-10">
             <span className="inline-flex items-center rounded-full bg-red-500 px-2.5 py-1 text-sm font-bold text-white shadow-sm">
               Sale
             </span>
           </div>
-        )}
+        ) : null}
       </Link>
       <div className="flex flex-1 flex-col px-2 md:px-4 py-4">
         <Link href={`/products/${product.slug}`} className="block">
@@ -191,7 +199,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
               </span>
             )}
           </div>
-          {savePercent > 0 ? (
+          {savePercent > 0 && !isSoldOut ? (
             <p className="text-[11px] font-semibold leading-tight text-emerald-600 dark:text-emerald-400/90">
               {savePercent}% OFF
             </p>
@@ -199,12 +207,14 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
         </div>
         <div className="mt-auto  gap-2 pt-4 hidden sm:flex flex-row w-full">
           <Button
-            variant="primary"
+            variant={isSoldOut ? "outline" : "primary"}
             size="sm"
             fullWidth
+            disabled={isSoldOut}
             className="sm:flex-1 w-[60%]"
             onClick={(e) => {
               e.preventDefault();
+              if (isSoldOut) return;
               if (needsPdp) {
                 router.push(`/products/${product.slug}`);
                 return;
@@ -213,7 +223,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
             }}
             isLoading={addToCartLoading}
           >
-            Add to cart
+            {isSoldOut ? 'Sold out' : 'Add to cart'}
           </Button>
           <Link
             href={`/products/${product.slug}`}
@@ -226,30 +236,25 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           <button
             type="button"
             onClick={handleBuyNow}
-            disabled={addToCartLoading}
+            disabled={isSoldOut || addToCartLoading}
             className="uppercase font-semibold inline-flex flex-1 p-1 items-center justify-center rounded-md bg-primary text-white text-sm shadow-md transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={`Buy ${product.name} now`}
-            title="Buy now"
+            aria-label={isSoldOut ? 'Sold Out' : `Buy ${product.name} now`}
+            title={isSoldOut ? 'Sold Out' : 'Buy now'}
           >
-            {/* <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
-            </svg> */} 
-            Buy Now
+            {isSoldOut ? 'Sold Out' : 'Buy Now'}
           </button>
           <button
             type="button"
             onClick={() => {
+              if (isSoldOut) return;
               if (needsPdp) router.push(`/products/${product.slug}`);
               else void onAddToCart?.(product);
             }}
-            disabled={addToCartLoading}
+            disabled={isSoldOut || addToCartLoading}
             className="uppercase font-semibold inline-flex h-7 w-7 p-1.5 items-center justify-center rounded-full bg-black hover:bg-primary text-primary-foreground shadow-md shadow-primary/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={`Add ${product.name} to cart`}
-            title="Add to cart"
+            aria-label={isSoldOut ? 'Sold Out' : `Add ${product.name} to cart`}
+            title={isSoldOut ? 'Sold Out' : 'Add to cart'}
           >
-            {/* <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 5v14M5 12h14" />
-            </svg> */}
             <ShoppingCart />
           </button>
         </div>

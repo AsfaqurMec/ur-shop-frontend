@@ -465,29 +465,95 @@ export function ProductPurchasePanel({
         <div className="space-y-5 rounded-xl border border-border/50 bg-muted/25 p-5 dark:bg-muted/15">
           {dims.map((a) => {
             const opts = a.values.slice().sort((x, y) => x.sort_order - y.sort_order);
+            const isColor =
+              a.attr_key.toLowerCase().includes('color') ||
+              a.name.toLowerCase().includes('color') ||
+              opts.some((o) => !!o.color_code);
+            const selectedVal = variationChoice[a.attr_key] ?? '';
+            const selectedOpt = opts.find((o) => o.value_key === selectedVal);
+
             return (
-              <div key={a.attr_key}>
-                <label className="text-sm font-medium text-foreground">
-                  {a.name}
-                  <span className="text-destructive"> *</span>
-                </label>
-                <select
-                  value={variationChoice[a.attr_key] ?? ''}
-                  onChange={(e) =>
-                    setVariationChoice((prev) => ({
-                      ...prev,
-                      [a.attr_key]: e.target.value,
-                    }))
-                  }
-                  className={formControlClass}
-                  required
-                >
-                  {opts.map((o) => (
-                    <option key={o.value_key} value={o.value_key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+              <div key={a.attr_key} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-foreground">
+                    {a.name}: <span className="font-semibold text-primary">{selectedOpt?.label || 'Select'}</span>
+                    <span className="text-destructive"> *</span>
+                  </span>
+                </div>
+
+                {isColor ? (
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    {opts.map((o) => {
+                      const isSelected = selectedVal === o.value_key;
+                      const hasHex = typeof o.color_code === 'string' && o.color_code.trim().length > 0;
+                      const bgStyle: React.CSSProperties | undefined = hasHex ? { backgroundColor: o.color_code! } : undefined;
+
+                      return (
+                        <button
+                          key={o.value_key}
+                          type="button"
+                          onClick={() =>
+                            setVariationChoice((prev) => ({
+                              ...prev,
+                              [a.attr_key]: o.value_key,
+                            }))
+                          }
+                          title={o.label}
+                          aria-label={`${a.name}: ${o.label}`}
+                          className={`group relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                            isSelected
+                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 shadow-sm'
+                              : 'hover:scale-105 opacity-90 hover:opacity-100 ring-1 ring-border/80'
+                          }`}
+                        >
+                          <span
+                            className="h-full w-full rounded-full border border-black/15 shadow-inner flex items-center justify-center overflow-hidden"
+                            style={bgStyle}
+                          >
+                            {!hasHex && (
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                {o.label.slice(0, 2)}
+                              </span>
+                            )}
+                          </span>
+                          {isSelected && (
+                            <span className="absolute inset-0 flex items-center justify-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {opts.map((o) => {
+                      const isSelected = selectedVal === o.value_key;
+                      return (
+                        <button
+                          key={o.value_key}
+                          type="button"
+                          onClick={() =>
+                            setVariationChoice((prev) => ({
+                              ...prev,
+                              [a.attr_key]: o.value_key,
+                            }))
+                          }
+                          aria-label={`${a.name}: ${o.label}`}
+                          className={`min-w-[44px] h-10 px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium transition-all duration-150 flex items-center justify-center ${
+                            isSelected
+                              ? 'border-primary bg-primary text-primary-foreground font-semibold shadow-sm scale-[1.02]'
+                              : 'border-border/80 bg-background text-foreground hover:border-primary/50 hover:bg-muted/40'
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -570,33 +636,47 @@ export function ProductPurchasePanel({
                 );
               }
               const opts = (v.options ?? []).slice().sort((a, b) => a.sort_order - b.sort_order);
+              const selectedVal = selections[v.var_key] ?? '';
+              const selectedOpt = opts.find((o) => o.option_key === selectedVal);
+
               return (
-                <div key={v.var_key}>
-                  <label className="text-sm font-medium text-foreground">
-                    {v.label}
-                    <span className="text-destructive"> *</span>
-                  </label>
-                  <select
-                    value={selections[v.var_key] ?? ''}
-                    onChange={(e) =>
-                      setSelections((prev) => ({
-                        ...prev,
-                        [v.var_key]: e.target.value,
-                      }))
-                    }
-                    className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    required
-                  >
-                    <option value="">Choose…</option>
-                    {opts.map((o) => (
-                      <option key={o.option_key} value={o.option_key}>
-                        {o.label}
-                        {o.price_adjustment !== 0
-                          ? ` (${o.price_adjustment > 0 ? '+' : ''}${formatCurrency(o.price_adjustment)})`
-                          : ''}
-                      </option>
-                    ))}
-                  </select>
+                <div key={v.var_key} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">
+                      {v.label}: <span className="font-semibold text-primary">{selectedOpt?.label || 'Select'}</span>
+                      <span className="text-destructive"> *</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {opts.map((o) => {
+                      const isSelected = selectedVal === o.option_key;
+                      return (
+                        <button
+                          key={o.option_key}
+                          type="button"
+                          onClick={() =>
+                            setSelections((prev) => ({
+                              ...prev,
+                              [v.var_key]: o.option_key,
+                            }))
+                          }
+                          aria-label={`${v.label}: ${o.label}`}
+                          className={`min-w-[44px] h-10 px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium transition-all duration-150 flex items-center justify-center gap-1.5 ${
+                            isSelected
+                              ? 'border-primary bg-primary text-primary-foreground font-semibold shadow-sm scale-[1.02]'
+                              : 'border-border/80 bg-background text-foreground hover:border-primary/50 hover:bg-muted/40'
+                          }`}
+                        >
+                          <span>{o.label}</span>
+                          {o.price_adjustment !== 0 && (
+                            <span className={isSelected ? 'text-primary-foreground/80 text-[11px]' : 'text-muted-foreground text-[11px]'}>
+                              ({o.price_adjustment > 0 ? '+' : ''}{formatCurrency(o.price_adjustment)})
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
@@ -626,6 +706,15 @@ export function ProductPurchasePanel({
           ) : productQuantity != null ? (
             <p className="text-xs text-muted-foreground">Up to {productQuantity} available.</p>
           ) : null}
+        </div>
+      )}
+
+      {maxQty <= 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-destructive">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>This item is currently out of stock.</span>
         </div>
       )}
 

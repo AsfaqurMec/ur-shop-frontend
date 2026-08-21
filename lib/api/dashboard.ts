@@ -13,8 +13,11 @@ export interface DashboardOrderDetail {
   id: number;
   order_number: string;
   status: string;
+  payment_status?: string | null;
   subtotal: number;
   discount: number;
+  coupon_code?: string | null;
+  coupon_name?: string | null;
   tax: number;
   total: number;
   currency: string;
@@ -33,6 +36,7 @@ export interface DashboardOrderDetail {
   items: Array<{
     id: number;
     product_id: number;
+    sku?: string | null;
     product_name: string;
     product_type: string;
     product_thumbnail: string | null;

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getAdminTickets } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable } from '@/components/admin';
+import { IconEye } from '@/components/admin/admin-icons';
 import type { TicketListItem } from '@/lib/api/tickets';
 
 export default function AdminTicketsPage() {
@@ -58,10 +59,18 @@ export default function AdminTicketsPage() {
           {
             key: 'actions',
             header: '',
+            className: 'w-[60px]',
             render: (r) => (
-              <Link href={`/admin/tickets/${r.id}`} className="text-primary hover:underline">
-                View
-              </Link>
+              <div className="flex items-center justify-end">
+                <Link
+                  href={`/admin/tickets/${r.id}`}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-black text-white hover:bg-neutral-800 transition-colors shadow-sm dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                  title="View Ticket Details"
+                  aria-label="View Ticket Details"
+                >
+                  <IconEye className="h-4 w-4" />
+                </Link>
+              </div>
             ),
           },
         ]}

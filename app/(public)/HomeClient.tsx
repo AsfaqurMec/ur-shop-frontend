@@ -19,6 +19,7 @@ import { HomepageAdPopup } from '@/components/home/HomepageAdPopup';
 
 export function HomeClient({
   featuredProducts,
+  trendingProducts,
   banners,
   reviews,
   socialLinks,
@@ -29,6 +30,7 @@ export function HomeClient({
   const { addingProductId, handleAddToCart } = useHomeAddToCart();
   const slides = buildHeroSlides(banners, featuredProducts);
   const videoThumbnail = slides[0]?.imageUrl || '/icon.png';
+  const displayedTrending = trendingProducts && trendingProducts.length > 0 ? trendingProducts : featuredProducts;
 
   return (
     <>
@@ -36,7 +38,7 @@ export function HomeClient({
       <HeroSection banners={banners} featuredProducts={featuredProducts} />
       <FeaturedCategoriesSection categories={categories} />
       <TrendingProductsSection
-        products={featuredProducts}
+        products={displayedTrending}
         onAddToCart={handleAddToCart}
         addingProductId={addingProductId}
       />

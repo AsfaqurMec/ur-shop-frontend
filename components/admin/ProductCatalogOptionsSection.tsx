@@ -85,6 +85,7 @@ function toAdminInput(attrs: ProductCatalogAttribute[]): AdminCatalogAttributeIn
     values: (a.values ?? []).map((v, j) => ({
       value_key: v.value_key.trim(),
       label: v.label.trim(),
+      color_code: v.color_code?.trim() || null,
       sort_order: v.sort_order ?? j,
     })),
   }));
@@ -639,7 +640,7 @@ export function ProductCatalogOptionsSection({
                             {(a.values ?? []).map((v, vi) => (
                               <li
                                 key={`${a.attr_key}-v-${vi}`}
-                                className="flex flex-wrap items-center gap-2 rounded border border-dashed px-2 py-1"
+                                className="flex flex-wrap items-center gap-2 rounded border border-dashed px-2 py-1.5"
                               >
                                 <input
                                   placeholder="key"
@@ -658,7 +659,7 @@ export function ProductCatalogOptionsSection({
                                   className="h-8 w-24 rounded border border-input bg-background px-2 text-xs"
                                 />
                                 <input
-                                  placeholder="Label"
+                                  placeholder="Label (e.g. Red, XL)"
                                   value={v.label}
                                   onChange={(e) => {
                                     const t = e.target.value;
@@ -673,6 +674,41 @@ export function ProductCatalogOptionsSection({
                                   }}
                                   className="h-8 flex-1 min-w-[120px] rounded border border-input bg-background px-2 text-xs"
                                 />
+                                <div className="flex items-center gap-1.5 rounded border border-input bg-background px-1.5 py-0.5" title="Color hex code for round color swatches">
+                                  <input
+                                    type="color"
+                                    value={v.color_code && /^#[0-9A-Fa-f]{6}$/.test(v.color_code) ? v.color_code : '#000000'}
+                                    onChange={(e) => {
+                                      const hex = e.target.value;
+                                      setAttributes((prev) =>
+                                        prev.map((x, i) => {
+                                          if (i !== ai) return x;
+                                          const vals = [...(x.values ?? [])];
+                                          vals[vi] = { ...vals[vi], color_code: hex };
+                                          return { ...x, values: vals };
+                                        })
+                                      );
+                                    }}
+                                    className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                                    title="Pick color"
+                                  />
+                                  <input
+                                    placeholder="#code (optional)"
+                                    value={v.color_code ?? ''}
+                                    onChange={(e) => {
+                                      const t = e.target.value;
+                                      setAttributes((prev) =>
+                                        prev.map((x, i) => {
+                                          if (i !== ai) return x;
+                                          const vals = [...(x.values ?? [])];
+                                          vals[vi] = { ...vals[vi], color_code: t };
+                                          return { ...x, values: vals };
+                                        })
+                                      );
+                                    }}
+                                    className="h-7 w-28 border-0 bg-transparent px-1 text-xs font-mono focus:outline-none focus:ring-0"
+                                  />
+                                </div>
                                 <Button
                                   type="button"
                                   variant="ghost"

@@ -41,7 +41,7 @@ export interface ProductCatalogAttribute {
   visible_on_page: boolean;
   used_for_variations: boolean;
   sort_order: number;
-  values: Array<{ value_key: string; label: string; sort_order: number }>;
+  values: Array<{ value_key: string; label: string; color_code?: string | null; sort_order: number }>;
 }
 
 export interface ProductCatalogVariation {
@@ -71,6 +71,9 @@ export interface Product {
   compare_at_price: number | null;
   is_active: boolean;
   is_featured: boolean;
+  is_trending?: boolean;
+  trending_order?: number;
+  category_name?: string | null;
   created_at: string;
   updated_at: string;
   thumbnail?: string | null;
@@ -107,6 +110,7 @@ export interface ProductListParams {
   on_sale?: boolean;
   search?: string;
   featured?: boolean;
+  trending?: boolean;
   is_active?: boolean;
   sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc';
 }

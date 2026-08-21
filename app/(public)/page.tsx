@@ -1,4 +1,4 @@
-import { fetchFeaturedProducts } from '@/lib/api/products';
+import { fetchFeaturedProducts, fetchTrendingProducts } from '@/lib/api/products';
 import { fetchStorefrontReviews } from '@/lib/api/reviews';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { fetchPublicBanners } from '@/lib/api/banners';
@@ -32,9 +32,10 @@ export const metadata = createPageMetadata({
 
 export default async function HomePage() {
   // These requests do not depend on one another. Starting them together avoids
-  // making visitors wait for four round-trips before the catalog can render.
-  const [featuredProducts, banners, publicSettings, categories, storefrontReviews, ads] = await Promise.all([
+  // making visitors wait for round-trips before the catalog can render.
+  const [featuredProducts, trendingProducts, banners, publicSettings, categories, storefrontReviews, ads] = await Promise.all([
     fetchFeaturedProducts(8).catch(() => []),
+    fetchTrendingProducts(8).catch(() => []),
     fetchPublicBanners().catch(() => []),
     getPublicStoreSettings().catch(() => null),
     fetchCategories(false, { serverCacheSeconds: 60 }).catch(() => [] as Category[]),
@@ -67,6 +68,7 @@ export default async function HomePage() {
       <JsonLd data={organizationJsonLd()} />
       <HomeClient
         featuredProducts={featuredProducts}
+        trendingProducts={trendingProducts}
         banners={banners}
         reviews={storefrontReviews.reviews}
         socialLinks={publicSettings?.socialLinks ?? []}

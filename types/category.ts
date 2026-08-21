@@ -7,6 +7,7 @@ export interface Category {
   banner_image: string | null;
   parent_id: number | null;
   sort_order: number;
+  product_count?: number;
   created_at: string;
   updated_at: string;
 }

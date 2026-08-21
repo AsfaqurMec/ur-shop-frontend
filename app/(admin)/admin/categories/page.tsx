@@ -7,6 +7,7 @@ import type { CategoriesListResponse, CategoryItem } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Button, Pagination } from '@/components/ui';
 import { Alert, AlertDescription } from '@/components/ui';
+import { IconPencil, IconTrash } from '@/components/admin/admin-icons';
 import { getCategoryBannerImageUrl, getCategoryImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
 
@@ -217,15 +218,27 @@ function AdminCategoriesContent() {
             {
               key: 'actions',
               header: '',
-              className: 'min-w-[10rem]',
+              className: 'w-[90px]',
               render: (r) => (
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  <Button size="sm" variant="outline" type="button" onClick={() => openEdit(r)}>
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="destructive" type="button" onClick={() => setDeleteTarget(r)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center justify-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(r)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-foreground hover:bg-muted transition-colors shadow-sm"
+                    title="Edit Category"
+                    aria-label="Edit Category"
+                  >
+                    <IconPencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(r)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors shadow-sm"
+                    title="Delete Category"
+                    aria-label="Delete Category"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                  </button>
                 </div>
               ),
             },

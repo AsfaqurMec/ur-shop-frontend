@@ -8,7 +8,7 @@ import {
   removeCartItem,
 } from '@/lib/api/cart';
 import { getAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, updateGuestCartItem } from '@/lib/storefront/guestCart';
+import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, updateGuestCartItem, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
 import { validateCoupon } from '@/lib/api/coupons';
 import type { Cart, CartItem } from '@/types/cart';
@@ -42,16 +42,31 @@ export default function CartPage() {
     if (!getAuthToken()) {
       const guestCart = getGuestCart();
       setCart(guestCart);
-      const missingImages = guestCart.items.filter((item) => !item.product_thumbnail);
-      if (missingImages.length) {
-        void Promise.all(missingImages.map(async (item) => {
-          try {
-            const product = await fetchProductBySlug(item.product_slug);
-            return setGuestCartItemThumbnail(item.id, product.thumbnail);
-          } catch {
-            return null;
-          }
-        })).then(() => setCart(getGuestCart()));
+      if (guestCart.items.length) {
+        void Promise.all(
+          guestCart.items.map(async (item) => {
+            try {
+              const product = await fetchProductBySlug(item.product_slug);
+              if (!item.product_thumbnail && product.thumbnail) {
+                setGuestCartItemThumbnail(item.id, product.thumbnail);
+              }
+              let liveStock: number | null = null;
+              if (item.product_variation_id && product.catalog_variations) {
+                const v = product.catalog_variations.find((vr) => vr.id === item.product_variation_id);
+                if (v && v.quantity != null) liveStock = v.quantity;
+              } else if (product.quantity != null) {
+                liveStock = product.quantity;
+              } else if (product.product_type === 'license_key' && product.license_available_count != null) {
+                liveStock = product.license_available_count;
+              }
+              if (liveStock != null) {
+                syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
+              }
+            } catch {
+              // ignore
+            }
+          })
+        ).then(() => setCart(getGuestCart()));
       }
       setLoading(false);
       return;
@@ -187,6 +202,8 @@ export default function CartPage() {
     );
   }
 
+  const hasOutOfStockItems = cart ? cart.items.some((item) => (item.max_quantity ?? 99) <= 0) : false;
+
   return (
     <Container className="py-8">
       <h1 className="text-2xl font-semibold tracking-tight mb-6">Shopping cart</h1>
@@ -195,15 +212,23 @@ export default function CartPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+      {hasOutOfStockItems && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            One or more items in your cart are currently out of stock. Please remove them before proceeding to checkout.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
           {cart.items.map((item) => {
             const maxQ = item.max_quantity ?? 99;
             const selectMax = Math.max(1, maxQ);
             const displayQty = maxQ > 0 ? Math.min(item.quantity, maxQ) : item.quantity;
+            const isOutOfStock = maxQ < 1;
             const summaryRows = storefrontSelectionsSummary(item.selections_summary);
             return (
-            <Card key={item.id}>
+            <Card key={item.id} className={isOutOfStock ? 'border-destructive/40 bg-destructive/[0.02]' : ''}>
               <CardContent className="p-4 pt-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
   {/* Product info */}
@@ -248,8 +273,8 @@ export default function CartPage() {
         Quantity
       </label>
 
-      {maxQ < 1 ? (
-        <span className="whitespace-nowrap text-xs text-destructive">
+      {isOutOfStock ? (
+        <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive whitespace-nowrap">
           Out of stock
         </span>
       ) : (
@@ -302,34 +327,7 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <span className="tabular-nums">{formatCurrency(cart.subtotal)}</span>
               </div>
-              {/* Coupon */}
-              {/* {isGuest ? (
-                <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                  Coupon codes are available after signing in.
-                </p>
-              ) : */}
                <div className="space-y-2">
-                {/* <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-                  <input
-                    type="text"
-                    value={couponInput}
-                    onChange={(e) => {
-                      setCouponInput(e.target.value);
-                      setCouponError(null);
-                    }}
-                    placeholder="Coupon code"
-                    className="min-h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                  <Button
-                    variant="success"
-                    className="w-full bg-green-600 text-white hover:bg-green-800 shrink-0 sm:w-auto"
-                    onClick={handleApplyCoupon}
-                    disabled={couponLoading || !couponInput.trim()}
-                    isLoading={couponLoading}
-                  >
-                    Apply
-                  </Button>
-                </div> */}
                 {couponError && (
                   <p className="text-sm text-red-600 dark:text-red-400">{couponError}</p>
                 )}
@@ -361,11 +359,17 @@ export default function CartPage() {
                 <span>Estimated total</span>
                 <span className="tabular-nums">{formatCurrency(estimatedTotal)}</span>
               </div>
-              <Link href="/checkout" className="block">
-                <Button fullWidth size="lg" variant='success' className='bg-green-600 text-white hover:bg-green-800'>
-                  Proceed to checkout
+              {hasOutOfStockItems ? (
+                <Button fullWidth size="lg" disabled variant="secondary" className="cursor-not-allowed opacity-60">
+                  Item(s) out of stock
                 </Button>
-              </Link>
+              ) : (
+                <Link href="/checkout" className="block">
+                  <Button fullWidth size="lg" variant="success" className="bg-green-600 text-white hover:bg-green-800">
+                    Proceed to checkout
+                  </Button>
+                </Link>
+              )}
               <Link href="/shop" className="block text-center text-sm text-muted-foreground hover:text-foreground">
                 Continue shopping
               </Link>

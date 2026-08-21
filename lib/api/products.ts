@@ -23,6 +23,7 @@ export async function fetchProducts(params: ProductListParams = {}): Promise<Pro
   if (params.on_sale === true) query.on_sale = '1';
   if (params.search) query.search = params.search;
   if (params.featured === true) query.featured = '1';
+  if (params.trending === true) query.trending = '1';
   if (params.is_active !== undefined) query.is_active = params.is_active ? '1' : '0';
   if (params.sort) query.sort = params.sort;
 
@@ -45,6 +46,11 @@ export async function fetchProductBySlug(slug: string): Promise<Product> {
 
 export async function fetchFeaturedProducts(limit = 8): Promise<Product[]> {
   const result = await fetchProducts({ featured: true, limit, is_active: true });
+  return result.products;
+}
+
+export async function fetchTrendingProducts(limit = 8): Promise<Product[]> {
+  const result = await fetchProducts({ trending: true, limit, is_active: true });
   return result.products;
 }
 

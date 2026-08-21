@@ -8,3 +8,7 @@ export { ProductFilesSection } from './ProductFilesSection';
 export { ProductLicenseKeysSection } from './ProductLicenseKeysSection';
 export { ProductPurchaseVariablesSection } from './ProductPurchaseVariablesSection';
 export { ProductCatalogOptionsSection } from './ProductCatalogOptionsSection';
+export { AdminBreadcrumbs } from './AdminBreadcrumbs';
+export { AdminRevenueChart } from './AdminRevenueChart';
+export { AdminStatusPieChart } from './AdminStatusPieChart';
+

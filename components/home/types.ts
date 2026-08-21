@@ -7,6 +7,7 @@ import type { AdItem } from '@/lib/api/ads';
 
 export interface HomeClientProps {
   featuredProducts: Product[];
+  trendingProducts?: Product[];
   banners: BannerItem[];
   reviews: Array<ProductReviewPublic & { product_name?: string; product_slug?: string }>;
   socialLinks: SocialLink[];
