@@ -24,7 +24,6 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: dark)', color: 'hsl(222 47% 6%)' },
   ],
 };
-
 const API_BASE_INIT = (base: string) =>
   base
     ? `window.__DP_API_BASE__=${JSON.stringify(base)};`
@@ -40,6 +39,12 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={fontSans.variable} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      </head>
       <body className="min-h-screen font-sans">
         <Script
           id="dp-theme-init"

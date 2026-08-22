@@ -30,6 +30,8 @@ export const metadata = createPageMetadata({
   ],
 });
 
+export const revalidate = 60;
+
 export default async function HomePage() {
   // These requests do not depend on one another. Starting them together avoids
   // making visitors wait for round-trips before the catalog can render.

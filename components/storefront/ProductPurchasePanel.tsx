@@ -92,16 +92,58 @@ function matchVariation(product: Product, choice: Record<string, string>) {
   );
 }
 
+function isOptionOutOfStock(
+  product: Product,
+  attrKey: string,
+  valueKey: string,
+  currentChoice: Record<string, string>
+): boolean {
+  const vars = product.catalog_variations ?? [];
+  if (vars.length === 0) return false;
+
+  const testChoice = { ...currentChoice, [attrKey]: valueKey };
+  const matched = matchVariation(product, testChoice);
+  if (matched) {
+    if (matched.enabled === false) return true;
+    if (matched.quantity !== null && matched.quantity !== undefined && matched.quantity <= 0) return true;
+    return false;
+  }
+
+  const matchingVars = vars.filter((v) => {
+    const combo = v.combination as Record<string, unknown>;
+    return getComboValue(combo, attrKey) === valueKey;
+  });
+
+  if (matchingVars.length === 0) return true;
+  return matchingVars.every(
+    (v) => v.enabled === false || (v.quantity !== null && v.quantity !== undefined && v.quantity <= 0)
+  );
+}
+
 function initialVariationChoice(product: Product): Record<string, string> {
   const dims = variationDimensions(product);
   const vars = product.catalog_variations ?? [];
   if (dims.length === 0 || vars.length === 0) return {};
-  let def = vars[0];
-  const defVid = product.default_variation_id;
-  if (defVid != null) {
-    const row = vars.find((v) => Number(v.id) === Number(defVid));
-    if (row) def = row;
+
+  let def = vars.find(
+    (v) =>
+      Number(v.id) === Number(product.default_variation_id) &&
+      v.enabled !== false &&
+      (v.quantity === null || v.quantity === undefined || v.quantity > 0)
+  );
+
+  if (!def) {
+    def = vars.find(
+      (v) =>
+        v.enabled !== false &&
+        (v.quantity === null || v.quantity === undefined || v.quantity > 0)
+    );
   }
+
+  if (!def) {
+    def = vars.find((v) => Number(v.id) === Number(product.default_variation_id)) || vars[0];
+  }
+
   const out: Record<string, string> = {};
   for (const d of dims) {
     const fromCombo = getComboValue(def.combination as Record<string, unknown>, d.attr_key);
@@ -404,10 +446,10 @@ export function ProductPurchasePanel({
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {displaySku ? (
               <p>
-                SKU: <span className="font-mono text-foreground/90">{displaySku}</span>
+                SKU : <span className="font-mono font-medium text-foreground/90">{displaySku}</span>
               </p>
             ) : null}
-            {productQuantity != null && !hasVariations && !matchedVariation?.sku?.trim() ? (
+            {productQuantity != null && !hasVariations ? (
               <p>
                 Available Stock:{' '}
                 <span className="font-semibold tabular-nums text-foreground/90">{productQuantity}</span>
@@ -417,11 +459,6 @@ export function ProductPurchasePanel({
               <p>
                 Available Stock:{' '}
                 <span className="font-semibold tabular-nums text-foreground/90">{matchedVariation.quantity}</span>
-              </p>
-            ) : hasVariations && matchedVariation?.sku?.trim() ? (
-              <p>
-                Variation SKU:{' '}
-                <span className="font-mono text-[0.8rem] text-foreground/90">{matchedVariation.sku}</span>
               </p>
             ) : null}
           </div>
@@ -482,9 +519,10 @@ export function ProductPurchasePanel({
                 </div>
 
                 {isColor ? (
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                  <div className="flex flex-wrap items-center gap-4 pt-1.5">
                     {opts.map((o) => {
                       const isSelected = selectedVal === o.value_key;
+                      const isOos = isOptionOutOfStock(product, a.attr_key, o.value_key, variationChoice);
                       const hasHex = typeof o.color_code === 'string' && o.color_code.trim().length > 0;
                       const bgStyle: React.CSSProperties | undefined = hasHex ? { backgroundColor: o.color_code! } : undefined;
 
@@ -492,16 +530,20 @@ export function ProductPurchasePanel({
                         <button
                           key={o.value_key}
                           type="button"
-                          onClick={() =>
+                          disabled={isOos}
+                          onClick={() => {
+                            if (isOos) return;
                             setVariationChoice((prev) => ({
                               ...prev,
                               [a.attr_key]: o.value_key,
-                            }))
-                          }
-                          title={o.label}
-                          aria-label={`${a.name}: ${o.label}`}
+                            }));
+                          }}
+                          title={isOos ? `${o.label} (Out of stock)` : o.label}
+                          aria-label={`${a.name}: ${o.label}${isOos ? ' (Out of stock)' : ''}`}
                           className={`group relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                            isSelected
+                            isOos
+                              ? 'opacity-30 cursor-not-allowed pointer-events-none filter grayscale ring-1 ring-border/40'
+                              : isSelected
                               ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 shadow-sm'
                               : 'hover:scale-105 opacity-90 hover:opacity-100 ring-1 ring-border/80'
                           }`}
@@ -516,7 +558,12 @@ export function ProductPurchasePanel({
                               </span>
                             )}
                           </span>
-                          {isSelected && (
+                          {isOos && (
+                            <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span className="h-0.5 w-full bg-destructive/90 rotate-45" />
+                            </span>
+                          )}
+                          {!isOos && isSelected && (
                             <span className="absolute inset-0 flex items-center justify-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -528,22 +575,28 @@ export function ProductPurchasePanel({
                     })}
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
                     {opts.map((o) => {
                       const isSelected = selectedVal === o.value_key;
+                      const isOos = isOptionOutOfStock(product, a.attr_key, o.value_key, variationChoice);
+
                       return (
                         <button
                           key={o.value_key}
                           type="button"
-                          onClick={() =>
+                          disabled={isOos}
+                          onClick={() => {
+                            if (isOos) return;
                             setVariationChoice((prev) => ({
                               ...prev,
                               [a.attr_key]: o.value_key,
-                            }))
-                          }
-                          aria-label={`${a.name}: ${o.label}`}
-                          className={`min-w-[44px] h-10 px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium transition-all duration-150 flex items-center justify-center ${
-                            isSelected
+                            }));
+                          }}
+                          aria-label={`${a.name}: ${o.label}${isOos ? ' (Out of stock)' : ''}`}
+                          className={`min-w-[44px] h-10 px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium transition-all duration-150 flex items-center justify-center relative ${
+                            isOos
+                              ? 'opacity-35 cursor-not-allowed bg-muted/60 text-muted-foreground line-through pointer-events-none border-border/40'
+                              : isSelected
                               ? 'border-primary bg-primary text-primary-foreground font-semibold shadow-sm scale-[1.02]'
                               : 'border-border/80 bg-background text-foreground hover:border-primary/50 hover:bg-muted/40'
                           }`}

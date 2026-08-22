@@ -253,6 +253,7 @@ import type { BannerItem } from '@/lib/api/banners';
 import type { Product } from '@/types/product';
 import { buildHeroSlides } from './utils';
 import type { HeroSlide } from './types';
+import { optimizeCloudinaryUrl } from '@/lib/imageUrl';
 
 interface HeroSectionProps {
   banners: BannerItem[];
@@ -395,10 +396,13 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
       <div className="pointer-events-none absolute inset-0 z-0" aria-hidden />
       <img
         key={safeActiveSlide}
-        src={slide.imageUrl}
-        alt=""
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full "
+        src={optimizeCloudinaryUrl(slide.imageUrl, { width: 1920 }) || slide.imageUrl}
+        alt={slide.title || 'Hero Banner'}
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
         style={{ transform: `translateX(${dragOffset}px)` }}
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
       />
       
       {/* Background overlay - only shown when title exists */}

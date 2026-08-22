@@ -12,14 +12,10 @@ export interface ProductPhotoProps {
   priority?: boolean;
   /** Shown on the gradient placeholder when there is no image */
   productName?: string | null;
+  /** Optional width limit for CDN transform (e.g. 500 for cards, 1000 for PDP) */
+  width?: number;
+  height?: number;
 }
-
-/**
- * Storefront product image: native <img> + same URL rules as {@link getProductImageUrl}.
-
- * Avoids Next/Image edge cases with rewrites and matches “dashboard shows it” behavior.
-
- */
 
 function PlaceholderFill({
   title,
@@ -69,8 +65,11 @@ export function ProductPhoto({
   className = '',
   priority,
   productName,
+  width,
+  height,
 }: ProductPhotoProps) {
-  const src = getProductImageUrl(path);
+  const targetWidth = width || (fill ? 600 : undefined);
+  const src = getProductImageUrl(path, { width: targetWidth, height });
   if (!src) {
     if (fill) {
       return <PlaceholderFill title={productName} alt={alt} className={className} />;
@@ -86,6 +85,7 @@ export function ProductPhoto({
         className={`absolute inset-0 z-0 h-full w-full object-cover ${className}`}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        fetchPriority={priority ? 'high' : 'auto'}
       />
     );
   }
@@ -97,6 +97,7 @@ export function ProductPhoto({
       className={className}
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
+      fetchPriority={priority ? 'high' : 'auto'}
     />
   );
 }

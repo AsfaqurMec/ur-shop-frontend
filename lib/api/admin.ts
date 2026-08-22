@@ -772,6 +772,11 @@ export async function deleteCategory(id: number) {
   return unwrap(res);
 }
 
+export async function reorderCategories(orderedIds: number[]): Promise<{ message: string }> {
+  const res = await apiPut<{ message: string }>('categories/reorder', { orderedIds });
+  return unwrap(res);
+}
+
 
 // ---- Delivery / Fulfillment ----
 export interface FulfillmentItem {

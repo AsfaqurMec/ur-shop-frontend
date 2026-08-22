@@ -28,6 +28,8 @@ export function CategoryCardSlider({ categories }: CategoryCardSliderProps) {
                 src={imageUrl}
                 alt={category.name}
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/15 via-primary/10 to-background">

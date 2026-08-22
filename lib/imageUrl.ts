@@ -31,61 +31,87 @@ export function isDemoSeedProductImagePath(path: string | null | undefined): boo
   return /^seed-\d+\.(png|jpe?g|gif|webp)$/i.test(base);
 }
 
-export function getProductImageUrl(path: string | null | undefined): string | null {
-  if (!path?.trim()) return null;
-  const trimmed = path.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-
-  const p = normalizeStoredImagePath(trimmed);
-  if (isDemoSeedProductImagePath(p)) return null;
-
-  const lower = p.toLowerCase();
-  if (!lower.startsWith('products/images/')) return null;
-
-  const pathForUrl = p.split('/').map((seg) => encodeURIComponent(seg)).join('/');
-
-  if (process.env.NEXT_PUBLIC_IMAGE_DIRECT === '1') {
-    const base = getUploadBase();
-    return base ? `${base}/${pathForUrl}` : null;
-  }
-
-  return `/api/media/${pathForUrl}`;
+export interface ImageTransformOptions {
+  width?: number;
+  height?: number;
+  quality?: string | number;
+  crop?: string;
 }
 
-export function getBannerImageUrl(path: string | null | undefined): string | null {
-  if (!path?.trim()) return null;
-  const trimmed = path.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-
-  const p = normalizeStoredImagePath(trimmed);
-  if (!p.toLowerCase().startsWith('banners/images/')) return null;
-  const pathForUrl = p.split('/').map((seg) => encodeURIComponent(seg)).join('/');
-
-  if (process.env.NEXT_PUBLIC_IMAGE_DIRECT === '1') {
-    const base = getUploadBase();
-    return base ? `${base}/${pathForUrl}` : null;
+/**
+ * Optimizes Cloudinary URLs by automatically requesting WebP/AVIF (f_auto),
+ * lossless/perceptual compression (q_auto), and optional dimensions.
+ */
+export function optimizeCloudinaryUrl(
+  url: string | null | undefined,
+  options?: ImageTransformOptions
+): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed.includes('res.cloudinary.com') || !trimmed.includes('/image/upload/')) {
+    return trimmed;
   }
 
-  return `/api/media/${pathForUrl}`;
+  // If already transformed with auto format/quality, don't duplicate
+  if (trimmed.includes('/image/upload/f_auto') || trimmed.includes('/image/upload/q_auto')) {
+    return trimmed;
+  }
+
+  const transforms = ['f_auto', 'q_auto'];
+  if (options?.width) transforms.push(`w_${options.width}`);
+  if (options?.height) transforms.push(`h_${options.height}`);
+  if (options?.crop) transforms.push(`c_${options.crop}`);
+  if (options?.quality) transforms.push(`q_${options.quality}`);
+
+  return trimmed.replace('/image/upload/', `/image/upload/${transforms.join(',')}/`);
+}
+
+export function getProductImageUrl(
+  path: string | null | undefined,
+  options?: ImageTransformOptions
+): string | null {
+  return getStoredUploadImageUrl(path, 'products/images/', options);
+}
+
+export function getBannerImageUrl(
+  path: string | null | undefined,
+  options?: ImageTransformOptions
+): string | null {
+  return getStoredUploadImageUrl(path, 'banners/images/', options || { width: 1920 });
 }
 
 /** Resolve a stored review photo through the same same-origin media proxy as catalog images. */
-export function getReviewImageUrl(path: string | null | undefined): string | null {
-  return getStoredUploadImageUrl(path, 'reviews/images/');
+export function getReviewImageUrl(
+  path: string | null | undefined,
+  options?: ImageTransformOptions
+): string | null {
+  return getStoredUploadImageUrl(path, 'reviews/images/', options);
 }
 
-export function getCategoryImageUrl(path: string | null | undefined): string | null {
-  return getStoredUploadImageUrl(path, 'categories/images/');
+export function getCategoryImageUrl(
+  path: string | null | undefined,
+  options?: ImageTransformOptions
+): string | null {
+  return getStoredUploadImageUrl(path, 'categories/images/', options || { width: 600 });
 }
 
-export function getCategoryBannerImageUrl(path: string | null | undefined): string | null {
-  return getStoredUploadImageUrl(path, 'categories/banners/');
+export function getCategoryBannerImageUrl(
+  path: string | null | undefined,
+  options?: ImageTransformOptions
+): string | null {
+  return getStoredUploadImageUrl(path, 'categories/banners/', options || { width: 1600 });
 }
 
-function getStoredUploadImageUrl(path: string | null | undefined, prefix: string): string | null {
+function getStoredUploadImageUrl(
+  path: string | null | undefined,
+  prefix: string,
+  options?: ImageTransformOptions
+): string | null {
   if (!path?.trim()) return null;
   const trimmed = path.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return optimizeCloudinaryUrl(trimmed, options);
+  }
 
   const p = normalizeStoredImagePath(trimmed);
   if (!p.toLowerCase().startsWith(prefix)) return null;

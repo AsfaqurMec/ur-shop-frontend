@@ -11,6 +11,8 @@ export const metadata = createPageMetadata({
   keywords: ['Parves BD blog', 'digital products', 'licenses', 'guides'],
 });
 
+export const revalidate = 60;
+
 export default async function BlogsIndexPage() {
   const posts = await fetchBlogPostSummaries();
 

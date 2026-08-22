@@ -18,6 +18,7 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
+
 }): Promise<Metadata> {
   const { slug } = await params;
   const category = await fetchCategoryBySlug(slug).catch(() => null);
@@ -33,6 +34,8 @@ export async function generateMetadata({
     ),
   });
 }
+
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{ slug: string }>;

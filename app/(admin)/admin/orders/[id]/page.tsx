@@ -37,6 +37,7 @@ export default function AdminOrderDetailPage() {
   const handleStatusChange = async (status: 'pending' | 'placed' | 'delivered' | 'complete' | 'completed' | 'cancelled' | 'refunded' | 'processing') => {
     if (!orderId || !order) return;
     setUpdatingStatus(true);
+    setOrder((prev) => (prev ? { ...prev, status } : null));
     try {
       await updateAdminOrderStatus(orderId, status);
       const updated = await getAdminOrderDetails(orderId);
@@ -44,6 +45,7 @@ export default function AdminOrderDetailPage() {
       toast.success('Order status updated');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update order status');
+      getAdminOrderDetails(orderId).then(setOrder).catch(() => {});
     } finally {
       setUpdatingStatus(false);
     }
@@ -52,6 +54,7 @@ export default function AdminOrderDetailPage() {
   const handlePaymentStatusChange = async (paymentStatus: 'paid' | 'unpaid') => {
     if (!orderId || !order) return;
     setUpdatingPaymentStatus(true);
+    setOrder((prev) => (prev ? { ...prev, payment_status: paymentStatus } : null));
     try {
       await updateAdminOrderPaymentStatus(orderId, paymentStatus);
       const updated = await getAdminOrderDetails(orderId);
@@ -59,6 +62,7 @@ export default function AdminOrderDetailPage() {
       toast.success(`Payment status updated to ${paymentStatus}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update payment status');
+      getAdminOrderDetails(orderId).then(setOrder).catch(() => {});
     } finally {
       setUpdatingPaymentStatus(false);
     }

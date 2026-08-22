@@ -37,21 +37,35 @@ export function HomeClient({
       <HomepageAdPopup ads={ads} />
       <HeroSection banners={banners} featuredProducts={featuredProducts} />
       <FeaturedCategoriesSection categories={categories} />
-      <TrendingProductsSection
-        products={displayedTrending}
-        onAddToCart={handleAddToCart}
-        addingProductId={addingProductId}
-      />
-      <CategoryProductsSections
-        categoryProducts={categoryProducts}
-        onAddToCart={handleAddToCart}
-        addingProductId={addingProductId}
-      />
-      <WhyShopWithUsSection />
-      <VideoBannerSection videoThumbnail={videoThumbnail} />
-      <CustomerReviewsSection reviews={reviews} />
-      <FacebookFeedSection socialLinks={socialLinks} />
-      <NewsletterSection />
+      <div className="content-visibility-auto">
+        <TrendingProductsSection
+          products={displayedTrending}
+          onAddToCart={handleAddToCart}
+          addingProductId={addingProductId}
+        />
+      </div>
+      <div className="content-visibility-auto">
+        <CategoryProductsSections
+          categoryProducts={categoryProducts}
+          onAddToCart={handleAddToCart}
+          addingProductId={addingProductId}
+        />
+      </div>
+      <div className="content-visibility-auto">
+        <WhyShopWithUsSection />
+      </div>
+      <div className="content-visibility-auto">
+        <VideoBannerSection videoThumbnail={videoThumbnail} />
+      </div>
+      <div className="content-visibility-auto">
+        <CustomerReviewsSection reviews={reviews} />
+      </div>
+      <div className="content-visibility-auto">
+        <FacebookFeedSection socialLinks={socialLinks} />
+      </div>
+      <div className="content-visibility-auto">
+        <NewsletterSection />
+      </div>
       <SocialSpeedDial links={socialLinks} />
     </>
   );

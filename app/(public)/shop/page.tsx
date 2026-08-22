@@ -20,6 +20,8 @@ export const metadata = createPageMetadata({
   keywords: ['Parves BD shop', 'catalog', 'digital products', 'licenses'],
 });
 
+export const revalidate = 60;
+
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

@@ -48,6 +48,8 @@ export async function generateMetadata({
   };
 }
 
+export const revalidate = 60;
+
 interface PageProps {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

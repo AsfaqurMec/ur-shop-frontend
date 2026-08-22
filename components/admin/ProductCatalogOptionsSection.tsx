@@ -118,6 +118,43 @@ function emptyAttribute(kind: ProductCatalogAttribute['kind'], sort: number): Pr
   };
 }
 
+export function generateVariationSku(
+  baseSku: string,
+  combination: Record<string, string>,
+  attributes?: ProductCatalogAttribute[]
+): string {
+  const base = (baseSku || '').trim();
+  if (!base) return '';
+
+  let values: string[] = [];
+  if (attributes && attributes.length > 0) {
+    const sorted = attributes
+      .filter((a) => a.used_for_variations && a.kind === 'select')
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    for (const a of sorted) {
+      const vk = getComboValue(combination, a.attr_key);
+      if (vk) {
+        const valObj = a.values?.find((v) => v.value_key === vk || v.label === vk);
+        values.push(valObj?.label || valObj?.value_key || vk);
+      }
+    }
+  }
+
+  if (values.length === 0) {
+    values = Object.values(combination);
+  }
+
+  const parts = values
+    .map((v) => {
+      const cleaned = String(v).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleaned.slice(0, 3);
+    })
+    .filter(Boolean);
+
+  if (parts.length === 0) return base;
+  return `${base}-${parts.join('-')}`;
+}
+
 type VariationForm = {
   /** Server row id — required for default option + stable UI. */
   id: number;
@@ -265,13 +302,27 @@ export function ProductCatalogOptionsSection({
       onProductUpdated(p);
     });
 
+  const autoGenerateAllSkus = () => {
+    if (!sku.trim()) {
+      toast.error('Please enter a base product SKU first (e.g. PW-04) in the Inventory section above');
+      return;
+    }
+    setVariations((prev) =>
+      prev.map((v) => ({
+        ...v,
+        sku: generateVariationSku(sku, v.combination, attributes),
+      }))
+    );
+    toast.success('Generated SKUs for all variations. Click "Save variations" to apply.');
+  };
+
   const saveVariations = () =>
     run('var', async () => {
       const p = await putProductCatalogVariations(
         productId,
         variations.map((v, i) => ({
           combination: v.combination,
-          sku: v.sku?.trim() ? v.sku.trim() : null,
+          sku: v.sku?.trim() ? v.sku.trim() : (sku.trim() ? generateVariationSku(sku, v.combination, attributes) : null),
           quantity: v.quantity ?? null,
           price: v.price,
           compare_at_price: v.compare_at_price,
@@ -345,9 +396,8 @@ export function ProductCatalogOptionsSection({
       >
         <div className="space-y-4">
           {usesVariations ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
-              This product uses variations — set SKU on each variation row below. Product-level SKU and base inventory
-              are disabled.
+            <p className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs text-foreground">
+              Base SKU serves as the root prefix for variation SKUs (e.g. <strong>{sku || 'PW-04'}</strong> &rarr; <strong>{sku ? `${sku}-blu-2xl` : 'PW-04-blu-2xl'}</strong>). Quantities and pricing are managed per variation below.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -357,13 +407,12 @@ export function ProductCatalogOptionsSection({
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">SKU</label>
+              <label className="text-xs font-medium text-muted-foreground">Product Base SKU</label>
               <input
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                disabled={usesVariations}
-                className="mt-0.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                placeholder="e.g. APP-LIC-1YR"
+                className="mt-0.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                placeholder="e.g. PW-04"
               />
             </div>
             <div>
@@ -792,6 +841,16 @@ export function ProductCatalogOptionsSection({
                 Clear default
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={autoGenerateAllSkus}
+              disabled={variations.length === 0}
+              title="Automatically generate SKUs for all variations using product base SKU and attribute abbreviations"
+            >
+              Auto-Generate SKUs
+            </Button>
             <Button
               type="button"
               variant="outline"

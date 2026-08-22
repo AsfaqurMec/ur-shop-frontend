@@ -139,4 +139,10 @@
       0 0 0 1px hsl(var(--primary) / 0.25),
       0 0 14px hsl(var(--primary) / 0.25);
   }
+
+  /* Defer rendering of off-screen heavy sections for instant Initial Paint */
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 600px;
+  }
 }
