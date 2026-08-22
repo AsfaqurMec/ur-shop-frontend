@@ -110,7 +110,9 @@ export default function AdminEditProductPage() {
         setIsFeatured(p.is_featured);
         setIsTrending(Boolean(p.is_trending));
         setManualFulfillmentRequired(Boolean(p.manual_fulfillment_required));
-        setImages((p.images ?? []).slice(0, 1));
+        setImages(
+          (p.images ?? []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
+        );
         setSizeChartImage(p.size_chart_image ?? null);
         setFiles(
           (p.files ?? []).slice().sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
@@ -223,6 +225,10 @@ export default function AdminEditProductPage() {
 
   const handleSizeChartUpload = async (file: File | null) => {
     if (!file || Number.isNaN(id)) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(`Size chart image exceeds the 10MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)`);
+      return;
+    }
     setSizeChartBusy(true);
     try {
       const product = await uploadProductSizeChartImage(id, file);
@@ -523,6 +529,12 @@ export default function AdminEditProductPage() {
             defaultOpen={false}
           >
             <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Upload size chart graphic</span>
+                <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  Max 10 MB • JPEG, PNG, GIF, WebP
+                </span>
+              </div>
               <input
                 type="file"
                 accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
@@ -531,14 +543,14 @@ export default function AdminEditProductPage() {
                   void handleSizeChartUpload(e.target.files?.[0] ?? null);
                   e.currentTarget.value = '';
                 }}
-                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-2 file:text-sm file:font-medium"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-muted"
               />
               {sizeChartImage && getProductImageUrl(sizeChartImage) ? (
                 <div className="space-y-2 rounded-md border border-border p-3">
                   <img src={getProductImageUrl(sizeChartImage)!} alt="Current size chart" className="max-h-80 w-auto rounded-md border border-border object-contain" />
                   <Button type="button" variant="outline" size="sm" disabled={sizeChartBusy} onClick={handleSizeChartRemove}>Remove size chart</Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No size chart image uploaded.</p>}
+              ) : <p className="text-xs text-muted-foreground">No size chart image uploaded.</p>}
             </div>
           </AdminAccordionSection>
 

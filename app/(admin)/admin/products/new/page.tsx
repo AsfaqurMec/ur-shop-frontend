@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createProduct, getCategories, uploadProductImage, uploadProductFile, uploadProductSizeChartImage } from '@/lib/api/admin';
+import { createProduct, getCategories, uploadProductImages, uploadProductFile, uploadProductSizeChartImage } from '@/lib/api/admin';
 import { AdminPageHeader } from '@/components/admin';
 import { AdminAccordionSection } from '@/components/admin/AdminAccordionSection';
 import { IconClipboard, IconImage, IconFolderDown, IconKey } from '@/components/admin/admin-icons';
@@ -12,9 +12,11 @@ import { Alert, AlertDescription } from '@/components/ui';
 import { toast } from 'sonner';
 
 const PRODUCT_TYPES = ['downloadable', 'license_key', 'subscription_manual', 'digital_service'];
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const fileInputClass =
-  'mt-1 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-2 file:text-sm file:font-medium';
+  'mt-1 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-muted';
 
 export default function AdminAddProductPage() {
   const router = useRouter();
@@ -34,7 +36,7 @@ export default function AdminAddProductPage() {
   const [manualFulfillmentRequired, setManualFulfillmentRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [sizeChartFile, setSizeChartFile] = useState<File | null>(null);
   const [pendingDownloadFiles, setPendingDownloadFiles] = useState<{ key: string; file: File }[]>([]);
 
@@ -72,6 +74,33 @@ export default function AdminAddProductPage() {
     }
   };
 
+  const handleImagesPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files ?? []);
+    if (!list.length) return;
+    const oversized = list.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
+    if (oversized.length > 0) {
+      const msg = `Some files exceed the ${MAX_FILE_SIZE_MB}MB limit: ${oversized.map((f) => `${f.name} (${(f.size / (1024 * 1024)).toFixed(1)}MB)`).join(', ')}`;
+      toast.error(msg);
+      e.target.value = '';
+      return;
+    }
+    setImageFiles(list);
+  };
+
+  const handleSizeChartPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (!f) {
+      setSizeChartFile(null);
+      return;
+    }
+    if (f.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`Size chart image exceeds the ${MAX_FILE_SIZE_MB}MB limit (${(f.size / (1024 * 1024)).toFixed(1)}MB)`);
+      e.target.value = '';
+      return;
+    }
+    setSizeChartFile(f);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -99,13 +128,13 @@ export default function AdminAddProductPage() {
         is_active: isActive,
         is_featured: isFeatured,
       });
-      if (imageFile) {
+      if (imageFiles.length > 0) {
         try {
-          await uploadProductImage(product.id, imageFile);
+          await uploadProductImages(product.id, imageFiles);
         } catch (uploadErr) {
           const reason = uploadErr instanceof Error ? uploadErr.message : 'Upload failed';
           router.push(
-            `/admin/products/${product.id}/edit?image=failed&reason=${encodeURIComponent(reason)}`
+            `/admin/products/${product.id}/edit?images=failed&reason=${encodeURIComponent(reason)}`
           );
           return;
         }
@@ -126,7 +155,7 @@ export default function AdminAddProductPage() {
           return;
         }
       }
-      toast.success('Product created');
+      toast.success('Product created successfully');
       router.push(`/admin/products/${product.id}/edit`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create product';
@@ -378,31 +407,49 @@ export default function AdminAddProductPage() {
           </div>
 
           <AdminAccordionSection
-            title="Product image"
-            description="Primary image used on listings and the product page."
+            title="Product images"
+            description="Upload one or multiple images. The first image will be used as the primary photo on listings."
             icon={<IconImage />}
             defaultOpen
           >
             <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Image file</label>
-                <input
-                  type="file"
-                  accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
-                  className={fileInputClass}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    setImageFile(f ?? null);
-                  }}
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  One image per product; uploaded when you click Create product.
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-sm font-medium">Image files</label>
+                <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  Upload limit: Max 10 MB / image
+                </span>
               </div>
-              {imageFile && (
-                <p className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                  Selected: <span className="font-medium text-foreground">{imageFile.name}</span>
-                </p>
+              <input
+                type="file"
+                accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
+                multiple
+                className={fileInputClass}
+                onChange={handleImagesPicked}
+              />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>• <strong>Size Limit:</strong> Max 10 MB per file</span>
+                <span>• <strong>Formats:</strong> JPEG, PNG, GIF, WebP</span>
+                <span>• <strong>Multiple:</strong> Select multiple images at once (up to 20 images)</span>
+              </div>
+              {imageFiles.length > 0 && (
+                <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                  <p className="text-xs font-semibold text-foreground">
+                    Selected Images ({imageFiles.length}):
+                  </p>
+                  <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-muted-foreground">
+                    {imageFiles.map((f, i) => (
+                      <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2">
+                        <span className="truncate">
+                          {i === 0 ? '★ [Primary] ' : `[Gallery #${i + 1}] `}
+                          <span className="font-medium text-foreground">{f.name}</span>
+                        </span>
+                        <span className="shrink-0 font-mono text-[11px]">
+                          {(f.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           </AdminAccordionSection>
@@ -413,8 +460,25 @@ export default function AdminAddProductPage() {
             icon={<IconImage />}
             defaultOpen={false}
           >
-            <input type="file" accept="image/*,.jpg,.jpeg,.png,.gif,.webp" className={fileInputClass} onChange={(e) => setSizeChartFile(e.target.files?.[0] ?? null)} />
-            {sizeChartFile ? <p className="mt-2 text-sm text-muted-foreground">Selected: <span className="font-medium text-foreground">{sizeChartFile.name}</span></p> : null}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Upload size chart graphic</span>
+                <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  Max 10 MB • JPEG, PNG, GIF, WebP
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
+                className={fileInputClass}
+                onChange={handleSizeChartPicked}
+              />
+              {sizeChartFile ? (
+                <p className="text-xs text-muted-foreground">
+                  Selected: <span className="font-medium text-foreground">{sizeChartFile.name}</span> ({(sizeChartFile.size / (1024 * 1024)).toFixed(2)} MB)
+                </p>
+              ) : null}
+            </div>
           </AdminAccordionSection>
 
           {/* {productType === 'downloadable' && (

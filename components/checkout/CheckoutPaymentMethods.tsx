@@ -50,12 +50,12 @@ export function CheckoutPaymentMethods({ paymentMethod, onPaymentMethodChange }:
             </button>
             {policyOpen ? (
               <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
-                <p>If your <strong>Courier Score is 80% or above</strong>, we will call you from our <strong>official page</strong> to confirm your order.</p>
-                <p>If your <strong>Courier Score is below 80% or unavailable</strong>, the <strong>delivery charge must be paid in advance</strong> to confirm your order.</p>
-                <p>We will contact you by phone. If your number is <strong>switched off, unreachable, or has any issue</strong>, the order will be <strong>cancelled</strong>.</p>
-                <p><strong>bKash Number:</strong> 018xxxxxxx <span>[Send Money]</span></p>
-                <p>The delivery charge is <strong>150 BDT</strong>.</p>
-                <p>Please send the <strong>last digit of the transaction ID</strong> or a <strong>screenshot</strong> to WhatsApp: <strong>018xxxxxxxx</strong></p>
+                <p>অর্ডার করুন নিশ্চিন্তে — Cash on Delivery (COD) সুবিধা রয়েছে।</p>
+                <p>পণ্য হাতে পাওয়ার পর পেমেন্ট করুন।</p>
+                <p>📦 পণ্যটি দেখে ও চেক করে রিসিভ করবেন।</p>
+                <p>কোনো সমস্যা থাকলে রাইডার থাকা অবস্থায়ই আমাদের মার্চেন্টের সাথে যোগাযোগ করুন।</p>
+                <p>আপনার বিশ্বাস ও সন্তুষ্টিই আমাদের অগ্রাধিকার। ❤️.</p>
+                
               </div>
             ) : null}
           </div>

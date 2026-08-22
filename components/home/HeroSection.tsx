@@ -387,7 +387,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
 
   return (
     <section
-      className="relative isolate h-[30vh] touch-pan-y overflow-hidden md:h-[40vh] lg:h-[87vh]"
+      className="relative isolate h-[28vh] touch-pan-y overflow-hidden md:h-[40vh] lg:h-[87vh]"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={finishDrag}
@@ -398,7 +398,7 @@ export function HeroSection({ banners, featuredProducts }: HeroSectionProps) {
         key={safeActiveSlide}
         src={optimizeCloudinaryUrl(slide.imageUrl, { width: 1920 }) || slide.imageUrl}
         alt={slide.title || 'Hero Banner'}
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full "
         style={{ transform: `translateX(${dragOffset}px)` }}
         loading="eager"
         decoding="async"

@@ -586,6 +586,24 @@ export async function deleteProductImage(productId: number, imageId: number): Pr
   unwrap(res);
 }
 
+export async function reorderProductImages(
+  productId: number,
+  imageIds: number[]
+): Promise<AdminProductImage[]> {
+  const res = await apiPut<{ images: AdminProductImage[] }>(`products/${productId}/images/reorder`, {
+    image_ids: imageIds,
+  });
+  return unwrap(res).images;
+}
+
+export async function setProductPrimaryImage(
+  productId: number,
+  imageId: number
+): Promise<AdminProductImage[]> {
+  const res = await apiPut<{ images: AdminProductImage[] }>(`products/${productId}/images/${imageId}/primary`, {});
+  return unwrap(res).images;
+}
+
 export async function uploadProductSizeChartImage(productId: number, file: File): Promise<Product> {
   const formData = new FormData();
   formData.append('size_chart_image', file);
