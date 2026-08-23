@@ -4,7 +4,6 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { ThemeProvider, THEME_INIT_SCRIPT } from '@/components/theme';
 import { AddedToCartModalProvider } from '@/components/storefront/AddedToCartModalProvider';
 import { AppToaster } from '@/components/ui/AppToaster';
-import { getRuntimePublicApiBase } from '@/lib/api/baseUrl';
 import { buildRootMetadata } from '@/lib/seo/metadata';
 import './globals.css';
 
@@ -24,17 +23,11 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: dark)', color: 'hsl(222 47% 6%)' },
   ],
 };
-const API_BASE_INIT = (base: string) =>
-  base
-    ? `window.__DP_API_BASE__=${JSON.stringify(base)};`
-    : '/* __DP_API_BASE__ unset: set PUBLIC_API_URL on the server or use dev default in getApiBaseUrl */';
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const runtimeApiBase = getRuntimePublicApiBase();
   const pixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
 
   return (
@@ -50,12 +43,6 @@ export default function RootLayout({
           id="dp-theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
-        />
-
-        <Script
-          id="dp-api-base"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: API_BASE_INIT(runtimeApiBase) }}
         />
 
         <ThemeProvider>

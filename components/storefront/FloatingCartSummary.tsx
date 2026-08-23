@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getAuthToken } from '@/lib/api/client';
 import { getCart } from '@/lib/api/cart';
 import { getGuestCart } from '@/lib/storefront/guestCart';
 import { formatCurrency } from '@/lib/utils/format';
@@ -15,7 +14,12 @@ export function FloatingCartSummary() {
     let cancelled = false;
     const load = async () => {
       try {
-        const cart = getAuthToken() ? await getCart({ skip401Redirect: true }) : getGuestCart();
+        let cart: import('@/types/cart').Cart;
+        try {
+          cart = await getCart({ skip401Redirect: true });
+        } catch {
+          cart = getGuestCart();
+        }
         if (!cancelled) setSummary({ count: cart.item_count, total: cart.subtotal });
       } catch {
         if (!cancelled) setSummary({ count: 0, total: 0 });

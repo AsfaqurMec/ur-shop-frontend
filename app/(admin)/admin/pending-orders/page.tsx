@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { deleteOrder, getAdminRecentOrders, updateAdminOrderStatus } from '@/lib/api/admin';
+import { deleteOrder, getAdminRecentOrders, updateAdminOrderStatus, updateAdminOrderPaymentStatus } from '@/lib/api/admin';
 import { AdminPageHeader, DataTable, Modal } from '@/components/admin';
 import { Alert, AlertDescription, Button, Pagination } from '@/components/ui';
 import { IconEye, IconTrash } from '@/components/admin/admin-icons';
@@ -28,6 +28,7 @@ function PendingOrdersContent() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+  const [updatingPaymentStatusId, setUpdatingPaymentStatusId] = useState<number | null>(null);
 
   useEffect(() => {
     const offset = (pageFromUrl - 1) * PAGE_SIZE;
@@ -87,9 +88,22 @@ function PendingOrdersContent() {
       setRefreshToken((value) => value + 1);
       toast.success('Order status updated');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update status');
+      toast.error(err instanceof Error ? err.message : 'Failed to update order status');
     } finally {
       setUpdatingStatusId(null);
+    }
+  };
+
+  const updatePaymentStatus = async (id: number, paymentStatus: 'paid' | 'unpaid') => {
+    setUpdatingPaymentStatusId(id);
+    try {
+      await updateAdminOrderPaymentStatus(id, paymentStatus);
+      setRefreshToken((value) => value + 1);
+      toast.success('Payment status updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update payment status');
+    } finally {
+      setUpdatingPaymentStatusId(null);
     }
   };
 
@@ -113,21 +127,78 @@ function PendingOrdersContent() {
         <DataTable<AdminRecentOrder>
           columns={[
             { key: 'id', header: 'ID', render: (r) => `#${r.id}` },
-            { key: 'order_number', header: 'Order', render: (r) => `#${r.order_number}` },
-            { key: 'status', header: 'Status', render: (r) => <select value={r.status} disabled={updatingStatusId === r.id} onChange={(event) => void updateStatus(r.id, event.target.value as Parameters<typeof updateAdminOrderStatus>[1])} className="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"><option value="pending">Pending</option><option value="placed">Placed</option><option value="delivered">Delivered</option><option value="complete">Complete</option><option value="cancelled">Cancelled</option><option value="refunded">Refunded</option><option value="processing">Processing</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select> },
-            { key: 'total', header: 'Total', render: (r) => formatCurrency(r.total, r.currency) },
+            {
+              key: 'order_number',
+              header: 'Order #',
+              render: (r) => (
+                <Link href={`/admin/orders/${r.id}`} className="font-semibold text-primary hover:underline">
+                  #{r.order_number}
+                </Link>
+              ),
+            },
             {
               key: 'customer_name',
               header: 'Customer',
-              render: (r) => (r.customer_name?.trim() ? r.customer_name : '—'),
+              render: (r) => (
+                <div>
+                  <div className="font-medium text-foreground text-xs">{r.customer_name?.trim() ? r.customer_name : 'Guest Customer'}</div>
+                  <div className="text-[11px] text-muted-foreground">{r.shipping_mobile || '—'}</div>
+                </div>
+              ),
             },
             {
-              key: 'shipping_mobile',
-              header: 'Mobile',
-              render: (r) => (r.shipping_mobile?.trim() ? r.shipping_mobile : '—'),
+              key: 'status',
+              header: 'Order Status',
+              render: (r) => (
+                <select
+                  value={r.status}
+                  disabled={updatingStatusId === r.id}
+                  onChange={(event) => void updateStatus(r.id, event.target.value as Parameters<typeof updateAdminOrderStatus>[1])}
+                  className="h-9 rounded-md border border-input bg-background px-2 text-xs font-medium capitalize text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="placed">Placed</option>
+                  <option value="processing">Processing</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="complete">Complete</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="refunded">Refunded</option>
+                </select>
+              ),
             },
-            { key: 'user_id', header: 'User ID' },
-            { key: 'created_at', header: 'Date', render: (r) => new Date(r.created_at).toLocaleString() },
+            {
+              key: 'payment_status',
+              header: 'Payment Status',
+              render: (r) => (
+                <select
+                  value={r.payment_status || 'unpaid'}
+                  disabled={updatingPaymentStatusId === r.id}
+                  onChange={(event) => void updatePaymentStatus(r.id, event.target.value as 'paid' | 'unpaid')}
+                  className={`h-9 rounded-md border border-input bg-background px-2 text-xs font-medium capitalize shadow-sm focus:outline-none focus:ring-1 focus:ring-primary ${
+                    r.payment_status === 'paid'
+                      ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+                      : 'text-amber-600 dark:text-amber-400 font-semibold'
+                  }`}
+                >
+                  <option value="unpaid">Unpaid</option>
+                  <option value="paid">Paid</option>
+                </select>
+              ),
+            },
+            {
+              key: 'total',
+              header: 'Total',
+              render: (r) => <span className="font-semibold tabular-nums text-xs">{formatCurrency(r.total, r.currency)}</span>,
+            },
+            {
+              key: 'created_at',
+              header: 'Date',
+              render: (r) => (
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              ),
+            },
             {
               key: 'actions',
               header: '',

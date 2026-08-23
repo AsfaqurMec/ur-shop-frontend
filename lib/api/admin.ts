@@ -239,11 +239,15 @@ export async function getAdminOrderDetails(orderId: number) {
 
 export async function downloadAdminOrderInvoice(orderId: number): Promise<void> {
   const token = getAuthToken();
-  if (!token) throw new Error('Please sign in as admin to download the invoice.');
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const base = getApiBaseUrl().replace(/\/$/, '');
   const response = await fetch(`${base}/admin/dashboard/orders/${orderId}/invoice`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+    headers,
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;

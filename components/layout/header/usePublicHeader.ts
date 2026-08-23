@@ -2,8 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { getAuthToken, clearAuthToken } from '@/lib/api/client';
-import { getProfile } from '@/lib/api/auth';
+import { getProfile, logout } from '@/lib/api/auth';
 import { getCart } from '@/lib/api/cart';
 import { getGuestCart } from '@/lib/storefront/guestCart';
 import { fetchCategories } from '@/lib/api/categories';
@@ -58,12 +57,6 @@ export function usePublicHeader(settings?: PublicStoreSettings | null) {
   }, []);
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) {
-      setUser(null);
-      setAuthReady(true);
-      return;
-    }
     let cancelled = false;
     getProfile()
       .then((data) => {
@@ -78,7 +71,7 @@ export function usePublicHeader(settings?: PublicStoreSettings | null) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -104,8 +97,6 @@ export function usePublicHeader(settings?: PublicStoreSettings | null) {
 
   useEffect(() => {
     const onProfileUpdated = () => {
-      const token = getAuthToken();
-      if (!token) return;
       void getProfile()
         .then((data) => setUser(data.user))
         .catch(() => setUser(null));
@@ -117,16 +108,11 @@ export function usePublicHeader(settings?: PublicStoreSettings | null) {
   useEffect(() => {
     let cancelled = false;
     const loadCartCount = async () => {
-      const token = getAuthToken();
-      if (!token) {
-        if (!cancelled) setCartCount(getGuestCart().item_count);
-        return;
-      }
       try {
-        const cart = await getCart();
+        const cart = await getCart({ skip401Redirect: true });
         if (!cancelled) setCartCount(cart.item_count);
       } catch {
-        if (!cancelled) setCartCount(0);
+        if (!cancelled) setCartCount(getGuestCart().item_count);
       }
     };
     const handleCartChanged = () => {
@@ -140,8 +126,8 @@ export function usePublicHeader(settings?: PublicStoreSettings | null) {
     };
   }, [pathname]);
 
-  const handleSignOut = () => {
-    clearAuthToken();
+  const handleSignOut = async () => {
+    await logout();
     setUser(null);
     setMobileOpen(false);
     setAccountMenuOpen(false);

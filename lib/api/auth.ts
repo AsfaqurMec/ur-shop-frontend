@@ -1,5 +1,4 @@
-import { apiPost, apiGet, apiPatch } from './client';
-import { setAuthToken } from './client';
+import { apiPost, apiGet, apiPatch, setAuthToken, clearAuthToken } from './client';
 import type {
   LoginResponse,
   RegisterResponse,
@@ -67,8 +66,10 @@ export async function resetPassword(token: string, password: string): Promise<Me
   return unwrap(res);
 }
 
-export async function getProfile(): Promise<{ user: import('@/types/auth').SafeUser }> {
-  const res = await apiGet<{ user: import('@/types/auth').SafeUser }>('auth/me');
+export async function getProfile(options?: { skip401Redirect?: boolean }): Promise<{ user: import('@/types/auth').SafeUser }> {
+  const res = await apiGet<{ user: import('@/types/auth').SafeUser }>('auth/me', {
+    skip401Redirect: options?.skip401Redirect ?? true,
+  });
   return unwrap(res);
 }
 
@@ -107,4 +108,26 @@ export async function guestAccountExists(mobile: string): Promise<boolean> {
 export async function continueCheckout(mobile: string): Promise<LoginResponse> {
   const res = await apiPost<LoginResponse>('auth/continue-checkout', { mobile }, { skipAuth: true });
   return unwrap(res);
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {}
+
+  // Expire cookies on document level as client-side fallback
+  if (typeof document !== 'undefined') {
+    document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    document.cookie = 'refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+  }
+
+  clearAuthToken();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('profile:updated'));
+    window.dispatchEvent(new Event('cart:changed'));
+  }
 }

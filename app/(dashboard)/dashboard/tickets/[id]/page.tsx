@@ -9,8 +9,7 @@ import { PageHeader, StatusBadge } from '@/components/dashboard';
 import { Button } from '@/components/ui';
 import { Alert, AlertDescription } from '@/components/ui';
 import { getApiBaseUrl } from '@/lib/api/baseUrl';
-import { getAuthToken } from '@/lib/api/client';
-import { getAccessTokenUserId } from '@/lib/auth/token';
+import { getProfile } from '@/lib/api/auth';
 import { markAnsweredTicketSeen } from '@/lib/utils/supportTicketReadState';
 import { toast } from 'sonner';
 
@@ -34,10 +33,9 @@ export default function TicketDetailPage() {
     try {
       const t = await getTicketDetails(ticketId);
       setTicket(t);
-      const uid = getAccessTokenUserId(getAuthToken());
-      if (uid != null) {
-        markAnsweredTicketSeen(uid, t);
-      }
+      void getProfile().then(({ user }) => {
+        if (user?.id) markAnsweredTicketSeen(user.id, t);
+      }).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
@@ -60,10 +58,9 @@ export default function TicketDetailPage() {
         attachment: replyFile ?? undefined,
       });
       setTicket(updated);
-      const uid = getAccessTokenUserId(getAuthToken());
-      if (uid != null) {
-        markAnsweredTicketSeen(uid, updated);
-      }
+      void getProfile().then(({ user }) => {
+        if (user?.id) markAnsweredTicketSeen(user.id, updated);
+      }).catch(() => {});
       setReply('');
       setReplyFile(null);
       toast.success('Reply sent');

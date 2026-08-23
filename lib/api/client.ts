@@ -14,20 +14,33 @@ function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 }
-
 /** Current access token from localStorage (client-only). */
 export function getAuthToken(): string | null {
   return getToken();
 }
 
-export function setAuthToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TOKEN_KEY, token);
+export function setAuthToken(_token: string): void {
+  // Tokens are now stored in secure HTTP-Only cookies by the server.
+  // Legacy localStorage cleanup:
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {}
+  }
 }
 
 export function clearAuthToken(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(TOKEN_KEY);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {}
+    if (typeof document !== 'undefined') {
+      try {
+        document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        document.cookie = 'refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      } catch {}
+    }
+  }
 }
 
 export interface ApiResponse<T = unknown> {
@@ -51,9 +64,6 @@ export interface RequestConfig extends RequestInit {
 
 function buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
   const base = getApiBaseUrl().replace(/\/$/, '');
-  if (!base && typeof window === 'undefined') {
-    console.warn('[api] Missing API_URL / BACKEND_URL / PUBLIC_API_URL; server fetches will fail.');
-  }
   const url = path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
   if (!params) return url;
   const search = new URLSearchParams();
@@ -118,6 +128,7 @@ export async function api<T = unknown>(
       : {};
 
   const res = await fetch(url, {
+    credentials: 'include',
     ...init,
     headers,
     ...serverFetch,
@@ -153,7 +164,7 @@ export async function apiPostFormData<T = unknown>(
   const headers: HeadersInit = { ...(init.headers as Record<string, string>) };
   const token = skipAuth ? null : getToken();
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { ...init, method: 'POST', body: formData, headers });
+  const res = await fetch(url, { ...init, method: 'POST', body: formData, headers, credentials: 'include' });
   const skip401 = Boolean(skip401Redirect) || Boolean(skipAuth);
   return handleResponse<T>(res, { skip401Redirect: skip401 });
 }
@@ -168,7 +179,7 @@ export async function apiPutFormData<T = unknown>(
   const headers: HeadersInit = { ...(init.headers as Record<string, string>) };
   const token = skipAuth ? null : getToken();
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { ...init, method: 'PUT', body: formData, headers });
+  const res = await fetch(url, { ...init, method: 'PUT', body: formData, headers, credentials: 'include' });
   const skip401 = Boolean(skip401Redirect) || Boolean(skipAuth);
   return handleResponse<T>(res, { skip401Redirect: skip401 });
 }

@@ -96,11 +96,26 @@ function isOptionOutOfStock(
   product: Product,
   attrKey: string,
   valueKey: string,
-  currentChoice: Record<string, string>
+  currentChoice: Record<string, string>,
+  dimIndex: number
 ): boolean {
   const vars = product.catalog_variations ?? [];
   if (vars.length === 0) return false;
 
+  // First attribute (e.g. Color): only out of stock if ALL variations containing this value are out of stock.
+  // Never disable the 1st attribute based on what 2nd attribute happens to be selected.
+  if (dimIndex === 0) {
+    const matchingVars = vars.filter((v) => {
+      const combo = v.combination as Record<string, unknown>;
+      return getComboValue(combo, attrKey) === valueKey;
+    });
+    if (matchingVars.length === 0) return true;
+    return matchingVars.every(
+      (v) => v.enabled === false || (v.quantity !== null && v.quantity !== undefined && v.quantity <= 0)
+    );
+  }
+
+  // Second / subsequent attributes (e.g. Size): evaluate against the selected 1st attribute.
   const testChoice = { ...currentChoice, [attrKey]: valueKey };
   const matched = matchVariation(product, testChoice);
   if (matched) {
@@ -500,7 +515,7 @@ export function ProductPurchasePanel({
         >
       {hasVariations && (dims.length > 0 || extraFieldMeta.length > 0) && (
         <div className="space-y-5 rounded-xl border border-border/50 bg-muted/25 p-5 dark:bg-muted/15">
-          {dims.map((a) => {
+          {dims.map((a, dimIndex) => {
             const opts = a.values.slice().sort((x, y) => x.sort_order - y.sort_order);
             const isColor =
               a.attr_key.toLowerCase().includes('color') ||
@@ -508,6 +523,40 @@ export function ProductPurchasePanel({
               opts.some((o) => !!o.color_code);
             const selectedVal = variationChoice[a.attr_key] ?? '';
             const selectedOpt = opts.find((o) => o.value_key === selectedVal);
+
+            const handleAttributeClick = (valueKey: string) => {
+              let nextChoice = { ...variationChoice, [a.attr_key]: valueKey };
+
+              // If choosing a 1st attribute (e.g. Color) and the current 2nd attribute is out of stock,
+              // auto-select an available in-stock 2nd attribute (e.g. Size) for this 1st attribute
+              if (dimIndex === 0 && dims.length > 1) {
+                const matched = matchVariation(product, nextChoice);
+                const isOutOfStock =
+                  !matched ||
+                  matched.enabled === false ||
+                  (matched.quantity !== null && matched.quantity !== undefined && matched.quantity <= 0);
+
+                if (isOutOfStock) {
+                  const vars = product.catalog_variations ?? [];
+                  const inStockVar = vars.find((v) => {
+                    const combo = v.combination as Record<string, unknown>;
+                    return (
+                      getComboValue(combo, a.attr_key) === valueKey &&
+                      v.enabled !== false &&
+                      (v.quantity === null || v.quantity === undefined || v.quantity > 0)
+                    );
+                  });
+                  if (inStockVar) {
+                    for (const d of dims) {
+                      const val = getComboValue(inStockVar.combination as Record<string, unknown>, d.attr_key);
+                      if (val) nextChoice[d.attr_key] = val;
+                    }
+                  }
+                }
+              }
+
+              setVariationChoice(nextChoice);
+            };
 
             return (
               <div key={a.attr_key} className="space-y-2">
@@ -522,7 +571,7 @@ export function ProductPurchasePanel({
                   <div className="flex flex-wrap items-center gap-4 pt-1.5">
                     {opts.map((o) => {
                       const isSelected = selectedVal === o.value_key;
-                      const isOos = isOptionOutOfStock(product, a.attr_key, o.value_key, variationChoice);
+                      const isOos = isOptionOutOfStock(product, a.attr_key, o.value_key, variationChoice, dimIndex);
                       const hasHex = typeof o.color_code === 'string' && o.color_code.trim().length > 0;
                       const bgStyle: React.CSSProperties | undefined = hasHex ? { backgroundColor: o.color_code! } : undefined;
 
@@ -533,10 +582,7 @@ export function ProductPurchasePanel({
                           disabled={isOos}
                           onClick={() => {
                             if (isOos) return;
-                            setVariationChoice((prev) => ({
-                              ...prev,
-                              [a.attr_key]: o.value_key,
-                            }));
+                            handleAttributeClick(o.value_key);
                           }}
                           title={isOos ? `${o.label} (Out of stock)` : o.label}
                           aria-label={`${a.name}: ${o.label}${isOos ? ' (Out of stock)' : ''}`}
@@ -578,7 +624,7 @@ export function ProductPurchasePanel({
                   <div className="flex flex-wrap items-center gap-2.5 pt-1">
                     {opts.map((o) => {
                       const isSelected = selectedVal === o.value_key;
-                      const isOos = isOptionOutOfStock(product, a.attr_key, o.value_key, variationChoice);
+                      const isOos = isOptionOutOfStock(product, a.attr_key, o.value_key, variationChoice, dimIndex);
 
                       return (
                         <button
@@ -587,10 +633,7 @@ export function ProductPurchasePanel({
                           disabled={isOos}
                           onClick={() => {
                             if (isOos) return;
-                            setVariationChoice((prev) => ({
-                              ...prev,
-                              [a.attr_key]: o.value_key,
-                            }));
+                            handleAttributeClick(o.value_key);
                           }}
                           aria-label={`${a.name}: ${o.label}${isOos ? ' (Out of stock)' : ''}`}
                           className={`min-w-[44px] h-10 px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium transition-all duration-150 flex items-center justify-center relative ${

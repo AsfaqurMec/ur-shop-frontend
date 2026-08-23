@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { getAuthToken } from '@/lib/api/client';
 import { fetchProductReviews, submitProductReview, updateProductReview } from '@/lib/api/reviews';
 import { getProfile } from '@/lib/api/auth';
 import type { ProductReviewPublic } from '@/types/review';
@@ -55,9 +54,15 @@ export function ProductReviewsSection({
   const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!getAuthToken()) return;
-    setLoggedIn(true);
-    void getProfile().then(({ user }) => setCurrentUserId(user.id)).catch(() => setLoggedIn(false));
+    void getProfile()
+      .then(({ user }) => {
+        setLoggedIn(true);
+        setCurrentUserId(user.id);
+      })
+      .catch(() => {
+        setLoggedIn(false);
+        setCurrentUserId(null);
+      });
   }, []);
 
   const average = useMemo(() => {

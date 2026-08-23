@@ -4,8 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { listMyTickets } from '@/lib/api/tickets';
-import { getAuthToken } from '@/lib/api/client';
-import { getAccessTokenUserId } from '@/lib/auth/token';
+import { getProfile } from '@/lib/api/auth';
 import { markAnsweredTicketsSeenFromList } from '@/lib/utils/supportTicketReadState';
 import { PageHeader, EmptyState, StatusBadge } from '@/components/dashboard';
 import { Button, Pagination } from '@/components/ui';
@@ -46,10 +45,9 @@ function DashboardTicketsContent() {
         if (cancelled) return;
         setTickets(r.tickets);
         setTotal(r.total);
-        const uid = getAccessTokenUserId(getAuthToken());
-        if (uid != null) {
-          markAnsweredTicketsSeenFromList(uid, r.tickets);
-        }
+        void getProfile().then(({ user }) => {
+          if (user?.id) markAnsweredTicketsSeenFromList(user.id, r.tickets);
+        }).catch(() => {});
         const totalPages = Math.max(1, Math.ceil(r.total / PAGE_SIZE) || 1);
         if (r.total > 0 && pageFromUrl > totalPages) {
           const p = new URLSearchParams(searchParams.toString());

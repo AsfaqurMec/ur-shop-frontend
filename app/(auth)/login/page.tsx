@@ -46,6 +46,7 @@ export default function LoginPage() {
         await transferGuestCartToAccount();
         window.dispatchEvent(new Event('cart:changed'));
       }
+      window.dispatchEvent(new Event('profile:updated'));
       if (result.user.role !== 'admin') {
         const pendingBuyNow = consumePendingBuyNowIntent();
         if (pendingBuyNow) {

@@ -9,7 +9,7 @@ import type { AddedToCartSummary } from './AddedToCartModal';
 import { useShowAddedToCartModal } from './AddedToCartModalProvider';
 import { StorefrontNoticeModal } from './StorefrontNoticeModal';
 import { savePendingBuyNowIntent } from '@/lib/storefront/pendingBuyNowIntent';
-import { getAuthToken, setAuthToken } from '@/lib/api/client';
+import { setAuthToken } from '@/lib/api/client';
 import { GuestCheckoutModal, type GuestCheckoutDetails } from './GuestCheckoutModal';
 import { toast } from 'sonner';
 import { addGuestCartItem, type GuestCartItemInput } from '@/lib/storefront/guestCart';
@@ -70,7 +70,7 @@ export function AddToCartButton({
   const addToCartAndContinue = async () => {
     const payload = getSelections?.() ?? selections;
     await addToCart(productId, quantity, payload, variationId, {
-      skip401Redirect: Boolean(resumeAfterLoginRedirect || guestCheckoutOnUnauthorized),
+      skip401Redirect: true,
     });
     window.dispatchEvent(new Event('cart:changed'));
     if (onAdded) {
@@ -113,35 +113,44 @@ export function AddToCartButton({
         return;
       }
     }
-    if (!getAuthToken() && getGuestCartItem) {
-      setLoading(true);
-      try {
-        addGuestCartItem(getGuestCartItem());
-        if (onAdded) {
-          await onAdded();
-        } else if (productSummary) {
-          showAddedToCart({ name: productSummary.name, imageUrl: productSummary.imageUrl });
-        } else {
-          toast.success('Added to cart');
-        }
-      } catch (err) {
-        setNotice({ title: "Couldn't add to cart", message: err instanceof Error ? err.message : 'Failed to add to cart' });
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
 
     setLoading(true);
     try {
       await addToCartAndContinue();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add to cart';
-      if (message.includes('401') || message.includes('Unauthorized')) {
+      const is401 =
+        message.includes('401') ||
+        message.includes('Unauthorized') ||
+        message.includes('No token') ||
+        message.includes('Invalid or expired token') ||
+        message.includes('sign in');
+
+      if (is401) {
+        if (getGuestCartItem) {
+          try {
+            addGuestCartItem(getGuestCartItem());
+            if (onAdded) {
+              await onAdded();
+            } else if (productSummary) {
+              showAddedToCart({ name: productSummary.name, imageUrl: productSummary.imageUrl });
+            } else {
+              toast.success('Added to cart');
+            }
+          } catch (guestErr) {
+            setNotice({
+              title: "Couldn't add to cart",
+              message: guestErr instanceof Error ? guestErr.message : 'Failed to add to cart',
+            });
+          }
+          return;
+        }
+
         if (guestCheckoutOnUnauthorized) {
           setGuestModalOpen(true);
           return;
         }
+
         if (resumeAfterLoginRedirect) {
           savePendingBuyNowIntent({
             productId,
@@ -155,6 +164,7 @@ export function AddToCartButton({
         }
         return;
       }
+
       setNotice({
         title: "Couldn't add to cart",
         message,

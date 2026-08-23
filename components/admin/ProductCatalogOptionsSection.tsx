@@ -188,7 +188,7 @@ export function ProductCatalogOptionsSection({
       id: v.id,
       combination: normalizeCombo(v.combination),
       sku: v.sku,
-      quantity: v.quantity ?? null,
+      quantity: v.quantity ?? 0,
       price: v.price,
       compare_at_price: v.compare_at_price,
       enabled: v.enabled,
@@ -213,7 +213,7 @@ export function ProductCatalogOptionsSection({
         id: v.id,
         combination: normalizeCombo(v.combination),
         sku: v.sku,
-        quantity: v.quantity ?? null,
+        quantity: v.quantity ?? 0,
         price: v.price,
         compare_at_price: v.compare_at_price,
         enabled: v.enabled,
@@ -323,7 +323,7 @@ export function ProductCatalogOptionsSection({
         variations.map((v, i) => ({
           combination: v.combination,
           sku: v.sku?.trim() ? v.sku.trim() : (sku.trim() ? generateVariationSku(sku, v.combination, attributes) : null),
-          quantity: v.quantity ?? null,
+          quantity: v.quantity !== null && v.quantity !== undefined && (v.quantity as unknown) !== '' ? Number(v.quantity) : 0,
           price: v.price,
           compare_at_price: v.compare_at_price,
           enabled: v.enabled,
@@ -1059,23 +1059,23 @@ export function ProductCatalogOptionsSection({
                             type="number"
                             min="0"
                             step="1"
-                            value={v.quantity ?? ''}
+                            value={v.quantity ?? 0}
                             onChange={(e) => {
                               const raw = e.target.value;
                               setVariations((prev) =>
                                 prev.map((row, i) => {
                                   if (i !== vi) return row;
-                                  if (raw === '') return { ...row, quantity: null };
+                                  if (raw === '') return { ...row, quantity: 0 };
                                   const n = Number(raw);
                                   return {
                                     ...row,
-                                    quantity: Number.isFinite(n) ? Math.max(0, Math.floor(n)) : null,
+                                    quantity: Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0,
                                   };
                                 })
                               );
                             }}
                             className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm tabular-nums"
-                            placeholder="Leave empty for unlimited"
+                            placeholder="0"
                           />
                         </div>
                         <div>

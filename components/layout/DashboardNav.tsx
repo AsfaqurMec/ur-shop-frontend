@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useCloseSidebarDrawer } from '@/components/layout/DashboardSidebarShell';
-import { clearAuthToken } from '@/lib/api/client';
+import { logout } from '@/lib/api/auth';
 import { NavCountBadge } from '@/components/layout/NavCountBadge';
 
 const iconClass = 'h-[18px] w-[18px] shrink-0 opacity-80';
@@ -40,26 +40,6 @@ const links: { href: string; label: string; icon: React.ReactNode }[] = [
       </Icon>
     ),
   },
-  // {
-  //   href: '/dashboard/downloads',
-  //   label: 'Downloads',
-  //   icon: (...),
-  // },
-  // {
-  //   href: '/dashboard/licenses',
-  //   label: 'Licenses',
-  //   icon: (...),
-  // },
-  // {
-  //   href: '/dashboard/subscriptions',
-  //   label: 'Subscriptions',
-  //   icon: (...),
-  // },
-  // {
-  //   href: '/dashboard/tickets',
-  //   label: 'Support',
-  //   icon: (...),
-  // },
   {
     href: '/dashboard/profile',
     label: 'Profile',
@@ -79,10 +59,11 @@ export function DashboardNav() {
   const closeDrawer = useCloseSidebarDrawer();
   const [answeredTicketCount] = useState<number | null>(null);
 
-  const handleLogout = () => {
-    clearAuthToken();
+  const handleLogout = async () => {
+    await logout();
     closeDrawer?.();
     router.replace('/');
+    router.refresh();
   };
 
   return (

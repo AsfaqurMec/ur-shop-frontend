@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useCloseSidebarDrawer } from '@/components/layout/DashboardSidebarShell';
-import { clearAuthToken } from '@/lib/api/client';
+import { logout } from '@/lib/api/auth';
 import { getAdminOpenTicketsCount } from '@/lib/api/admin';
 import { NavCountBadge } from '@/components/layout/NavCountBadge';
 
@@ -202,10 +202,11 @@ export function AdminNav() {
     };
   }, [pathname]);
 
-  const handleLogout = () => {
-    clearAuthToken();
+  const handleLogout = async () => {
+    await logout();
     closeDrawer?.();
     router.replace('/');
+    router.refresh();
   };
 
   return (

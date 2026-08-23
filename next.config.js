@@ -45,9 +45,42 @@ const nextConfig = {
   /**
    * Google Search and many crawlers request `/favicon.ico` by convention.
    * We ship the mark as `public/icon.png`; this serves it at that path too.
+   *
+   * Proxy `/api/*` to backend to completely mask backend Render URLs from the browser.
    */
   async rewrites() {
-    return [{ source: '/favicon.ico', destination: '/icon.png' }];
+    const backendBase = (
+      process.env.INTERNAL_BACKEND_URL ||
+      process.env.BACKEND_URL ||
+      process.env.API_URL ||
+      process.env.PUBLIC_API_URL ||
+      'http://localhost:5001'
+    ).replace(/\/$/, '');
+
+    const backendApi = backendBase.endsWith('/api') ? backendBase : `${backendBase}/api`;
+
+    return [
+      { source: '/favicon.ico', destination: '/icon.png' },
+      {
+        source: '/api/:path*',
+        destination: `${backendApi}/:path*`,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ];
   },
 };
 

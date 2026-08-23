@@ -578,7 +578,7 @@ import Link from 'next/link';
 import { getCart, removeCartItem, updateCartItem } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
 import { getProfile, guestAccountExists, guestCheckout, continueCheckout } from '@/lib/api/auth';
-import { getAuthToken, setAuthToken } from '@/lib/api/client';
+import { setAuthToken } from '@/lib/api/client';
 import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
 import { getPublicStoreSettings, type ShippingMethod } from '@/lib/api/storeSettings';
@@ -639,18 +639,22 @@ export default function CheckoutPage() {
         sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY); 
       }
     }
-    const guest = !getAuthToken();
-    setIsGuest(guest);
-
     (async () => {
       try {
         const settingsPromise = getPublicStoreSettings().catch(() => ({ shippingMethods: [] as ShippingMethod[] }));
-        if (guest) {
-          const settings = await settingsPromise;
-          if (cancelled) return;
-          const methods = settings.shippingMethods ?? [];
-          setShippingMethods(methods);
-          setShippingMethodId(methods[0]?.id ?? '');
+        const profilePromise = getProfile().catch(() => null);
+
+        const [settings, profile] = await Promise.all([settingsPromise, profilePromise]);
+        if (cancelled) return;
+
+        const methods = settings.shippingMethods ?? [];
+        setShippingMethods(methods);
+        setShippingMethodId(methods[0]?.id ?? '');
+
+        const loggedIn = Boolean(profile?.user);
+        setIsGuest(!loggedIn);
+
+        if (!loggedIn) {
           const guestCart = getGuestCart();
           setCart(guestCart);
           if (guestCart.items.length) {
@@ -685,21 +689,21 @@ export default function CheckoutPage() {
           return;
         }
 
-        const [cartData, profile, settings] = await Promise.all([
-          getCart(),
-          getProfile().catch(() => null),
-          settingsPromise,
-        ]);
+        const guestCart = getGuestCart();
+        if (guestCart.items.length > 0) {
+          try {
+            await transferGuestCartToAccount();
+          } catch {}
+        }
+
+        const cartData = await getCart();
         if (cancelled) return;
-        const methods = settings.shippingMethods ?? [];
-        setShippingMethods(methods);
-        setShippingMethodId(methods[0]?.id ?? '');
         setCart(cartData);
         // Pre-fill with user profile data as defaults (can be changed)
         if (profile?.user) {
-          setName(profile.user.name ?? '');
-          setMobile(profile.user.mobile ?? '');
-          setAddress(profile.user.address ?? '');
+          setName((prev) => prev || profile.user.name || '');
+          setMobile((prev) => prev || profile.user.mobile || '');
+          setAddress((prev) => prev || profile.user.address || '');
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load cart');

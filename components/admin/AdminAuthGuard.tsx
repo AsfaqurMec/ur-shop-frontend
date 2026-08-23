@@ -2,37 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessTokenRole } from '@/lib/auth/token';
+import { getProfile } from '@/lib/api/auth';
 import { getSafeReturnPath } from '@/lib/auth/returnPath';
-
-const TOKEN_KEY = 'auth_token';
-
-function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
 
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    let active = true;
+    getProfile()
+      .then((data) => {
+        if (!active) return;
+        if (data.user?.role === 'admin') {
+          setAuthorized(true);
+        } else {
+          setAuthorized(false);
+          router.replace('/dashboard');
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setAuthorized(false);
+        router.replace('/login?redirect=' + encodeURIComponent(getSafeReturnPath()));
+      });
 
-  useEffect(() => {
-    if (!mounted) return;
-    const token = getAuthToken();
-    if (!token) {
-      router.replace('/login?redirect=' + encodeURIComponent(getSafeReturnPath()));
-      return;
-    }
-    if (getAccessTokenRole(token) !== 'admin') {
-      router.replace('/dashboard');
-    }
-  }, [mounted, router]);
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
-  if (!mounted) {
+  if (authorized !== true) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

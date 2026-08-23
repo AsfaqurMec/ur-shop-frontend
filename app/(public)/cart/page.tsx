@@ -7,8 +7,15 @@ import {
   updateCartItem,
   removeCartItem,
 } from '@/lib/api/cart';
-import { getAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, updateGuestCartItem, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
+import { getProfile } from '@/lib/api/auth';
+import {
+  getGuestCart,
+  removeGuestCartItem,
+  setGuestCartItemThumbnail,
+  updateGuestCartItem,
+  syncGuestCartItemStock,
+  transferGuestCartToAccount,
+} from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
 import { validateCoupon } from '@/lib/api/coupons';
 import type { Cart, CartItem } from '@/types/cart';
@@ -34,49 +41,63 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const isGuest = !getAuthToken();
+  const [isGuest, setIsGuest] = useState(true);
 
   const loadCart = async () => {
     setLoading(true);
     setError(null);
-    if (!getAuthToken()) {
-      const guestCart = getGuestCart();
-      setCart(guestCart);
-      if (guestCart.items.length) {
-        void Promise.all(
-          guestCart.items.map(async (item) => {
-            try {
-              const product = await fetchProductBySlug(item.product_slug);
-              if (!item.product_thumbnail && product.thumbnail) {
-                setGuestCartItemThumbnail(item.id, product.thumbnail);
-              }
-              let liveStock: number | null = null;
-              if (item.product_variation_id && product.catalog_variations) {
-                const v = product.catalog_variations.find((vr) => vr.id === item.product_variation_id);
-                if (v && v.quantity != null) liveStock = v.quantity;
-              } else if (product.quantity != null) {
-                liveStock = product.quantity;
-              } else if (product.product_type === 'license_key' && product.license_available_count != null) {
-                liveStock = product.license_available_count;
-              }
-              if (liveStock != null) {
-                syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
-              }
-            } catch {
-              // ignore
-            }
-          })
-        ).then(() => setCart(getGuestCart()));
-      }
-      setLoading(false);
-      return;
-    }
     try {
+      const profile = await getProfile().catch(() => null);
+      const loggedIn = Boolean(profile?.user);
+      setIsGuest(!loggedIn);
+
+      if (!loggedIn) {
+        const guestCart = getGuestCart();
+        setCart(guestCart);
+        if (guestCart.items.length) {
+          void Promise.all(
+            guestCart.items.map(async (item) => {
+              try {
+                const product = await fetchProductBySlug(item.product_slug);
+                if (!item.product_thumbnail && product.thumbnail) {
+                  setGuestCartItemThumbnail(item.id, product.thumbnail);
+                }
+                let liveStock: number | null = null;
+                if (item.product_variation_id && product.catalog_variations) {
+                  const v = product.catalog_variations.find((vr) => vr.id === item.product_variation_id);
+                  if (v && v.quantity != null) liveStock = v.quantity;
+                } else if (product.quantity != null) {
+                  liveStock = product.quantity;
+                } else if (product.product_type === 'license_key' && product.license_available_count != null) {
+                  liveStock = product.license_available_count;
+                }
+                if (liveStock != null) {
+                  syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
+                }
+              } catch {
+                // ignore
+              }
+            })
+          ).then(() => setCart(getGuestCart()));
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Logged in: transfer any guest items to account first
+      const guestCart = getGuestCart();
+      if (guestCart.items.length > 0) {
+        try {
+          await transferGuestCartToAccount();
+        } catch {}
+      }
+
       const data = await getCart({ skip401Redirect: true });
       setCart(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load cart';
       if (/unauthorized/i.test(msg)) {
+        setIsGuest(true);
         setCart(getGuestCart());
       } else {
         setError(msg);
