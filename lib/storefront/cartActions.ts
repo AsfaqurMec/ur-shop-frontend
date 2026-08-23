@@ -23,7 +23,12 @@ export async function addSimpleProductToCart(product: Product) {
         productType: product.product_type,
         productThumbnail: product.thumbnail,
         unitPrice: product.price,
-        maxQuantity: product.quantity ?? product.license_available_count ?? 99,
+        maxQuantity:
+          product.product_type === 'license_key'
+            ? (product.license_available_count ?? 99)
+            : product.quantity != null && Number(product.quantity) > 0
+              ? Number(product.quantity)
+              : 99,
       });
     } else {
       throw err;

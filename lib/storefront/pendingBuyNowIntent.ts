@@ -1,4 +1,7 @@
-const PENDING_BUY_NOW_INTENT_KEY = 'pending_buy_now_intent_v1';
+import { secureSessionStorage } from '@/lib/utils/secureStorage';
+
+const LEGACY_INTENT_KEY = 'pending_buy_now_intent_v1';
+const SECURE_INTENT_KEY = '_sec_bn_intent_v2';
 
 export type PendingBuyNowIntent = {
   productId: number;
@@ -53,7 +56,8 @@ function sanitizeIntent(raw: unknown): PendingBuyNowIntent | null {
 export function savePendingBuyNowIntent(intent: PendingBuyNowIntent): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(PENDING_BUY_NOW_INTENT_KEY, JSON.stringify(intent));
+    secureSessionStorage.setItem(SECURE_INTENT_KEY, intent);
+    window.sessionStorage.removeItem(LEGACY_INTENT_KEY);
   } catch {
     // no-op if storage is unavailable
   }
@@ -62,10 +66,18 @@ export function savePendingBuyNowIntent(intent: PendingBuyNowIntent): void {
 export function consumePendingBuyNowIntent(): PendingBuyNowIntent | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(PENDING_BUY_NOW_INTENT_KEY);
-    if (!raw) return null;
-    window.sessionStorage.removeItem(PENDING_BUY_NOW_INTENT_KEY);
-    return sanitizeIntent(JSON.parse(raw));
+    const data = secureSessionStorage.getItem<unknown>(SECURE_INTENT_KEY);
+    secureSessionStorage.removeItem(SECURE_INTENT_KEY);
+    window.sessionStorage.removeItem(LEGACY_INTENT_KEY);
+    if (data) return sanitizeIntent(data);
+
+    // Fallback legacy
+    const rawLegacy = window.sessionStorage.getItem(LEGACY_INTENT_KEY);
+    if (rawLegacy) {
+      window.sessionStorage.removeItem(LEGACY_INTENT_KEY);
+      return sanitizeIntent(JSON.parse(rawLegacy));
+    }
+    return null;
   } catch {
     return null;
   }

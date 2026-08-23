@@ -1,7 +1,9 @@
 import type { Cart, CartItem } from '@/types/cart';
 import { addToCart } from '@/lib/api/cart';
+import { secureLocalStorage } from '@/lib/utils/secureStorage';
 
-const GUEST_CART_STORAGE_KEY = 'ur_shop_guest_cart_v1';
+const LEGACY_STORAGE_KEY = 'ur_shop_guest_cart_v1';
+const SECURE_CART_STORAGE_KEY = '_usc_sec_cart_v2';
 
 export interface GuestCartItemInput {
   productId: number;
@@ -22,11 +24,32 @@ type StoredGuestItem = CartItem;
 function readItems(): StoredGuestItem[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(GUEST_CART_STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item): item is StoredGuestItem =>
-      !!item && typeof item === 'object' && typeof (item as StoredGuestItem).product_id === 'number'
-    ) : [];
+    // 1. Try reading encrypted cart
+    const secureItems = secureLocalStorage.getItem<StoredGuestItem[]>(SECURE_CART_STORAGE_KEY);
+    if (Array.isArray(secureItems) && secureItems.length > 0) {
+      // Purge any old plaintext if it lingered
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return secureItems.filter((item): item is StoredGuestItem =>
+        !!item && typeof item === 'object' && typeof (item as StoredGuestItem).product_id === 'number'
+      );
+    }
+
+    // 2. Legacy fallback & migration
+    const rawLegacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (rawLegacy) {
+      try {
+        const parsed: unknown = JSON.parse(rawLegacy);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter((item): item is StoredGuestItem =>
+            !!item && typeof item === 'object' && typeof (item as StoredGuestItem).product_id === 'number'
+          );
+          secureLocalStorage.setItem(SECURE_CART_STORAGE_KEY, valid);
+          return valid;
+        }
+      } catch {}
+    }
+    return [];
   } catch {
     return [];
   }
@@ -34,7 +57,9 @@ function readItems(): StoredGuestItem[] {
 
 function writeItems(items: StoredGuestItem[]) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(items));
+  // Always write encrypted and purge any plaintext
+  secureLocalStorage.setItem(SECURE_CART_STORAGE_KEY, items);
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
 }
 
 function emitChange() {
@@ -180,17 +205,23 @@ export function clearGuestCart(): Cart {
 /** Move locally held guest items into the newly authenticated server cart. */
 export async function transferGuestCartToAccount(): Promise<Cart> {
   const items = readItems();
+  if (!items.length) return asCart([]);
   let latest: Cart | null = null;
+  const remaining: StoredGuestItem[] = [];
   for (const item of items) {
-    latest = await addToCart(
-      item.product_id,
-      item.quantity,
-      item.selections,
-      item.product_variation_id ?? undefined,
-      { skip401Redirect: true }
-    );
+    try {
+      latest = await addToCart(
+        item.product_id,
+        item.quantity,
+        item.selections,
+        item.product_variation_id ?? undefined,
+        { skip401Redirect: true }
+      );
+    } catch {
+      remaining.push(item);
+    }
   }
-  writeItems([]);
+  writeItems(remaining);
   emitChange();
-  return latest ?? { id: 0, items: [], item_count: 0, subtotal: 0 };
+  return latest ?? asCart(remaining);
 }

@@ -29,8 +29,9 @@ import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { getProductImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
+import { secureSessionStorage } from '@/lib/utils/secureStorage';
 
-const COUPON_STORAGE_KEY = 'checkout_coupon_code';
+const COUPON_STORAGE_KEY = '_sec_chk_cpn_v2';
 
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
@@ -66,10 +67,10 @@ export default function CartPage() {
                 if (item.product_variation_id && product.catalog_variations) {
                   const v = product.catalog_variations.find((vr) => vr.id === item.product_variation_id);
                   if (v && v.quantity != null) liveStock = v.quantity;
-                } else if (product.quantity != null) {
-                  liveStock = product.quantity;
                 } else if (product.product_type === 'license_key' && product.license_available_count != null) {
                   liveStock = product.license_available_count;
+                } else if (product.quantity != null && Number(product.quantity) > 0) {
+                  liveStock = product.quantity;
                 }
                 if (liveStock != null) {
                   syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
@@ -110,7 +111,10 @@ export default function CartPage() {
 
   useEffect(() => {
     loadCart();
-    const stored = typeof window !== 'undefined' ? sessionStorage.getItem(COUPON_STORAGE_KEY) : null;
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('checkout_coupon_code');
+    }
+    const stored = secureSessionStorage.getItem<string>(COUPON_STORAGE_KEY);
     if (stored) setCouponInput(stored);
   }, []);
 
@@ -157,10 +161,10 @@ export default function CartPage() {
       const result = await validateCoupon(code, cart.subtotal, cart.items);
       setCouponResult(result);
       if (result.valid) {
-        sessionStorage.setItem(COUPON_STORAGE_KEY, code);
+        secureSessionStorage.setItem(COUPON_STORAGE_KEY, code);
         toast.success('Coupon applied');
       } else {
-        sessionStorage.removeItem(COUPON_STORAGE_KEY);
+        secureSessionStorage.removeItem(COUPON_STORAGE_KEY);
         if (result.message) toast.error(result.message);
       }
     } catch (err) {
@@ -176,7 +180,7 @@ export default function CartPage() {
     setCouponInput('');
     setCouponResult(null);
     setCouponError(null);
-    sessionStorage.removeItem(COUPON_STORAGE_KEY);
+    secureSessionStorage.removeItem(COUPON_STORAGE_KEY);
   };
 
   const discount = couponResult?.valid && couponResult.discount_amount != null ? couponResult.discount_amount : 0;

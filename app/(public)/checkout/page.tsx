@@ -593,9 +593,10 @@ import { formatCurrency } from '@/lib/utils/format';
 import { toast } from 'sonner';
 import { validateCoupon } from '@/lib/api/coupons';
 import type { CouponValidationResult } from '@/types/coupon';
+import { secureSessionStorage } from '@/lib/utils/secureStorage';
 
-const COUPON_STORAGE_KEY = 'checkout_coupon_code';
-const CHECKOUT_DRAFT_STORAGE_KEY = 'checkout_guest_draft';
+const COUPON_STORAGE_KEY = '_sec_chk_cpn_v2';
+const CHECKOUT_DRAFT_STORAGE_KEY = '_sec_chk_draft_v2';
 
 function validateMobile(value: string) {
   return /^01[3-9]\d{8}$/.test(value.replace(/\D/g, ''));
@@ -627,17 +628,19 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setCouponInput(typeof window !== 'undefined' ? sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim() ?? '' : '');
-    const savedDraft = typeof window !== 'undefined' ? sessionStorage.getItem(CHECKOUT_DRAFT_STORAGE_KEY) : null;
+    // Purge any legacy unencrypted keys
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('checkout_coupon_code');
+      window.sessionStorage.removeItem('checkout_guest_draft');
+    }
+    const savedCoupon = secureSessionStorage.getItem<string>(COUPON_STORAGE_KEY);
+    setCouponInput(typeof savedCoupon === 'string' ? savedCoupon.trim() : '');
+    const savedDraft = secureSessionStorage.getItem<{ name?: string; mobile?: string; address?: string }>(CHECKOUT_DRAFT_STORAGE_KEY);
     if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft) as { name?: string; mobile?: string; address?: string };
-        setName(draft.name ?? ''); 
-        setMobile(draft.mobile ?? ''); 
-        setAddress(draft.address ?? '');
-      } catch { 
-        sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY); 
-      }
+      setName(savedDraft.name ?? '');
+      setMobile(savedDraft.mobile ?? '');
+      setAddress(savedDraft.address ?? '');
+      secureSessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
     }
     (async () => {
       try {
@@ -669,10 +672,10 @@ export default function CheckoutPage() {
                   if (item.product_variation_id && product.catalog_variations) {
                     const v = product.catalog_variations.find((vr) => vr.id === item.product_variation_id);
                     if (v && v.quantity != null) liveStock = v.quantity;
-                  } else if (product.quantity != null) {
-                    liveStock = product.quantity;
                   } else if (product.product_type === 'license_key' && product.license_available_count != null) {
                     liveStock = product.license_available_count;
+                  } else if (product.quantity != null && Number(product.quantity) > 0) {
+                    liveStock = product.quantity;
                   }
                   if (liveStock != null) {
                     syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
@@ -733,10 +736,10 @@ export default function CheckoutPage() {
       const result = await validateCoupon(code, cart.subtotal, cart.items);
       setCouponResult(result);
       if (!result.valid) throw new Error(result.message || 'Coupon is not valid.');
-      sessionStorage.setItem(COUPON_STORAGE_KEY, code);
+      secureSessionStorage.setItem(COUPON_STORAGE_KEY, code);
       toast.success('Coupon added');
     } catch (err) {
-      sessionStorage.removeItem(COUPON_STORAGE_KEY);
+      secureSessionStorage.removeItem(COUPON_STORAGE_KEY);
       toast.error(err instanceof Error ? err.message : 'Could not apply coupon.');
     } finally {
       setCouponLoading(false);
@@ -783,7 +786,7 @@ export default function CheckoutPage() {
   };
 
   const saveCheckoutDraft = () => {
-    sessionStorage.setItem(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify({ name, mobile, address }));
+    secureSessionStorage.setItem(CHECKOUT_DRAFT_STORAGE_KEY, { name, mobile, address });
   };
 
   const handleCreateOrder = async () => {
@@ -839,7 +842,7 @@ export default function CheckoutPage() {
         }
       }
 
-      const coupon = sessionStorage.getItem(COUPON_STORAGE_KEY)?.trim();
+      const coupon = secureSessionStorage.getItem<string>(COUPON_STORAGE_KEY)?.trim();
       // Always use current form data for the order
       const order = await createOrder({
         coupon_code: coupon || null,
@@ -853,8 +856,8 @@ export default function CheckoutPage() {
         address_line2: null,
         shipping_method_id: shippingMethodId || null,
       });
-      sessionStorage.removeItem(COUPON_STORAGE_KEY);
-      sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
+      secureSessionStorage.removeItem(COUPON_STORAGE_KEY);
+      secureSessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
       window.dispatchEvent(new Event('cart:changed'));
       router.push(`/order-success?orderId=${order.id}`);
     } catch (err) {
