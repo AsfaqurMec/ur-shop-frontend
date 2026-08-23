@@ -34,6 +34,7 @@ export interface Order {
   tax: number;
   total: number;
   currency: string;
+  shipping_name?: string | null;
   items: OrderItem[];
   payment?: { id: number; gateway: string; status: string; amount: number };
   created_at: string;

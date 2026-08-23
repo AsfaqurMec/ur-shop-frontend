@@ -57,6 +57,7 @@
 
   body {
     @apply min-h-screen min-w-0 bg-background text-foreground antialiased;
+    font-family: var(--font-sans), var(--font-bengali), 'Hind Siliguri', 'Noto Sans Bengali', 'SolaimanLipi', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 

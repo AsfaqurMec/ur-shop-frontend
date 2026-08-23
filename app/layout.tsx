@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans, Hind_Siliguri } from 'next/font/google';
 import { ThemeProvider, THEME_INIT_SCRIPT } from '@/components/theme';
 import { AddedToCartModalProvider } from '@/components/storefront/AddedToCartModalProvider';
 import { AppToaster } from '@/components/ui/AppToaster';
@@ -10,6 +10,13 @@ import './globals.css';
 const fontSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+});
+
+const fontBengali = Hind_Siliguri({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['bengali', 'latin'],
+  variable: '--font-bengali',
   display: 'swap',
 });
 
@@ -31,7 +38,7 @@ export default function RootLayout({
   const pixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
 
   return (
-    <html lang="en" className={fontSans.variable} suppressHydrationWarning>
+    <html lang="en" className={`${fontSans.variable} ${fontBengali.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />

@@ -20,6 +20,8 @@ export interface CreateOrderBody {
   transaction_id?: string | null;
   /** @deprecated use transaction_id */
   bkash_transaction_id?: string | null;
+  name?: string | null;
+  shipping_name?: string | null;
   mobile: string;
   address: string;
   postal_code?: string | null;

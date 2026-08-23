@@ -1,4 +1,5 @@
 import { apiPost, apiGet, apiPatch, setAuthToken, clearAuthToken } from './client';
+import { normalizeBengaliNumerals, normalizeBdMobile } from '@/lib/utils/bengali';
 import type {
   LoginResponse,
   RegisterResponse,
@@ -14,7 +15,8 @@ function unwrap<T>(res: { success: boolean; data?: T; error?: string; message?: 
 }
 
 export async function login(identifier: string, password: string): Promise<LoginResponse> {
-  const res = await apiPost<LoginResponse>('auth/login', { identifier, password }, { skipAuth: true });
+  const normId = normalizeBengaliNumerals(identifier.trim());
+  const res = await apiPost<LoginResponse>('auth/login', { identifier: normId, password }, { skipAuth: true });
   const data = unwrap(res);
   setAuthToken(data.accessToken);
   return data;
@@ -26,10 +28,11 @@ export async function register(
   name: string,
   verificationBaseUrl?: string
 ): Promise<RegisterResponse> {
+  const normId = normalizeBengaliNumerals(identifier.trim());
   const body: { identifier: string; password: string; name: string; verificationBaseUrl?: string } = {
-    identifier,
+    identifier: normId,
     password,
-    name: name.trim() || identifier,
+    name: name.trim() || normId,
   };
   if (verificationBaseUrl) body.verificationBaseUrl = verificationBaseUrl;
   const res = await apiPost<RegisterResponse>('auth/register', body, { skipAuth: true });
@@ -91,7 +94,14 @@ export async function guestCheckout(body: {
   mobile: string;
   address: string;
 }): Promise<LoginResponse> {
-  const res = await apiPost<LoginResponse>('auth/guest-checkout', body, { skipAuth: true });
+  const normMobile = normalizeBdMobile(body.mobile) || body.mobile.trim();
+  const payload = {
+    ...body,
+    name: body.name.trim(),
+    mobile: normMobile,
+    address: body.address.trim(),
+  };
+  const res = await apiPost<LoginResponse>('auth/guest-checkout', payload, { skipAuth: true });
   return unwrap(res);
 }
 
@@ -101,12 +111,14 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 export async function guestAccountExists(mobile: string): Promise<boolean> {
-  const res = await apiPost<{ exists: boolean }>('auth/guest-account-status', { mobile }, { skipAuth: true });
+  const normMobile = normalizeBdMobile(mobile) || mobile.trim();
+  const res = await apiPost<{ exists: boolean }>('auth/guest-account-status', { mobile: normMobile }, { skipAuth: true });
   return unwrap(res).exists;
 }
 
 export async function continueCheckout(mobile: string): Promise<LoginResponse> {
-  const res = await apiPost<LoginResponse>('auth/continue-checkout', { mobile }, { skipAuth: true });
+  const normMobile = normalizeBdMobile(mobile) || mobile.trim();
+  const res = await apiPost<LoginResponse>('auth/continue-checkout', { mobile: normMobile }, { skipAuth: true });
   return unwrap(res);
 }
 
