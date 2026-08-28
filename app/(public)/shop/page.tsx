@@ -14,11 +14,21 @@ import { createPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPageMetadata({
   path: '/shop',
-  title: 'Shop — all digital products',
+  title: 'Shop All Collections',
   description:
-    'Parves BD shop: browse the full catalog of downloadable software, license keys, subscriptions, and digital services. Filter by category or search.',
-  keywords: ['Parves BD shop', 'catalog', 'digital products', 'licenses'],
+    'Browse the full catalog of premium Panjabis, men’s traditional wear, designer kurtas, and lifestyle accessories at UR Shop. Filter by category, price, and newest arrivals.',
+  keywords: [
+    'UR Shop catalog',
+    'buy panjabi online',
+    'premium panjabi bd',
+    'men fashion bangladesh',
+    'panjabi shopping',
+    'kabli set online',
+    'men traditional clothing',
+    'lifestyle accessories',
+  ],
 });
+
 
 export const revalidate = 60;
 

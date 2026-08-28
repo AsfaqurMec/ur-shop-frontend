@@ -18,20 +18,29 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-
 }): Promise<Metadata> {
   const { slug } = await params;
   const category = await fetchCategoryBySlug(slug).catch(() => null);
   if (!category) {
-    return { title: 'Category', robots: { index: false, follow: false } };
+    return { title: 'Category Not Found', robots: { index: false, follow: false } };
   }
+  const title = `${category.name} Collection`;
+  const description = category.description?.trim()
+    ? truncateForMeta(stripHtml(category.description), 160)
+    : `Explore our premium ${category.name} collection at UR Shop. Find high-quality fabrics, modern fits, and exclusive designs with fast delivery in Bangladesh.`;
+
   return createPageMetadata({
     path: `/shop/category/${slug}`,
-    title: category.name,
-    description: truncateForMeta(
-      stripHtml(category.description ?? `Browse ${category.name} digital products in this category.`),
-      160
-    ),
+    title,
+    description,
+    keywords: [
+      category.name,
+      `${category.name} collection`,
+      `${category.name} UR Shop`,
+      'buy panjabi online bd',
+      'men traditional wear',
+      'premium panjabi',
+    ],
   });
 }
 

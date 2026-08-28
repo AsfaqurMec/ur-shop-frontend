@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign in',
-  description: 'Sign in to your account.',
+  title: 'Sign In',
+  description: 'Sign in to your UR Shop account to view orders, track delivery status, and manage your profile.',
 };
+
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
   return children;

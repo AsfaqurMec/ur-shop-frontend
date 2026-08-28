@@ -5,18 +5,15 @@ import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { FloatingCartSummary } from '@/components/storefront/FloatingCartSummary';
 
-/** Storefront loads catalog from the backend; force request-time rendering so build/CI without a running API does not bake empty lists into static HTML. */
-export const dynamic = 'force-dynamic';
-
 export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const settings = await getPublicStoreSettings().catch(() => null);
-   //pb-[calc(4rem+env(safe-area-inset-bottom))]
+
   return (
-    <div className="flex min-h-screen flex-col bg-background  md:pb-0"> 
+    <div className="flex min-h-screen flex-col bg-background md:pb-0">
       <JsonLd data={organizationJsonLd()} />
       <PublicHeader settings={settings} />
       <main className="flex-1">{children}</main>

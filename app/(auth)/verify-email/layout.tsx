@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Verify email',
-  description: 'Verify your email address.',
+  title: 'Verify Email',
+  description: 'Verify your email address to complete your UR Shop account registration.',
 };
+
 
 export default function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
   return children;

@@ -4,10 +4,11 @@ import { SEO_NO_INDEX } from '@/lib/seo/metadata';
 
 /** Avoid a misleading canonical — 404 can occur on any URL; only signal noindex. */
 export const metadata: Metadata = {
-  title: 'Page not found',
+  title: 'Page Not Found',
   description: 'The page you are looking for does not exist or has been moved.',
   ...SEO_NO_INDEX,
 };
+
 
 /** Global 404 — kept lightweight for crawlers and users. */
 export default function NotFound() {

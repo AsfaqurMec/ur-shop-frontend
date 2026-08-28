@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiBaseUrl } from '@/lib/api/baseUrl';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * Same-origin proxy for product images. The browser loads /api/media/products/images/... from
  * Next; this handler fetches the file from the Express backend (reads env on the server).
@@ -59,7 +57,7 @@ export async function GET(
   let upstream: Response;
   try {
     upstream = await fetch(upstreamUrl, {
-      cache: 'no-store',
+      next: { revalidate: 86400 },
       headers: { Accept: 'image/*,*/*;q=0.8' },
     });
   } catch {
@@ -77,8 +75,7 @@ export async function GET(
     status: 200,
     headers: {
       'Content-Type': contentType,
-      // Avoid stale pixels when the same URL is reused; catalog JSON is also no-store.
-      'Cache-Control': 'private, max-age=0, must-revalidate',
+      'Cache-Control': 'public, max-age=2592000, stale-while-revalidate=86400',
     },
   });
 }

@@ -21,22 +21,24 @@ export async function generateMetadata({
 
   if (!post) {
     return {
-      title: 'Article',
+      title: 'Article Not Found',
       robots: { index: false, follow: false },
     };
   }
 
-  const description = truncateForMeta(post.excerpt ?? post.title, 160);
+  const rawExcerpt = post.excerpt?.trim() || post.title;
+  const description = truncateForMeta(rawExcerpt, 160);
   const ogImage = toAbsoluteUrl(post.cover_image) ?? `${getSiteUrl()}/icon.png`;
 
   return {
     title: post.title,
     description,
+    keywords: ['UR Shop blog', post.title, 'panjabi fashion', 'menswear style'],
     alternates: { canonical },
     openGraph: {
       type: 'article',
       url: canonical,
-      title: post.title,
+      title: `${post.title} | UR Shop`,
       description,
       publishedTime: post.published_at ?? undefined,
       modifiedTime: post.updated_at,
@@ -44,12 +46,13 @@ export async function generateMetadata({
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.title,
+      title: `${post.title} | UR Shop`,
       description,
       images: [ogImage],
     },
   };
 }
+
 
 export const revalidate = 60;
 
@@ -59,7 +62,7 @@ interface PageProps {
 
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
-  const post = await fetchBlogPostBySlug(slug);
+  const post = await fetchBlogPostBySlug(slug).catch(() => null);
   if (!post) notFound();
 
   const canonicalPath = `/blogs/${slug}`;

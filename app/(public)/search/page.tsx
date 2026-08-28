@@ -15,10 +15,16 @@ import { filterCategoriesByQuery } from '@/lib/search/filterCategories';
 
 export const metadata = createPageMetadata({
   path: '/search',
-  title: 'Search products',
+  title: 'Search Products',
   description:
-    'Search Parves BD by product name or description. Find software, courses, tools, and licenses in the catalog.',
-  keywords: ['Parves BD search', 'find digital products', 'catalog search'],
+    'Search the UR Shop catalog for premium Panjabis, men’s traditional wear, sizes, colors, and lifestyle accessories.',
+  keywords: [
+    'search panjabi',
+    'UR Shop search',
+    'find men fashion',
+    'online panjabi shopping bd',
+    'panjabi catalog search',
+  ],
   index: false,
 });
 

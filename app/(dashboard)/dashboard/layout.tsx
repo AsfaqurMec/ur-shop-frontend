@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dashboard',
-  description: 'Your account dashboard',
+  title: 'Account Overview',
+  description: 'Manage your UR Shop account profile, view recent orders, and track active deliveries.',
 };
+
 
 export default function DashboardSectionLayout({
   children,

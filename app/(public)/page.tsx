@@ -1,10 +1,10 @@
-import { fetchFeaturedProducts, fetchTrendingProducts } from '@/lib/api/products';
+import { fetchFeaturedProducts, fetchTrendingProducts, fetchProducts } from '@/lib/api/products';
 import { fetchStorefrontReviews } from '@/lib/api/reviews';
 import { getPublicStoreSettings } from '@/lib/api/storeSettings';
 import { fetchPublicBanners } from '@/lib/api/banners';
 import { fetchCategories } from '@/lib/api/categories';
 import { fetchPublicAds } from '@/lib/api/ads';
-import { fetchProducts } from '@/lib/api/products';
+import { fetchHomeFeed } from '@/lib/api/homeFeed';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
@@ -15,26 +15,48 @@ import type { Product } from '@/types/product';
 
 export const metadata = createPageMetadata({
   path: '/',
-  title: 'Premium Panjabi Collection 👔 Men’s Fashion | Lifestyle Accessories',
+  title: 'Premium Panjabi Collection & Men’s Fashion',
   description: SITE_META_HOME_DESCRIPTION,
   keywords: [
     'UR Shop',
     'Premium Panjabi Collection',
     'Men’s Fashion',
+    'Men’s Traditional Wear',
+    'Kabli Set',
+    'Cotton Panjabi',
+    'Designer Panjabi Bangladesh',
     'Lifestyle Accessories',
-    'Panjabi',
-    'Men’s Clothing',
-    'Fashion',
-    'Accessories',
-    'Panjabi Collection',
+    'Panjabi Online Shopping',
+    'Eid Panjabi Collection',
   ],
 });
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  // These requests do not depend on one another. Starting them together avoids
-  // making visitors wait for round-trips before the catalog can render.
+  // Fast path: Unified single API call for all homepage data
+  const feed = await fetchHomeFeed();
+
+  if (feed) {
+    return (
+      <>
+        <JsonLd data={websiteJsonLd()} />
+        <JsonLd data={organizationJsonLd()} />
+        <HomeClient
+          featuredProducts={feed.featuredProducts}
+          trendingProducts={feed.trendingProducts}
+          banners={feed.banners}
+          reviews={feed.reviews}
+          socialLinks={feed.settings?.socialLinks ?? []}
+          categories={feed.categories}
+          categoryProducts={feed.categoryProducts}
+          ads={feed.ads}
+        />
+      </>
+    );
+  }
+
+  // Resilient fallback path
   const [featuredProducts, trendingProducts, banners, publicSettings, categories, storefrontReviews, ads] = await Promise.all([
     fetchFeaturedProducts(8).catch(() => []),
     fetchTrendingProducts(8).catch(() => []),
@@ -47,6 +69,7 @@ export default async function HomePage() {
     })),
     fetchPublicAds().catch(() => []),
   ]);
+
   const topCategories = categories
     .filter((c) => c.parent_id == null)
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));

@@ -21,19 +21,32 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await fetchProductBySlug(slug).catch(() => null);
   if (!product) {
-    return { title: 'Product', robots: { index: false, follow: false } };
+    return { title: 'Product Not Found', robots: { index: false, follow: false } };
   }
   const canonical = `${getSiteUrl()}/products/${slug}`;
-  const description = truncateForMeta(stripHtml(product.description ?? product.name), 160);
+  const rawDescription = product.description?.trim() ? stripHtml(product.description) : '';
+  const description = rawDescription
+    ? truncateForMeta(rawDescription, 160)
+    : `Buy ${product.name} online at UR Shop. Premium quality fabric, comfortable fit, and fast delivery across Bangladesh.`;
   const primary = getPrimaryProductImagePath(product);
   const rel = getProductImageUrl(primary ?? undefined);
   const ogImage = toAbsoluteUrl(rel) ?? `${getSiteUrl()}/icon.png`;
+  const keywords = [
+    product.name,
+    product.category_name,
+    'UR Shop',
+    'buy panjabi online',
+    'men traditional fashion bd',
+    'panjabi collection',
+  ].filter(Boolean) as string[];
+
   return {
     title: product.name,
     description,
+    keywords,
     alternates: { canonical },
     openGraph: {
-      title: product.name,
+      title: `${product.name} | UR Shop`,
       description,
       url: canonical,
       type: 'website',
@@ -41,12 +54,13 @@ export async function generateMetadata({
     },
     twitter: {
       card: 'summary_large_image',
-      title: product.name,
+      title: `${product.name} | UR Shop`,
       description,
       images: [ogImage],
     },
   };
 }
+
 
 export const revalidate = 60;
 

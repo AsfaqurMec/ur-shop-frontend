@@ -8,7 +8,7 @@ function unwrap<T>(r: { success: boolean; data?: T; error?: string }) {
 }
 
 export async function fetchPublicAds() {
-  return unwrap(await apiGet<{ ads: AdItem[] }>('promotions', { skipAuth: true, cache: 'no-store' })).ads;
+  return unwrap(await apiGet<{ ads: AdItem[] }>('promotions', { skipAuth: true, serverCacheSeconds: 60 })).ads;
 }
 
 export async function getAdminAds() {

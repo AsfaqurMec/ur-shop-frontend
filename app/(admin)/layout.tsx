@@ -7,9 +7,10 @@ import { ThemeToggle } from '@/components/theme';
 import { SEO_NO_INDEX } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
-  title: { default: 'Admin', template: '%s | Admin' },
+  title: { default: 'Admin Overview', template: '%s | Admin' },
   ...SEO_NO_INDEX,
 };
+
 
 export default function AdminLayout({
   children,

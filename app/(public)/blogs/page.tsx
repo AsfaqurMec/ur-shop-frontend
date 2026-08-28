@@ -5,16 +5,24 @@ import { Container } from '@/components/ui';
 
 export const metadata = createPageMetadata({
   path: '/blogs',
-  title: 'Blog & updates',
+  title: 'Blog & Style Guides',
   description:
-    'Parves BD blog: articles in English about digital products, licenses, storefront updates, and how to get the most from your purchases.',
-  keywords: ['Parves BD blog', 'digital products', 'licenses', 'guides'],
+    'Read fashion tips, Panjabi style guides, traditional wear trends, fabric care recommendations, and the latest announcements from UR Shop.',
+  keywords: [
+    'UR Shop blog',
+    'panjabi style guide',
+    'mens fashion blog bangladesh',
+    'panjabi fabric care',
+    'eid fashion tips',
+    'traditional menswear trends',
+  ],
 });
+
 
 export const revalidate = 60;
 
 export default async function BlogsIndexPage() {
-  const posts = await fetchBlogPostSummaries();
+  const posts = await fetchBlogPostSummaries().catch(() => []);
 
   return (
     <Container className="py-10 md:py-14">

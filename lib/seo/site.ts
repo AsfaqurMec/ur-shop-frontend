@@ -1,7 +1,8 @@
 /**
  * Canonical site URL for metadata, sitemaps, and JSON-LD.
- * Set NEXT_PUBLIC_SITE_URL in production (e.g. https://parvesbd.com) — no trailing slash.
+ * Set NEXT_PUBLIC_SITE_URL in production (e.g. https://urshop.com.bd) — no trailing slash.
  */
+
 
 export const SITE_NAME =
   process.env.NEXT_PUBLIC_SITE_NAME?.trim() || 'UR Shop';

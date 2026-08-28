@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { apiGet } from './client';
 import type { Product, ProductListResult, ProductListParams } from '@/types/product';
 
@@ -30,19 +31,19 @@ export async function fetchProducts(params: ProductListParams = {}): Promise<Pro
   const res = await apiGet<ProductListResult>('products', {
     params: query,
     skipAuth: true,
-    cache: 'no-store',
+    serverCacheSeconds: 60,
   });
   return unwrap(res);
 }
 
-export async function fetchProductBySlug(slug: string): Promise<Product> {
+export const fetchProductBySlug = cache(async (slug: string): Promise<Product> => {
   const res = await apiGet<{ product: Product }>(`products/s/${encodeURIComponent(slug)}`, {
     skipAuth: true,
-    cache: 'no-store',
+    serverCacheSeconds: 60,
   });
   const data = unwrap(res);
   return data.product;
-}
+});
 
 export async function fetchFeaturedProducts(limit = 8): Promise<Product[]> {
   const result = await fetchProducts({ featured: true, limit, is_active: true });
@@ -62,6 +63,16 @@ export async function fetchRelatedProducts(
   const related: Product[] = [];
   const seen = new Set<number>([product.id]);
 
+  const [byCategory, byType, byFeatured] = await Promise.all([
+    product.category_id != null
+      ? fetchProducts({ category_id: product.category_id, limit: limit + 4, is_active: true }).catch(() => emptyProductList())
+      : Promise.resolve(emptyProductList()),
+    product.product_type
+      ? fetchProducts({ product_type: product.product_type, limit: limit + 4, is_active: true }).catch(() => emptyProductList())
+      : Promise.resolve(emptyProductList()),
+    fetchProducts({ featured: true, limit: limit + 4, is_active: true }).catch(() => emptyProductList()),
+  ]);
+
   const addFromResult = (products: Product[]) => {
     for (const p of products) {
       if (seen.has(p.id)) continue;
@@ -72,24 +83,9 @@ export async function fetchRelatedProducts(
     return related.length >= limit;
   };
 
-  const fetchBatch = async (params: ProductListParams) => {
-    try {
-      const result = await fetchProducts({ ...params, limit: limit + 8, is_active: true });
-      addFromResult(result.products);
-    } catch {
-      // Catalog may be partially unavailable; keep partial results.
-    }
-  };
-
-  if (product.category_id != null) {
-    await fetchBatch({ category_id: product.category_id });
-  }
-  if (related.length < limit) {
-    await fetchBatch({ product_type: product.product_type });
-  }
-  if (related.length < limit) {
-    await fetchBatch({ featured: true });
-  }
+  addFromResult(byCategory.products);
+  if (related.length < limit) addFromResult(byType.products);
+  if (related.length < limit) addFromResult(byFeatured.products);
 
   return related.slice(0, limit);
 }

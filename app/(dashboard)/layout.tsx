@@ -6,9 +6,10 @@ import { DashboardAuthGuard } from '@/components/dashboard';
 import { SEO_NO_INDEX } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
-  title: { default: 'My account', template: '%s | Account' },
+  title: { default: 'Account Overview', template: '%s | Account' },
   ...SEO_NO_INDEX,
 };
+
 
 export default function DashboardLayout({
   children,

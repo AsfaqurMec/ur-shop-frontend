@@ -6,6 +6,7 @@ export type StorefrontReview = ProductReviewPublic & {
   product_slug: string;
 };
 
+
 function unwrap<T>(res: { success: boolean; data?: T; error?: string }): T {
   if (!res.success || res.data === undefined) throw new Error(res.error ?? 'Request failed');
   return res.data;
@@ -20,7 +21,7 @@ export async function fetchProductReviews(
     {
       params: params as Record<string, string | number | boolean | undefined>,
       skipAuth: true,
-      cache: 'no-store',
+      serverCacheSeconds: 60,
     }
   );
   return unwrap(res);
@@ -32,7 +33,7 @@ export async function fetchStorefrontReviews(
   const res = await apiGet<{ reviews: StorefrontReview[]; total: number }>('reviews', {
     params: params as Record<string, string | number | boolean | undefined>,
     skipAuth: true,
-    cache: 'no-store',
+    serverCacheSeconds: 60,
   });
   return unwrap(res);
 }

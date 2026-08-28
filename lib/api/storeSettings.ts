@@ -40,7 +40,8 @@ function unwrap<T>(res: { success: boolean; data?: T; error?: string; message?: 
 
 export const getPublicStoreSettings = cache(async (): Promise<PublicStoreSettings> => {
   const res = await apiGet<{ settings: PublicStoreSettings }>('store-settings/public', {
-    params: { _t: Date.now() },
+    skipAuth: true,
+    serverCacheSeconds: 60,
   });
   return unwrap(res).settings;
 });

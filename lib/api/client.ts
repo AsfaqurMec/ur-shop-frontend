@@ -120,22 +120,32 @@ export async function api<T = unknown>(
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
 
   /** Prefer `next.revalidate` alone — combining with `cache: force-cache` triggers Next.js warnings. */
+  const isPublicGet = (!init.method || init.method.toUpperCase() === 'GET') && Boolean(skipAuth);
+  const effectiveCacheSeconds = serverCacheSeconds !== undefined ? serverCacheSeconds : (isPublicGet ? 60 : 0);
+
   const serverFetch =
     typeof window === 'undefined'
-      ? serverCacheSeconds != null && serverCacheSeconds > 0
-        ? { next: { revalidate: serverCacheSeconds } }
-        : { cache: 'no-store' as RequestCache, next: { revalidate: 0 } }
+      ? init.cache === 'no-store' || effectiveCacheSeconds === 0
+        ? { cache: 'no-store' as RequestCache, next: { revalidate: 0 } }
+        : { next: { revalidate: effectiveCacheSeconds } }
       : {};
 
-  const res = await fetch(url, {
-    credentials: 'include',
-    ...init,
-    headers,
-    ...serverFetch,
-  });
-  return handleResponse<T>(res, {
-    skip401Redirect: Boolean(skip401Redirect) || Boolean(skipAuth),
-  });
+  try {
+    const res = await fetch(url, {
+      credentials: 'include',
+      ...init,
+      headers,
+      ...serverFetch,
+    });
+    return handleResponse<T>(res, {
+      skip401Redirect: Boolean(skip401Redirect) || Boolean(skipAuth),
+    });
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    };
+  }
 }
 
 export const apiGet = <T = unknown>(path: string, config?: RequestConfig) =>
