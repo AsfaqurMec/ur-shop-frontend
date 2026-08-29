@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { cn } from '@/lib/utils/cn';
 import { getProductImageUrl } from '@/lib/imageUrl';
-import { Trash2, SlidersHorizontal } from 'lucide-react';
+import { Trash2, SlidersHorizontal, Loader2 } from 'lucide-react';
 
 export interface CheckoutOrderItemsAccordionProps {
   items: CartItem[];
@@ -81,7 +81,13 @@ export function CheckoutOrderItemsAccordion({
                     ) : (
                       <div className="mt-2 inline-flex items-center rounded-md border border-border bg-background">
                         <button type="button" aria-label={`Decrease ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity - 1)} disabled={updatingId === item.id || item.quantity <= 1} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">−</button>
-                        <span className="min-w-8 text-center text-sm font-medium tabular-nums">{item.quantity}</span>
+                        <span className="flex min-w-8 items-center justify-center text-center text-sm font-medium tabular-nums">
+                          {updatingId === item.id ? (
+                            <Loader2 className="size-3 animate-spin text-primary" />
+                          ) : (
+                            item.quantity
+                          )}
+                        </span>
                         <button type="button" aria-label={`Increase ${item.product_name} quantity`} onClick={() => onUpdateItem(item, item.quantity + 1)} disabled={updatingId === item.id || item.quantity >= (item.max_quantity ?? 99)} className="h-7 w-7 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">+</button>
                       </div>
                     )}

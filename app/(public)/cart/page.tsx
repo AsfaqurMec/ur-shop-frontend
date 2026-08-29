@@ -29,7 +29,7 @@ import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { getProductImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
-import { Trash2, SlidersHorizontal } from 'lucide-react';
+import { Trash2, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { secureSessionStorage } from '@/lib/utils/secureStorage';
 import { EditVariationModal } from '@/components/cart/EditVariationModal';
 
@@ -362,8 +362,12 @@ export default function CartPage() {
           >
             −
           </button>
-          <span className="min-w-9 text-center text-sm font-medium tabular-nums">
-            {item.quantity}
+          <span className="flex min-w-9 items-center justify-center text-center text-sm font-medium tabular-nums">
+            {updatingId === item.id ? (
+              <Loader2 className="size-3.5 animate-spin text-primary" />
+            ) : (
+              item.quantity
+            )}
           </span>
           <button
             type="button"
