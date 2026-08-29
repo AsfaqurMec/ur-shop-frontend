@@ -8,6 +8,7 @@ import { Container } from '@/components/ui';
 import { CategoryFilter } from '@/components/storefront';
 import { SearchInput } from '@/components/storefront';
 import { ShopCollapsibleFilters } from '@/components/storefront';
+import { ShopSaleFilter, ShopSidebarFilters, ShopSortControl } from '@/components/storefront/ShopCollapsibleFilters';
 import { SocialSpeedDial } from '@/components/storefront';
 import { CategoryShopClient } from '../../CategoryShopClient';
 import type { Metadata } from 'next';
@@ -57,6 +58,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const search = typeof searchParamsResolved.search === 'string' ? searchParamsResolved.search : undefined;
   const minPrice = typeof searchParamsResolved.min_price === 'string' ? Number(searchParamsResolved.min_price) : undefined;
   const maxPrice = typeof searchParamsResolved.max_price === 'string' ? Number(searchParamsResolved.max_price) : undefined;
+  const onSale = searchParamsResolved.on_sale === '1';
+  const sort = typeof searchParamsResolved.sort === 'string' && ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'].includes(searchParamsResolved.sort)
+    ? searchParamsResolved.sort as 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc'
+    : undefined;
 
   const category = await fetchCategoryBySlug(slug).catch(() => null);
   if (!category) notFound();
@@ -69,6 +74,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       search,
       min_price: Number.isFinite(minPrice) ? minPrice : undefined,
       max_price: Number.isFinite(maxPrice) ? maxPrice : undefined,
+      on_sale: onSale || undefined,
+      sort,
       is_active: true,
     }).catch(() => emptyProductList(1, 8)),
     fetchCategories().catch((): Category[] => []),
@@ -93,39 +100,47 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             categories={categories}
             searchBasePath={`/shop/category/${slug}`}
             categorySlug={slug}
-            searchPlaceholder="Search in category…"
+            searchPlaceholder={`Search in ${category.name}…`}
           />
         </div>
       </div>
       <div className="flex flex-col gap-10 lg:flex-row lg:gap-12">
         <aside className="hidden shrink-0 lg:block lg:w-60">
           <div className="space-y-8 lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
-            <div>
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Search
-              </h2>
-              <Suspense fallback={<div className="h-10 w-full animate-pulse rounded-md bg-muted" aria-hidden />}>
-                <SearchInput basePath={`/shop/category/${slug}`} placeholder="Search in category…" />
-              </Suspense>
-            </div>
-            <div className="rounded-xl border border-border/80 bg-card p-4 shadow-card">
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Categories
-              </h2>
-              <CategoryFilter categories={categories} currentSlug={slug} basePath="/shop" />
-            </div>
+            <ShopSidebarFilters basePath={`/shop/category/${slug}`} />
+            <details className="rounded-xl border border-border/80 bg-card p-4 shadow-card" open>
+              <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-muted-foreground">Categories</summary>
+              <div className="mt-3">
+                <CategoryFilter categories={categories} currentSlug={slug} basePath="/shop" />
+              </div>
+            </details>
+            <ShopSaleFilter basePath={`/shop/category/${slug}`} />
           </div>
         </aside>
         <div className="min-w-0 flex-1">
-          <CategoryShopClient
-            initialProducts={result.products}
-            total={result.total}
-            categorySlug={slug}
-            categoryId={category.id}
-            search={search}
-            minPrice={Number.isFinite(minPrice) ? minPrice : undefined}
-            maxPrice={Number.isFinite(maxPrice) ? maxPrice : undefined}
-          />
+          <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
+            <Suspense fallback={<div className="h-10 w-72 animate-pulse rounded-md bg-muted" aria-hidden />}>
+              <SearchInput
+                basePath={`/shop/category/${slug}`}
+                placeholder={`Search ${category.name}`}
+                className="w-full max-w-md"
+              />
+            </Suspense>
+            <ShopSortControl basePath={`/shop/category/${slug}`} />
+          </div>
+          <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded" />}>
+            <CategoryShopClient
+              initialProducts={result.products}
+              total={result.total}
+              categorySlug={slug}
+              categoryId={category.id}
+              search={search}
+              minPrice={Number.isFinite(minPrice) ? minPrice : undefined}
+              maxPrice={Number.isFinite(maxPrice) ? maxPrice : undefined}
+              onSale={onSale}
+              sort={sort}
+            />
+          </Suspense>
         </div>
       </div>
     </Container>

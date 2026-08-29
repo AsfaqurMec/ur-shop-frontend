@@ -9,24 +9,34 @@ import { SearchInput } from './SearchInput';
 
 type ProductSort = 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc';
 
-function applyParams(router: ReturnType<typeof useRouter>, searchParams: ReturnType<typeof useSearchParams>, updates: Record<string, string | null>) {
+function applyParams(
+  router: ReturnType<typeof useRouter>,
+  searchParams: ReturnType<typeof useSearchParams>,
+  updates: Record<string, string | null>,
+  basePath: string = '/shop'
+) {
   const params = new URLSearchParams(searchParams.toString());
   Object.entries(updates).forEach(([key, value]) => {
     if (value) params.set(key, value);
     else params.delete(key);
   });
   params.delete('page');
-  router.push(`/shop${params.toString() ? `?${params}` : ''}`);
+  router.push(`${basePath}${params.toString() ? `?${params}` : ''}`);
 }
 
-export function ShopSortControl() {
+export function ShopSortControl({ basePath = '/shop' }: { basePath?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sort, setSort] = useState<ProductSort>((searchParams.get('sort') as ProductSort) || 'newest');
 
+  const currentSort = (searchParams.get('sort') as ProductSort) || 'newest';
+  if (sort !== currentSort && !searchParams.has('sort') && sort !== 'newest') {
+    setSort('newest');
+  }
+
   const changeSort = (value: ProductSort) => {
     setSort(value);
-    applyParams(router, searchParams, { sort: value === 'newest' ? null : value });
+    applyParams(router, searchParams, { sort: value === 'newest' ? null : value }, basePath);
   };
 
   return (
@@ -39,15 +49,15 @@ export function ShopSortControl() {
   );
 }
 
-export function ShopSidebarFilters() {
+export function ShopSidebarFilters({ basePath = '/shop' }: { basePath?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price') ?? 100000));
+  const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price') ?? 5000));
   const ceiling = 5000;
 
   const apply = () => applyParams(router, searchParams, {
     max_price: maxPrice < ceiling ? String(maxPrice) : null,
-  });
+  }, basePath);
 
   return (
     <div className="space-y-6 rounded-xl border border-border/80 bg-card p-4 shadow-card">
@@ -61,11 +71,24 @@ export function ShopSidebarFilters() {
   );
 }
 
-export function ShopSaleFilter() {
+export function ShopSaleFilter({ basePath = '/shop' }: { basePath?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const saleOnly = searchParams.get('on_sale') === '1';
-  return <div className="rounded-xl border border-border/80 bg-card p-4 shadow-card"><h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Sale</h2><label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground"><input type="checkbox" checked={saleOnly} onChange={(e) => applyParams(router, searchParams, { on_sale: e.target.checked ? '1' : null })} className="h-4 w-4 accent-primary" /> Sale items only</label></div>;
+  return (
+    <div className="rounded-xl border border-border/80 bg-card p-4 shadow-card">
+      <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Sale</h2>
+      <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+        <input
+          type="checkbox"
+          checked={saleOnly}
+          onChange={(e) => applyParams(router, searchParams, { on_sale: e.target.checked ? '1' : null }, basePath)}
+          className="h-4 w-4 accent-primary"
+        />
+        Sale items only
+      </label>
+    </div>
+  );
 }
 
 function FilterSlidersIcon({ className = '' }: { className?: string }) {
