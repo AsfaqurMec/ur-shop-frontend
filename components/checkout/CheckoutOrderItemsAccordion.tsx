@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { cn } from '@/lib/utils/cn';
 import { getProductImageUrl } from '@/lib/imageUrl';
-import { Trash2 } from 'lucide-react';
+import { Trash2, SlidersHorizontal } from 'lucide-react';
 
 export interface CheckoutOrderItemsAccordionProps {
   items: CartItem[];
@@ -16,6 +16,7 @@ export interface CheckoutOrderItemsAccordionProps {
   updatingId: number | null;
   onRemoveItem: (itemId: number) => void;
   onUpdateItem: (item: CartItem, quantity: number) => void;
+  onEditItem?: (item: CartItem) => void;
 }
 
 export function CheckoutOrderItemsAccordion({
@@ -24,6 +25,7 @@ export function CheckoutOrderItemsAccordion({
   updatingId,
   onRemoveItem,
   onUpdateItem,
+  onEditItem,
 }: CheckoutOrderItemsAccordionProps) {
   const [open, setOpen] = useState(true);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -91,6 +93,18 @@ export function CheckoutOrderItemsAccordion({
                           </li>
                         ))}
                       </ul>
+                    ) : null}
+                    {onEditItem ? (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => onEditItem(item)}
+                          className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-xs hover:bg-red-700 active:bg-red-800 transition-colors"
+                        >
+                          <SlidersHorizontal className="size-3 text-white" />
+                          Edit item
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">

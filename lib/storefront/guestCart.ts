@@ -153,6 +153,71 @@ export function updateGuestCartItem(itemId: number, quantity: number): Cart {
   return asCart(items);
 }
 
+export interface UpdateGuestCartItemVariationInput {
+  variationId?: number | null;
+  selections?: Record<string, string>;
+  selectionsSummary?: CartItem['selections_summary'];
+  unitPrice?: number;
+  maxQuantity?: number;
+  quantity?: number;
+  productThumbnail?: string | null;
+}
+
+export function updateGuestCartItemVariation(
+  itemId: number,
+  update: UpdateGuestCartItemVariationInput
+): Cart {
+  const items = readItems();
+  const index = items.findIndex((c) => c.id === itemId);
+  if (index === -1) return asCart(items);
+
+  const current = items[index];
+  const targetVid = update.variationId !== undefined ? update.variationId : current.product_variation_id;
+  const targetSelections = update.selections !== undefined ? update.selections : (current.selections ?? {});
+  const targetMaxQ = update.maxQuantity !== undefined ? (update.maxQuantity != null ? Math.max(0, update.maxQuantity) : 99) : (current.max_quantity ?? 99);
+  const targetUnitPrice = update.unitPrice !== undefined ? Math.round((Number(update.unitPrice) || 0) * 100) / 100 : current.unit_price;
+  const targetQty = targetMaxQ <= 0
+    ? 0
+    : Math.max(1, Math.min(update.quantity !== undefined ? update.quantity : current.quantity, targetMaxQ));
+
+  const matchIndex = items.findIndex(
+    (c) =>
+      c.id !== itemId &&
+      c.product_id === current.product_id &&
+      Number(c.product_variation_id ?? 0) === Number(targetVid ?? 0) &&
+      JSON.stringify(selectionKey(c.selections ?? {})) === JSON.stringify(selectionKey(targetSelections))
+  );
+
+  if (matchIndex >= 0) {
+    const match = items[matchIndex];
+    match.max_quantity = targetMaxQ;
+    match.unit_price = targetUnitPrice;
+    match.quantity = Math.min(targetMaxQ, match.quantity + targetQty);
+    match.line_total = Math.round(match.quantity * match.unit_price * 100) / 100;
+    if (!match.product_thumbnail && update.productThumbnail) {
+      match.product_thumbnail = update.productThumbnail;
+    }
+    items.splice(index, 1);
+  } else {
+    current.product_variation_id = targetVid ?? null;
+    current.selections = targetSelections;
+    current.selections_summary =
+      update.selectionsSummary ??
+      Object.entries(targetSelections).map(([label, value]) => ({ label, value }));
+    current.unit_price = targetUnitPrice;
+    current.max_quantity = targetMaxQ;
+    current.quantity = targetQty;
+    current.line_total = Math.round(current.quantity * current.unit_price * 100) / 100;
+    if (update.productThumbnail) {
+      current.product_thumbnail = update.productThumbnail;
+    }
+  }
+
+  writeItems(items);
+  emitChange();
+  return asCart(items);
+}
+
 export function syncGuestCartItemStock(productId: number, variationId: number | null | undefined, liveStock: number | null): Cart {
   if (liveStock == null) return asCart(readItems());
   const items = readItems();

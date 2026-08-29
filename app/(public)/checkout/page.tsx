@@ -7,15 +7,16 @@ import { getCart, removeCartItem, updateCartItem } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
 import { getProfile, guestAccountExists, guestCheckout, continueCheckout } from '@/lib/api/auth';
 import { setAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
+import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem, updateGuestCartItemVariation, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
 import { getPublicStoreSettings, type ShippingMethod } from '@/lib/api/storeSettings';
-import type { Cart } from '@/types/cart';
+import type { Cart, CartItem } from '@/types/cart';
 import type { PaymentMethod } from '@/types/payment';
 import type { CheckoutPaymentMethod } from '@/lib/api/checkout';
 import { CheckoutPaymentMethods } from '@/components/checkout/CheckoutPaymentMethods';
 import { CheckoutShippingMethods } from '@/components/checkout/CheckoutShippingMethods';
 import { CheckoutOrderItemsAccordion } from '@/components/checkout/CheckoutOrderItemsAccordion';
+import { EditVariationModal } from '@/components/cart/EditVariationModal';
 import { Container, Button, Input, Card, CardContent, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/format';
 import { toast } from 'sonner';
@@ -37,6 +38,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
@@ -101,6 +103,8 @@ export default function CheckoutPage() {
                     liveStock = product.license_available_count;
                   } else if (product.quantity != null && Number(product.quantity) > 0) {
                     liveStock = product.quantity;
+                  } else {
+                    liveStock = 99;
                   }
                   if (liveStock != null) {
                     syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
@@ -207,6 +211,43 @@ export default function CheckoutPage() {
       showCheckoutError(err instanceof Error ? err.message : 'Could not update quantity.');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleSaveVariation = async (data: {
+    itemId: number;
+    variationId?: number | null;
+    selections: Record<string, string>;
+    selectionsSummary: Array<{ label: string; value: string }>;
+    unitPrice: number;
+    maxQuantity: number;
+    quantity: number;
+    productThumbnail?: string | null;
+  }) => {
+    setSubmitError(null);
+    if (data.itemId < 0) {
+      const updated = updateGuestCartItemVariation(data.itemId, {
+        variationId: data.variationId,
+        selections: data.selections,
+        selectionsSummary: data.selectionsSummary,
+        unitPrice: data.unitPrice,
+        maxQuantity: data.maxQuantity,
+        quantity: data.quantity,
+        productThumbnail: data.productThumbnail,
+      });
+      setCart(updated);
+      toast.success('Options updated');
+      window.dispatchEvent(new Event('cart:changed'));
+    } else {
+      const updated = await updateCartItem(
+        data.itemId,
+        data.quantity,
+        data.selections,
+        data.variationId
+      );
+      setCart(updated);
+      toast.success('Options updated');
+      window.dispatchEvent(new Event('cart:changed'));
     }
   };
 
@@ -439,7 +480,14 @@ export default function CheckoutPage() {
         </div>
 
         <div className="order-1 space-y-4 lg:order-none lg:col-span-2">
-          <CheckoutOrderItemsAccordion items={cart.items} removingId={removingId} updatingId={updatingId} onRemoveItem={removeItem} onUpdateItem={updateItemQuantity} />
+          <CheckoutOrderItemsAccordion
+            items={cart.items}
+            removingId={removingId}
+            updatingId={updatingId}
+            onRemoveItem={removeItem}
+            onUpdateItem={updateItemQuantity}
+            onEditItem={setEditingItem}
+          />
           <Card className="shadow-sm lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="text-base sm:text-lg">Summary</CardTitle>
@@ -498,6 +546,12 @@ export default function CheckoutPage() {
           </Card>
         </div>
       </div>
+      <EditVariationModal
+        open={Boolean(editingItem)}
+        onClose={() => setEditingItem(null)}
+        item={editingItem}
+        onSave={handleSaveVariation}
+      />
     </Container>
   );
 }

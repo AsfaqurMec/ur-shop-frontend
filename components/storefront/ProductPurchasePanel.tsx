@@ -11,12 +11,6 @@ import { ProductSocialContactStrip } from './ProductSocialContactStrip';
 const purchaseCardClass =
   'overflow-hidden rounded-2xl border border-border/55 bg-gradient-to-b from-card via-card to-muted/25 shadow-[0_20px_40px_-20px_hsl(var(--foreground)/0.15)] ring-1 ring-foreground/[0.03] dark:from-card dark:via-card dark:to-muted/20 dark:shadow-[0_24px_48px_-24px_hsl(0_0%_0%/0.5)] dark:ring-white/[0.05]';
 
-const LOCK_QTY_ONE_TYPES = new Set<Product['product_type']>([
-  'downloadable',
-  'subscription_manual',
-  'digital_service',
-]);
-
 function storefrontVars(product: Product) {
   return (product.purchase_variables ?? []).filter((v) => v.enabled !== false);
 }
@@ -304,7 +298,6 @@ export function ProductPurchasePanel({
       return Math.max(0, Number(matchedVariation.quantity));
     }
     if (productQuantity != null) return productQuantity;
-    if (LOCK_QTY_ONE_TYPES.has(product.product_type)) return 1;
     if (product.product_type === 'license_key' && product.license_available_count != null) {
       return Math.max(0, product.license_available_count);
     }

@@ -53,9 +53,33 @@ export async function addToCart(
   return data.cart;
 }
 
-/** Update cart item quantity (requires auth). */
-export async function updateCartItem(itemId: number, quantity: number): Promise<Cart> {
-  const res = await apiPut<{ cart: Cart }>(`cart/items/${itemId}`, { quantity });
+/** Update cart item quantity, selections, or variation (requires auth). */
+export async function updateCartItem(
+  itemId: number,
+  quantity?: number,
+  selections?: Record<string, string>,
+  variationId?: number | null
+): Promise<Cart> {
+  const body: Record<string, unknown> = {};
+  if (quantity !== undefined) {
+    body.quantity = quantity;
+  }
+  if (selections !== undefined) {
+    body.selections = selections;
+  }
+  if (variationId !== undefined) {
+    if (variationId == null) {
+      body.variation_id = null;
+    } else {
+      const n = Number(variationId);
+      if (Number.isFinite(n) && n >= 1) {
+        body.variation_id = Math.trunc(n);
+      } else {
+        body.variation_id = null;
+      }
+    }
+  }
+  const res = await apiPut<{ cart: Cart }>(`cart/items/${itemId}`, body);
   const data = unwrap(res);
   return data.cart;
 }

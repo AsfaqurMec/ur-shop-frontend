@@ -13,6 +13,7 @@ import {
   removeGuestCartItem,
   setGuestCartItemThumbnail,
   updateGuestCartItem,
+  updateGuestCartItemVariation,
   syncGuestCartItemStock,
   transferGuestCartToAccount,
 } from '@/lib/storefront/guestCart';
@@ -28,8 +29,9 @@ import { formatCurrency } from '@/lib/utils/format';
 import { storefrontSelectionsSummary } from '@/lib/utils/selectionsSummary';
 import { getProductImageUrl } from '@/lib/imageUrl';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { Trash2, SlidersHorizontal } from 'lucide-react';
 import { secureSessionStorage } from '@/lib/utils/secureStorage';
+import { EditVariationModal } from '@/components/cart/EditVariationModal';
 
 const COUPON_STORAGE_KEY = '_sec_chk_cpn_v2';
 
@@ -42,6 +44,7 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [isGuest, setIsGuest] = useState(true);
 
   const loadCart = async () => {
@@ -71,6 +74,8 @@ export default function CartPage() {
                   liveStock = product.license_available_count;
                 } else if (product.quantity != null && Number(product.quantity) > 0) {
                   liveStock = product.quantity;
+                } else {
+                  liveStock = 99;
                 }
                 if (liveStock != null) {
                   syncGuestCartItemStock(item.product_id, item.product_variation_id, liveStock);
@@ -148,6 +153,43 @@ export default function CartPage() {
       setError(err instanceof Error ? err.message : 'Failed to remove item');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleSaveVariation = async (data: {
+    itemId: number;
+    variationId?: number | null;
+    selections: Record<string, string>;
+    selectionsSummary: Array<{ label: string; value: string }>;
+    unitPrice: number;
+    maxQuantity: number;
+    quantity: number;
+    productThumbnail?: string | null;
+  }) => {
+    setCouponResult(null);
+    if (data.itemId < 0) {
+      const updated = updateGuestCartItemVariation(data.itemId, {
+        variationId: data.variationId,
+        selections: data.selections,
+        selectionsSummary: data.selectionsSummary,
+        unitPrice: data.unitPrice,
+        maxQuantity: data.maxQuantity,
+        quantity: data.quantity,
+        productThumbnail: data.productThumbnail,
+      });
+      setCart(updated);
+      toast.success('Options updated');
+      window.dispatchEvent(new Event('cart:changed'));
+    } else {
+      const updated = await updateCartItem(
+        data.itemId,
+        data.quantity,
+        data.selections,
+        data.variationId
+      );
+      setCart(updated);
+      toast.success('Options updated');
+      window.dispatchEvent(new Event('cart:changed'));
     }
   };
 
@@ -288,36 +330,51 @@ export default function CartPage() {
           ))}
         </ul>
       ) : null}
+
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={() => setEditingItem(item)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-xs hover:bg-red-700 active:bg-red-800 transition-colors"
+        >
+          <SlidersHorizontal className="size-3 text-white" />
+          Edit item
+        </button>
+      </div>
     </div>
   </div>
 
   {/* Controls */}
   <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto sm:justify-end">
     <div className="flex items-center gap-3">
-      <label className="sr-only" htmlFor={`qty-${item.id}`}>
-        Quantity
-      </label>
-
       {isOutOfStock ? (
         <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive whitespace-nowrap">
           Out of stock
         </span>
       ) : (
-        <select
-          id={`qty-${item.id}`}
-          value={displayQty}
-          onChange={(e) =>
-            handleUpdateQuantity(item, Number(e.target.value))
-          }
-          disabled={updatingId === item.id}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          {Array.from({ length: selectMax }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+        <div className="inline-flex items-center rounded-md border border-border bg-background shadow-xs">
+          <button
+            type="button"
+            aria-label={`Decrease ${item.product_name} quantity`}
+            onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
+            disabled={updatingId === item.id || item.quantity <= 1}
+            className="flex h-8 w-8 items-center justify-center text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+          >
+            −
+          </button>
+          <span className="min-w-9 text-center text-sm font-medium tabular-nums">
+            {item.quantity}
+          </span>
+          <button
+            type="button"
+            aria-label={`Increase ${item.product_name} quantity`}
+            onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
+            disabled={updatingId === item.id || item.quantity >= (item.max_quantity ?? 99)}
+            className="flex h-8 w-8 items-center justify-center text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+          >
+            +
+          </button>
+        </div>
       )}
 
       <span className="w-auto min-w-[80px] text-right font-medium tabular-nums">
@@ -402,6 +459,12 @@ export default function CartPage() {
           </Card>
         </div>
       </div>
+      <EditVariationModal
+        open={Boolean(editingItem)}
+        onClose={() => setEditingItem(null)}
+        item={editingItem}
+        onSave={handleSaveVariation}
+      />
     </Container>
   );
 }

@@ -1,112 +1,3 @@
-// 'use client';
-
-// import Link from 'next/link';
-// import { useRouter } from 'next/navigation';
-// import type { Product } from '@/types/product';
-// import { getPrimaryProductImageAlt, getPrimaryProductImagePath } from '@/lib/imageUrl';
-// import { Button } from '@/components/ui';
-// import { ProductTypeBadge } from './ProductTypeBadge';
-// import { ProductPhoto } from './ProductPhoto';
-// import { splitCurrencyDisplay } from '@/lib/utils/format';
-
-// export interface ProductCardProps {
-//   product: Product;
-//   onAddToCart?: (product: Product) => void;
-//   addToCartLoading?: boolean;
-// }
-
-// export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductCardProps) {
-//   const router = useRouter();
-//   const needsPdp = product.needs_pdp_config === true;
-//   const primaryPath = getPrimaryProductImagePath(product);
-//   const imageAlt = getPrimaryProductImageAlt(product, primaryPath);
-//   const hasComparePrice = product.compare_at_price != null && product.compare_at_price > product.price;
-//   const priceParts = splitCurrencyDisplay(product.price);
-//   const compareParts = hasComparePrice ? splitCurrencyDisplay(product.compare_at_price!) : null;
-//   const savePercent =
-//     hasComparePrice && product.compare_at_price! > 0
-//       ? Math.max(0, Math.round((1 - product.price / product.compare_at_price!) * 100))
-//       : 0;
-
-//   return (
-//     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border/80 bg-card shadow-card transition-all duration-200 hover:border-primary/20 hover:shadow-card-hover">
-//       <Link
-//         href={`/products/${product.slug}`}
-//         className="relative isolate block aspect-square overflow-hidden bg-muted"
-//       >
-//         <ProductPhoto
-//           path={primaryPath}
-//           alt={imageAlt}
-//           fill
-//           className="transition-transform duration-300 group-hover:scale-[1.03]"
-//         />
-//         <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
-//           {/* <ProductTypeBadge type={product.product_type} /> */}
-//         </div>
-//       </Link>
-//       <div className="flex flex-1 flex-col p-4">
-//         <Link href={`/products/${product.slug}`} className="block">
-//           <h2 className="line-clamp-1 min-h-[1.5rem] text-md md:text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
-//             {product.name}
-//           </h2>
-//         </Link>
-//         <div className="mt-2 space-y-1">
-//           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-//             <span className="inline-flex items-baseline gap-0.5 text-lg font-bold tracking-tight text-foreground">
-//               <span className=" text-sm md:text-2xl font-semibold leading-none"><span className='mr-1'>TK</span> {priceParts.amount}</span>
-//               <span className="sr-only">BDT</span>
-//               {/* <span className="pl-[2px] text-base md:text-2xl font-semibold leading-none text-primary" aria-hidden>
-//                 {priceParts.symbol}
-//               </span> */}
-//             </span>
-//             {compareParts && (
-//               <span
-//                 className="inline-flex items-baseline gap-1 text-xs font-medium text-muted-foreground/75 line-through decoration-muted-foreground/60 [text-decoration-thickness:1px]"
-//                 aria-label={`Was ${compareParts.symbol}${compareParts.amount}`}
-//               >
-//                 <span className="text-xs font-normal leading-none opacity-80" aria-hidden>
-//                   {/* {compareParts.symbol} */} Tk 
-//                 </span>
-//                 <span className="">{compareParts.amount}</span>
-//               </span>
-//             )}
-//           </div>
-//           {savePercent > 0 ? (
-//             <p className="text-[11px] font-semibold leading-tight text-emerald-600 dark:text-emerald-400/90">
-//               Save {savePercent}%
-//             </p>
-//           ) : null}
-//         </div>
-//         <div className="mt-auto  gap-2 pt-4 hidden sm:flex flex-row w-full">
-//           <Button
-//             variant="primary"
-//             size="sm"
-//             fullWidth
-//             className="sm:flex-1 w-[60%]"
-//             onClick={(e) => {
-//               e.preventDefault();
-//               if (needsPdp) {
-//                 router.push(`/products/${product.slug}`);
-//                 return;
-//               }
-//               onAddToCart?.(product);
-//             }}
-//             isLoading={addToCartLoading}
-//           >
-//             Add to cart
-//           </Button>
-//           <Link
-//             href={`/products/${product.slug}`}
-//             className="inline-flex w-[40%]  h-9 md:h-9 shrink-0 items-center justify-center rounded-lg border border-input bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:w-auto"
-//           >
-//             View
-//           </Link>
-//         </div>
-//       </div>
-//     </article>
-//   );
-// }
-
 'use client';
 
 import Link from 'next/link';
@@ -114,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import type { Product } from '@/types/product';
 import { getPrimaryProductImageAlt, getPrimaryProductImagePath } from '@/lib/imageUrl';
 import { Button } from '@/components/ui';
-import { ProductTypeBadge } from './ProductTypeBadge';
 import { ProductPhoto } from './ProductPhoto';
 import { splitCurrencyDisplay } from '@/lib/utils/format';
 import { ShoppingCart } from 'lucide-react';
+
 export interface ProductCardProps {
   product: Product;
   onAddToCart?: (product: Product, options?: { showConfirmation?: boolean }) => void | Promise<void>;
@@ -126,7 +17,12 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductCardProps) {
   const router = useRouter();
-  const needsPdp = product.needs_pdp_config === true;
+  const isVariationProduct =
+    product.needs_pdp_config === true ||
+    (product.catalog_variations && product.catalog_variations.length > 0) ||
+    (product.catalog_attributes && product.catalog_attributes.some((a) => a.used_for_variations)) ||
+    (product.purchase_variables && product.purchase_variables.length > 0);
+
   const primaryPath = getPrimaryProductImagePath(product);
   const imageAlt = getPrimaryProductImageAlt(product, primaryPath);
   const hasComparePrice = product.compare_at_price != null && product.compare_at_price > product.price;
@@ -140,9 +36,24 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
   const isSoldOut = product.quantity != null && product.quantity <= 0;
 
   const handleBuyNow = async () => {
-    if (isSoldOut || !onAddToCart) return;
+    if (isSoldOut) return;
+    if (isVariationProduct) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
+    if (!onAddToCart) return;
     await onAddToCart(product, { showConfirmation: false });
     router.push('/checkout');
+  };
+
+  const handleAddToCart = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (isSoldOut) return;
+    if (isVariationProduct) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
+    onAddToCart?.(product);
   };
 
   return (
@@ -158,7 +69,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           className={`transition-transform duration-300 group-hover:scale-[1.03] ${isSoldOut ? 'grayscale-[40%]' : ''}`}
         />
         <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
-          {/* <ProductTypeBadge type={product.product_type} /> */}
+          {/* Badge space */}
         </div>
         {/* Sold Out or Sale/Compare Price Badge - Top Right */}
         {isSoldOut ? (
@@ -177,14 +88,16 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
       </Link>
       <div className="flex flex-1 flex-col px-2 md:px-4 py-4">
         <Link href={`/products/${product.slug}`} className="block">
-          <h2 className=" line-clamp-2 min-h-[2.5rem] text-[15px] md:text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary uppercase">
+          <h2 className="line-clamp-2 min-h-[2.5rem] text-[15px] md:text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary uppercase">
             {product.name}
           </h2>
         </Link>
         <div className="mt-2 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-1.5 md:gap-x-2 gap-y-0.5">
             <span className="inline-flex items-baseline gap-0.5 text-lg font-bold tracking-tight text-foreground">
-              <span className=" text-md md:text-lg font-semibold leading-none"><span className='mr-1'>TK</span> {priceParts.amount}</span>
+              <span className="text-md md:text-lg font-semibold leading-none">
+                <span className="mr-1">TK</span> {priceParts.amount}
+              </span>
               <span className="sr-only">BDT</span>
             </span>
             {compareParts && (
@@ -195,7 +108,7 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
                 <span className="text-xs font-normal leading-none opacity-80" aria-hidden>
                   Tk 
                 </span>
-                <span className="">{compareParts.amount}</span>
+                <span>{compareParts.amount}</span>
               </span>
             )}
           </div>
@@ -205,29 +118,21 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
             </p>
           ) : null}
         </div>
-        <div className="mt-auto  gap-2 pt-4 hidden sm:flex flex-row w-full">
+        <div className="mt-auto gap-2 pt-4 hidden sm:flex flex-row w-full">
           <Button
-            variant={isSoldOut ? "outline" : "primary"}
+            variant={isSoldOut ? 'outline' : 'primary'}
             size="sm"
             fullWidth
             disabled={isSoldOut}
             className="sm:flex-1 w-[60%]"
-            onClick={(e) => {
-              e.preventDefault();
-              if (isSoldOut) return;
-              if (needsPdp) {
-                router.push(`/products/${product.slug}`);
-                return;
-              }
-              onAddToCart?.(product);
-            }}
+            onClick={handleAddToCart}
             isLoading={addToCartLoading}
           >
             {isSoldOut ? 'Sold out' : 'Add to cart'}
           </Button>
           <Link
             href={`/products/${product.slug}`}
-            className="inline-flex w-[40%]  h-9 md:h-9 shrink-0 items-center justify-center rounded-lg border border-input bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:w-auto"
+            className="inline-flex w-[40%] h-9 md:h-9 shrink-0 items-center justify-center rounded-lg border border-input bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:w-auto"
           >
             View
           </Link>
@@ -245,17 +150,13 @@ export function ProductCard({ product, onAddToCart, addToCartLoading }: ProductC
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (isSoldOut) return;
-              if (needsPdp) router.push(`/products/${product.slug}`);
-              else void onAddToCart?.(product);
-            }}
+            onClick={handleAddToCart}
             disabled={isSoldOut || addToCartLoading}
             className="uppercase font-semibold inline-flex h-7 w-7 p-1.5 items-center justify-center rounded-full bg-black hover:bg-primary text-primary-foreground shadow-md shadow-primary/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={isSoldOut ? 'Sold Out' : `Add ${product.name} to cart`}
             title={isSoldOut ? 'Sold Out' : 'Add to cart'}
           >
-            <ShoppingCart />
+            <ShoppingCart className="size-4" />
           </button>
         </div>
       </div>
