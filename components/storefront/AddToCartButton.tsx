@@ -3,14 +3,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { addToCart } from '@/lib/api/cart';
-import { guestCheckout } from '@/lib/api/auth';
 import { getSafeReturnPath } from '@/lib/auth/returnPath';
 import type { AddedToCartSummary } from './AddedToCartModal';
 import { useShowAddedToCartModal } from './AddedToCartModalProvider';
 import { StorefrontNoticeModal } from './StorefrontNoticeModal';
 import { savePendingBuyNowIntent } from '@/lib/storefront/pendingBuyNowIntent';
-import { setAuthToken } from '@/lib/api/client';
-import { GuestCheckoutModal, type GuestCheckoutDetails } from './GuestCheckoutModal';
 import { toast } from 'sonner';
 import { addGuestCartItem, type GuestCartItemInput } from '@/lib/storefront/guestCart';
 
@@ -35,8 +32,6 @@ export interface AddToCartButtonProps {
   onAdded?: () => void | Promise<void>;
   /** If provided, preserves payload for post-login replay and then redirects to this path. */
   resumeAfterLoginRedirect?: string;
-  /** When true, unauthenticated buy-now shows a guest form instead of redirecting to login. */
-  guestCheckoutOnUnauthorized?: boolean;
   /** Item snapshot used when a guest adds this configured product to their local cart. */
   getGuestCartItem?: () => GuestCartItemInput;
   disabled?: boolean;
@@ -57,14 +52,11 @@ export function AddToCartButton({
   validateBeforeAdd,
   onAdded,
   resumeAfterLoginRedirect,
-  guestCheckoutOnUnauthorized = false,
   getGuestCartItem,
   disabled = false,
 }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
-  const [guestModalOpen, setGuestModalOpen] = useState(false);
-  const [guestProcessingMessage, setGuestProcessingMessage] = useState<string | null>(null);
   const showAddedToCart = useShowAddedToCartModal();
 
   const addToCartAndContinue = async () => {
@@ -82,27 +74,6 @@ export function AddToCartButton({
     } else {
       toast.success('Added to cart');
     }
-  };
-
-  const handleGuestSubmit = async (details: GuestCheckoutDetails) => {
-    setGuestProcessingMessage('Creating your account…');
-    const result = await guestCheckout(details);
-    setAuthToken(result.accessToken);
-    window.dispatchEvent(new Event('profile:updated'));
-
-    setGuestProcessingMessage('Adding product to cart…');
-    const payload = getSelections?.() ?? selections;
-    await addToCart(productId, quantity, payload, variationId, {
-      skip401Redirect: true,
-    });
-    window.dispatchEvent(new Event('cart:changed'));
-
-    setGuestProcessingMessage(null);
-    if (onAdded) {
-      await onAdded();
-      return;
-    }
-    toast.success('Added to cart');
   };
 
   const handleClick = async () => {
@@ -146,11 +117,6 @@ export function AddToCartButton({
           return;
         }
 
-        if (guestCheckoutOnUnauthorized) {
-          setGuestModalOpen(true);
-          return;
-        }
-
         if (resumeAfterLoginRedirect) {
           savePendingBuyNowIntent({
             productId,
@@ -191,15 +157,6 @@ export function AddToCartButton({
         title={notice?.title ?? ''}
         message={notice?.message ?? ''}
         onClose={() => setNotice(null)}
-      />
-      <GuestCheckoutModal
-        open={guestModalOpen}
-        onClose={() => {
-          setGuestModalOpen(false);
-          setGuestProcessingMessage(null);
-        }}
-        onSubmit={handleGuestSubmit}
-        processingMessage={guestProcessingMessage}
       />
     </>
   );

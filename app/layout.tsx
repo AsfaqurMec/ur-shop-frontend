@@ -77,7 +77,7 @@ export default function RootLayout({
               }(window, document, 'script',
               'https://connect.facebook.net/en_US/fbevents.js');
 
-              fbq('init', '${pixelId}');
+              fbq('init', '${pixelId.replace(/[^0-9a-zA-Z_-]/g, '')}');
               fbq('track', 'PageView');
             `}
           </Script>

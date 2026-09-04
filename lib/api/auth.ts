@@ -1,4 +1,5 @@
 import { apiPost, apiGet, apiPatch, setAuthToken, clearAuthToken } from './client';
+import { getApiBaseUrl } from './baseUrl';
 import { normalizeBengaliNumerals, normalizeBdMobile } from '@/lib/utils/bengali';
 import type {
   LoginResponse,
@@ -124,7 +125,8 @@ export async function continueCheckout(mobile: string): Promise<LoginResponse> {
 
 export async function logout(): Promise<void> {
   try {
-    await fetch('/api/auth/logout', {
+    const base = getApiBaseUrl().replace(/\/$/, '');
+    await fetch(`${base}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

@@ -1,8 +1,8 @@
 import { getApiBaseUrl } from './baseUrl';
 import { getAuthToken } from './client';
 
-/** Download an authenticated order invoice and save it with the server-provided filename. */
-export async function downloadOrderInvoice(orderId: number): Promise<void> {
+/** Download an order invoice (authenticated or guest with guestToken) and save it with the server-provided filename. */
+export async function downloadOrderInvoice(orderId: number, guestToken?: string | null): Promise<void> {
   const token = getAuthToken();
   const headers: Record<string, string> = {};
   if (token) {
@@ -10,7 +10,8 @@ export async function downloadOrderInvoice(orderId: number): Promise<void> {
   }
 
   const base = getApiBaseUrl().replace(/\/$/, '');
-  const response = await fetch(`${base}/dashboard/orders/${orderId}/invoice`, {
+  const query = guestToken ? `?token=${encodeURIComponent(guestToken)}` : '';
+  const response = await fetch(`${base}/checkout/orders/${orderId}/invoice${query}`, {
     credentials: 'include',
     headers,
   });

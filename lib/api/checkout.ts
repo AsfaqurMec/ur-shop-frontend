@@ -27,6 +27,12 @@ export interface CreateOrderBody {
   postal_code?: string | null;
   address_line2?: string | null;
   shipping_method_id?: string | null;
+  items?: Array<{
+    product_id: number;
+    product_variation_id?: number | null;
+    quantity: number;
+    selections?: Record<string, string>;
+  }>;
 }
 
 /** Create order from cart (requires auth). Cart is cleared on success. */

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getAccessTokenRole } from './lib/auth/token';
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -7,7 +8,8 @@ export function middleware(request: NextRequest) {
 
   // Protected Admin routes
   if (pathname.startsWith('/admin')) {
-    if (!authToken) {
+    const role = authToken ? getAccessTokenRole(authToken) : null;
+    if (role !== 'admin') {
       const returnUrl = encodeURIComponent(`${pathname}${search}`);
       const loginUrl = new URL(`/login?redirect=${returnUrl}`, request.url);
       return NextResponse.redirect(loginUrl);

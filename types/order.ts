@@ -40,4 +40,6 @@ export interface Order {
   created_at: string;
   /** Set when checkout starts bKash redirect flow. */
   bkash_checkout_url?: string | null;
+  /** Unique guest token for order invoice access */
+  guest_token?: string | null;
 }

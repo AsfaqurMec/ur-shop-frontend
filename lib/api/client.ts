@@ -55,11 +55,49 @@ export interface RequestConfig extends RequestInit {
   skipAuth?: boolean;
   /** When true, a 401 response clears the token but does not redirect to login (useful on bKash return URL). */
   skip401Redirect?: boolean;
+  /** Internal retry guard to avoid infinite refresh loops. */
+  _isRetry?: boolean;
   /**
    * Server-only: opt into time-based revalidation for public catalog reads (sitemap, SEO).
    * When unset, defaults to `no-store` for fresh user/session-sensitive data.
    */
   serverCacheSeconds?: number;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function performTokenRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const base = getApiBaseUrl().replace(/\/$/, '');
+      const res = await fetch(`${base}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      if (!res.ok) return false;
+      const data = await res.json().catch(() => null);
+      return Boolean(data?.success);
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+function shouldAttemptRefresh(path: string, skipAuth?: boolean, isRetry?: boolean): boolean {
+  if (typeof window === 'undefined') return false;
+  if (skipAuth || isRetry) return false;
+  const p = path.toLowerCase();
+  if (p.includes('auth/login') || p.includes('auth/refresh') || p.includes('auth/logout') || p.includes('auth/register')) {
+    return false;
+  }
+  return true;
 }
 
 function buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
@@ -137,6 +175,12 @@ export async function api<T = unknown>(
       headers,
       ...serverFetch,
     });
+    if (res.status === 401 && shouldAttemptRefresh(path, skipAuth, config._isRetry)) {
+      const refreshed = await performTokenRefresh();
+      if (refreshed) {
+        return api<T>(path, { ...config, _isRetry: true });
+      }
+    }
     return handleResponse<T>(res, {
       skip401Redirect: Boolean(skip401Redirect) || Boolean(skipAuth),
     });
@@ -175,6 +219,12 @@ export async function apiPostFormData<T = unknown>(
   const token = skipAuth ? null : getToken();
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { ...init, method: 'POST', body: formData, headers, credentials: 'include' });
+  if (res.status === 401 && shouldAttemptRefresh(path, skipAuth, config?._isRetry)) {
+    const refreshed = await performTokenRefresh();
+    if (refreshed) {
+      return apiPostFormData<T>(path, formData, { ...config, _isRetry: true });
+    }
+  }
   const skip401 = Boolean(skip401Redirect) || Boolean(skipAuth);
   return handleResponse<T>(res, { skip401Redirect: skip401 });
 }
@@ -190,6 +240,12 @@ export async function apiPutFormData<T = unknown>(
   const token = skipAuth ? null : getToken();
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { ...init, method: 'PUT', body: formData, headers, credentials: 'include' });
+  if (res.status === 401 && shouldAttemptRefresh(path, skipAuth, config?._isRetry)) {
+    const refreshed = await performTokenRefresh();
+    if (refreshed) {
+      return apiPutFormData<T>(path, formData, { ...config, _isRetry: true });
+    }
+  }
   const skip401 = Boolean(skip401Redirect) || Boolean(skipAuth);
   return handleResponse<T>(res, { skip401Redirect: skip401 });
 }

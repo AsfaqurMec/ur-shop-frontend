@@ -14,6 +14,8 @@ export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const paidOk = searchParams.get('paid') === '1';
+  const guestToken = searchParams.get('guestToken') || searchParams.get('token');
+  const isGuestOrder = Boolean(guestToken);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -35,9 +37,11 @@ export default function OrderSuccessPage() {
           <AlertDescription>Missing order reference. Go to your orders or home.</AlertDescription>
         </Alert>
         <div className="mt-4 flex gap-4">
-          <Link href="/dashboard/orders">
-            <Button>My orders</Button>
-          </Link>
+          {!isGuestOrder && (
+            <Link href="/dashboard/orders">
+              <Button>My orders</Button>
+            </Link>
+          )}
           <Link href="/">
             <Button variant="outline">Home</Button>
           </Link>
@@ -63,7 +67,7 @@ export default function OrderSuccessPage() {
   const handleInvoiceDownload = async () => {
     setDownloading(true);
     try {
-      await downloadOrderInvoice(orderIdNum);
+      await downloadOrderInvoice(orderIdNum, guestToken);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not download the invoice.');
     } finally {
@@ -87,12 +91,20 @@ export default function OrderSuccessPage() {
             Order reference: <strong>#{orderId}</strong>
           </p>
           <div className="flex flex-col gap-3 sm:flex-row w-full">
-            <Link href="/dashboard/orders" className="w-full sm:w-1/2">
-              <Button variant="outline" fullWidth className='bg-primary text-white hover:bg-red-700'>
-                View my orders
-              </Button>
-            </Link>
-            <Button variant="secondary" fullWidth className="w-full sm:w-1/2 bg-stone-800 text-white hover:bg-stone-700" onClick={handleInvoiceDownload} isLoading={downloading}>
+            {!isGuestOrder && (
+              <Link href="/dashboard/orders" className="w-full sm:w-1/2">
+                <Button variant="outline" fullWidth className='bg-primary text-white hover:bg-red-700'>
+                  View my orders
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="secondary"
+              fullWidth
+              className={isGuestOrder ? 'w-full bg-stone-800 text-white hover:bg-stone-700' : 'w-full sm:w-1/2 bg-stone-800 text-white hover:bg-stone-700'}
+              onClick={handleInvoiceDownload}
+              isLoading={downloading}
+            >
               Download invoice PDF
             </Button>
           </div>

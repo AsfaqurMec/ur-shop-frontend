@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCart, removeCartItem, updateCartItem } from '@/lib/api/cart';
 import { createOrder } from '@/lib/api/checkout';
-import { getProfile, guestAccountExists, guestCheckout, continueCheckout } from '@/lib/api/auth';
-import { setAuthToken } from '@/lib/api/client';
-import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem, updateGuestCartItemVariation, syncGuestCartItemStock } from '@/lib/storefront/guestCart';
+import { getProfile } from '@/lib/api/auth';
+import { getGuestCart, removeGuestCartItem, setGuestCartItemThumbnail, transferGuestCartToAccount, updateGuestCartItem, updateGuestCartItemVariation, syncGuestCartItemStock, clearGuestCart } from '@/lib/storefront/guestCart';
 import { fetchProductBySlug } from '@/lib/api/products';
 import { getPublicStoreSettings, type ShippingMethod } from '@/lib/api/storeSettings';
 import type { Cart, CartItem } from '@/types/cart';
@@ -51,7 +50,6 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [couponResult, setCouponResult] = useState<CouponValidationResult | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
-  const [checkingExistingAccount, setCheckingExistingAccount] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -283,28 +281,16 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      if (isGuest) {
-        // Check if account exists
-        if (await guestAccountExists(normalizedMobile)) {
-          // Use existing account but with form data
-          const result = await continueCheckout(normalizedMobile);
-          setAuthToken(result.accessToken);
-          window.dispatchEvent(new Event('profile:updated'));
-          await transferGuestCartToAccount();
-        } else {
-          // Create new account with form data
-          const result = await guestCheckout({
-            name: trimmedName,
-            mobile: normalizedMobile,
-            address: trimmedAddress,
-          });
-          setAuthToken(result.accessToken);
-          window.dispatchEvent(new Event('profile:updated'));
-          await transferGuestCartToAccount();
-        }
-      }
-
       const coupon = secureSessionStorage.getItem<string>(COUPON_STORAGE_KEY)?.trim();
+      const guestItems = isGuest
+        ? cart.items.map((item) => ({
+            product_id: item.product_id,
+            product_variation_id: item.product_variation_id ?? null,
+            quantity: item.quantity,
+            selections: item.selections ?? undefined,
+          }))
+        : undefined;
+
       // Always use current form data (name, mobile, address) for the order
       const order = await createOrder({
         name: trimmedName,
@@ -318,11 +304,17 @@ export default function CheckoutPage() {
         postal_code: null,
         address_line2: null,
         shipping_method_id: shippingMethodId || null,
+        items: guestItems,
       });
+
+      if (isGuest) {
+        clearGuestCart();
+      }
       secureSessionStorage.removeItem(COUPON_STORAGE_KEY);
       secureSessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
       window.dispatchEvent(new Event('cart:changed'));
-      router.push(`/order-success?orderId=${order.id}`);
+      const guestTokenParam = order.guest_token ? `&guestToken=${encodeURIComponent(order.guest_token)}` : '';
+      router.push(`/order-success?orderId=${order.id}${guestTokenParam}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Checkout failed. Please try again.';
       showCheckoutError(message);
@@ -532,9 +524,9 @@ export default function CheckoutPage() {
                 fullWidth
                 size="lg"
                 variant={hasOutOfStockItems ? 'secondary' : 'success'}
-                disabled={hasOutOfStockItems || submitting || checkingExistingAccount}
+                disabled={hasOutOfStockItems || submitting}
                 onClick={() => void handleCreateOrder()}
-                isLoading={submitting || checkingExistingAccount}
+                isLoading={submitting}
                 className={hasOutOfStockItems ? 'cursor-not-allowed opacity-60' : ''}
               >
                 {hasOutOfStockItems ? 'Item(s) out of stock' : 'Place order'}
