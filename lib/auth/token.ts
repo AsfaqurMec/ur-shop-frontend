@@ -3,6 +3,7 @@ export interface AccessTokenPayload {
   id?: number;
   email?: string;
   role?: string;
+  exp?: number;
 }
 
 /**
@@ -27,12 +28,24 @@ export function decodeAccessTokenPayload(token: string | null): AccessTokenPaylo
   }
 }
 
+/**
+ * Checks whether the access token has expired according to its JWT exp claim.
+ * Includes a 5-second buffer to prevent race conditions.
+ */
+export function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  const p = decodeAccessTokenPayload(token);
+  if (!p || typeof p.exp !== 'number') return true;
+  return Date.now() >= p.exp * 1000 - 5000;
+}
+
 export function getAccessTokenUserId(token: string | null): number | null {
   const p = decodeAccessTokenPayload(token);
   return typeof p?.id === 'number' ? p.id : null;
 }
 
 export function getAccessTokenRole(token: string | null): 'user' | 'admin' | null {
+  if (isTokenExpired(token)) return null;
   const p = decodeAccessTokenPayload(token);
   if (!p?.role) return null;
   return p.role === 'admin' ? 'admin' : 'user';
